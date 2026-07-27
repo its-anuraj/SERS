@@ -1,0 +1,30 @@
+/**
+ * Ambulance Routes
+ */
+
+const express = require('express');
+const { body } = require('express-validator');
+const router = express.Router();
+const { authenticate, authorize } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { listAmbulances, trackAmbulance, updateLocation, getAmbulance } = require('../controllers/ambulance.controller');
+
+// GET /api/ambulances — Admin/Coordinator fleet view
+router.get('/', authenticate, authorize('admin', 'coordinator', 'hospital_staff'), listAmbulances);
+
+// GET /api/ambulances/track/:id — Live tracking (citizen can track their assigned ambulance)
+router.get('/track/:id', authenticate, trackAmbulance);
+
+// GET /api/ambulances/:id
+router.get('/:id', authenticate, getAmbulance);
+
+// POST /api/ambulances/:id/location — Responder posts GPS updates
+router.post('/:id/location', authenticate, authorize('responder', 'admin'), [
+    body('lat').isFloat({ min: -90, max: 90 }),
+    body('lng').isFloat({ min: -180, max: 180 }),
+    body('heading').optional().isFloat({ min: 0, max: 360 }),
+    body('speedKmh').optional().isFloat({ min: 0 }),
+    validate,
+], updateLocation);
+
+module.exports = router;

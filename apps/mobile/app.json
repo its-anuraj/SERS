@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "SERS",
+    "slug": "sers-emergency",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0e1a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "in.sers.emergency",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SERS needs background location to track your position during an emergency and for crash detection.",
+        "NSLocationWhenInUseUsageDescription": "SERS needs location to find nearest hospitals and dispatch ambulances.",
+        "NSMotionUsageDescription": "SERS needs motion sensor access for AI crash detection.",
+        "NSMicrophoneUsageDescription": "SERS needs microphone for Voice SOS feature.",
+        "NSCameraUsageDescription": "SERS needs camera for scene assessment during emergencies.",
+        "UIBackgroundModes": ["location", "audio", "fetch"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0e1a"
+      },
+      "package": "in.sers.emergency",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SERS needs background location for emergency tracking and crash detection."
+        }
+      ],
+      "expo-sensors",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ef4444"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

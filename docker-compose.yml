@@ -1,0 +1,152 @@
+version: '3.9'
+
+# ============================================================
+# SERS — Docker Compose
+# Runs: PostgreSQL+PostGIS, Redis, Node.js API, Python ML
+# Usage: docker-compose up -d
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # PostgreSQL 16 with PostGIS 3.4
+  # ----------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sers_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sers_db
+      POSTGRES_USER: sers_user
+      POSTGRES_PASSWORD: sers_secret_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./services/api/src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./services/api/src/db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sers_user -d sers_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sers_network
+
+  # ----------------------------------------------------------
+  # Redis 7 — Session cache + live ambulance positions
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: sers_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sers_network
+
+  # ----------------------------------------------------------
+  # Node.js API + Socket.io
+  # ----------------------------------------------------------
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: sers_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: sers_db
+      DB_USER: sers_user
+      DB_PASSWORD: sers_secret_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ML_SERVICE_URL: http://ml:8001
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_prod}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-devencryptionkey12345678901234}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ABDM_CLIENT_ID: ${ABDM_CLIENT_ID:-}
+      ABDM_CLIENT_SECRET: ${ABDM_CLIENT_SECRET:-}
+      ABDM_ENV: ${ABDM_ENV:-sandbox}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/api:/app
+      - /app/node_modules
+    networks:
+      - sers_network
+
+  # ----------------------------------------------------------
+  # Python FastAPI ML Microservice
+  # ----------------------------------------------------------
+  ml:
+    build:
+      context: ./services/ml
+      dockerfile: Dockerfile
+    container_name: sers_ml
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      ENVIRONMENT: development
+      API_KEY: ml_internal_api_key
+    volumes:
+      - ./services/ml:/app
+      - ml_models:/app/models
+    networks:
+      - sers_network
+
+  # ----------------------------------------------------------
+  # Nginx — Reverse Proxy
+  # ----------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: sers_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - ml
+    networks:
+      - sers_network
+
+# ----------------------------------------------------------
+# Volumes
+# ----------------------------------------------------------
+volumes:
+  pgdata:
+    name: sers_pgdata
+  redisdata:
+    name: sers_redisdata
+  ml_models:
+    name: sers_ml_models
+
+# ----------------------------------------------------------
+# Networks
+# ----------------------------------------------------------
+networks:
+  sers_network:
+    name: sers_network
+    driver: bridge

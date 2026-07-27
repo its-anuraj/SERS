@@ -1,0 +1,72 @@
+# ---- Dependencies ----
+node_modules/
+.pnp
+.pnp.js
+
+# ---- Build outputs ----
+dist/
+build/
+.next/
+out/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# ---- Environment ----
+.env
+.env.local
+.env.production
+.env.staging
+
+# ---- Logs ----
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Mobile ----
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+android/
+ios/
+
+# ---- ML Models (large files — use Git LFS or cloud storage) ----
+services/ml/models/*.tflite
+services/ml/models/*.pkl
+services/ml/models/*.pt
+services/ml/models/*.h5
+
+# ---- Database ----
+*.sql.bak
+pgdata/
+
+# ---- Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Certificates ----
+*.pem
+*.crt
+*.p12
+
+# ---- Firebase / Google credentials ----
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist

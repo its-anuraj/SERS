@@ -1,0 +1,29 @@
+{
+  "name": "sers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Emergency Response System — AI-powered, ABDM-compliant emergency platform",
+  "workspaces": [
+    "services/api",
+    "services/ml",
+    "apps/web-public",
+    "apps/web-admin"
+  ],
+  "scripts": {
+    "dev:api": "cd services/api && npm run dev",
+    "dev:web-public": "cd apps/web-public && npm run dev",
+    "dev:web-admin": "cd apps/web-admin && npm run dev",
+    "dev:ml": "cd services/ml && uvicorn main:app --reload --port 8001",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "db:migrate": "cd services/api && npm run db:migrate",
+    "db:seed": "cd services/api && npm run db:seed"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
+  }
+}
