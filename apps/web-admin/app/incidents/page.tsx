@@ -307,8 +307,8 @@ export default function IncidentsPage() {
 
     socket.on('incident:new', (incident: Incident) => {
       setIncidents(prev => [incident, ...prev]);
-      setNewIds(prev => new Set([...prev, incident.id]));
-      setTimeout(() => setNewIds(prev => { const n = new Set(prev); n.delete(incident.id); return n; }), 5000);
+      setNewIds(prev => new Set([...Array.from(prev), incident.id]));
+      setTimeout(() => setNewIds(prev => { const n = new Set(Array.from(prev)); n.delete(incident.id); return n; }), 5000);
     });
 
     socket.on('incident:status', ({ incidentId, status }: { incidentId: string; status: string }) => {
