@@ -96,5 +96,3 @@ Full Ayushman Bharat Digital Mission integration:
 - M2: Health records discovery + emergency pre-authorization
 - M3: Post-treatment record contribution
 
-## 📄 License
-MIT — Final Year Project → Real Product
