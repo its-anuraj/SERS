@@ -1,10 +1,9 @@
-version: '3.9'
-
 # ============================================================
 # SERS — Docker Compose
 # Runs: PostgreSQL+PostGIS, Redis, Node.js API, Python ML
 # Usage: docker-compose up -d
 # ============================================================
+
 
 services:
 

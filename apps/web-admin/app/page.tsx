@@ -218,7 +218,8 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen]   = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [newAlertCount, setNewAlertCount]     = useState(0);
-  const [lastRefresh, setLastRefresh]         = useState(new Date());
+  const [lastRefresh, setLastRefresh]         = useState<Date | null>(null);
+  const [isMounted, setIsMounted]             = useState(false);
 
   const [stats, setStats]         = useState<any>(null);
   const [incidents, setIncidents] = useState<any[]>([]);
@@ -226,6 +227,11 @@ export default function DashboardPage() {
   const [typeData, setTypeData]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setLastRefresh(new Date());
+  }, []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -312,8 +318,8 @@ export default function DashboardPage() {
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Command Center</h1>
-              <p className="text-xs text-slate-400">
-                {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              <p className="text-xs text-slate-400" suppressHydrationWarning>
+                {isMounted ? new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
               </p>
             </div>
           </div>
@@ -323,7 +329,9 @@ export default function DashboardPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white transition-colors"
               style={{ border: '1px solid var(--border)' }}>
               <RefreshCw size={12} />
-              {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              <span suppressHydrationWarning>
+                {isMounted && lastRefresh ? lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Refreshing...'}
+              </span>
             </button>
 
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border

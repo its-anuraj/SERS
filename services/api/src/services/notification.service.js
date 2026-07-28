@@ -13,11 +13,16 @@ try {
     const serviceAccountPath = path.join(__dirname, '../../firebase-service-account.json');
     if (fs.existsSync(serviceAccountPath)) {
         const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
-        isInitialized = true;
-        logger.info('Firebase Admin SDK initialized successfully (V1 API ready).');
+        const certFn = admin?.credential?.cert || admin?.default?.credential?.cert;
+        if (certFn) {
+            admin.initializeApp({
+                credential: certFn(serviceAccount)
+            });
+            isInitialized = true;
+            logger.info('Firebase Admin SDK initialized successfully (V1 API ready).');
+        } else {
+            logger.warn('Firebase credential loader unavailable. Notifications running in MOCK mode.');
+        }
     } else {
         logger.warn('firebase-service-account.json not found. Notifications will run in MOCK mode.');
     }

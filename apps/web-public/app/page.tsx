@@ -85,11 +85,12 @@ function Navbar() {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  // Only 4 meaningful, distinct sections
+  // Links for public portal pages & sections
   const links = [
-    { href: '#problem',      label: 'The Problem' },
-    { href: '#detection',    label: 'AI Detection' },
-    { href: '#hospital',     label: 'Hospital AI' },
+    { href: '/sos',           label: '🚨 Web SOS' },
+    { href: '/hospitals',     label: '🏥 Hospitals' },
+    { href: '/live-map',      label: '📍 Live Map' },
+    { href: 'http://localhost:3002', label: '⚡ Admin Portal' },
     { href: '#how-it-works', label: 'How It Works' },
   ];
 
@@ -102,7 +103,7 @@ function Navbar() {
         <div className="flex items-center justify-between h-16 sm:h-20">
 
           {/* Logo */}
-          <a href="#top" className="flex items-center gap-2.5">
+          <a href="/" className="flex items-center gap-2.5">
             <div
               className="relative w-9 h-9 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg,var(--red),#c4274a)' }}
@@ -129,8 +130,8 @@ function Navbar() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 blink" />
               <span className="font-mono-custom" style={{ color: 'var(--muted)' }}>SYSTEM ONLINE</span>
             </div>
-            <a href="#sos-demo" className="hidden sm:inline-flex btn-primary px-4 py-2 rounded-lg text-sm font-semibold">
-              Try Web SOS
+            <a href="/sos" className="hidden sm:inline-flex btn-primary px-4 py-2 rounded-lg text-sm font-semibold">
+              🚨 Trigger Web SOS
             </a>
             <button
               onClick={() => setMenuOpen(!menuOpen)}

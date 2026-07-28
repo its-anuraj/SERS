@@ -20,16 +20,21 @@ timeout /t 2 /nobreak >nul
 echo [4/5] Starting Public Website (Port 3001)...
 start cmd /k "title SERS Website && cd apps\web-public && npm run dev"
 
-echo [5/5] Starting Admin Dashboard (Port 3002)...
+echo [5/6] Starting Admin Dashboard (Port 3002)...
 start cmd /k "title SERS Admin && cd apps\web-admin && npm run dev"
+
+echo [6/6] Starting Python ML Microservice (Port 8001)...
+start cmd /k "title SERS ML Microservice && cd services\ml && uvicorn main:app --port 8001 --reload"
 
 echo.
 echo ========================================================
 echo   All services started!
 echo ========================================================
-echo   API Backend   : http://localhost:3000
-echo   Public Website: http://localhost:3001
-echo   Admin Dashboard: http://localhost:3002
+echo   API Backend       : http://localhost:3000
+echo   Public Website    : http://localhost:3001
+echo   Admin Dashboard   : http://localhost:3002
+echo   ML Microservice   : http://localhost:8001
 echo ========================================================
 echo.
 pause
+

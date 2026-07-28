@@ -82,7 +82,7 @@ export default function LiveMapPage() {
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {lastUpdate && (
-            <span style={{ color: '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ color: '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }} suppressHydrationWarning>
               <Clock size={12} />
               Updated {lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>

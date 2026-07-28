@@ -218,4 +218,115 @@ const listHospitals = async (req, res, next) => {
     }
 };
 
-module.exports = { findBestHospital, getNearestHospitals, getHospital, getAvailability, updateCapacity, listHospitals };
+/**
+ * POST /api/hospitals/:id/reserve-bed
+ * Active Bed Reservation Handshake — Temporarily locks bed for incoming emergency
+ */
+const reserveHospitalBed = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { incidentId, bedType = 'er' } = req.body;
+
+        const bedColumn = bedType === 'icu' ? 'icu_beds_available' : 'er_beds_available';
+
+        const result = await query(
+            `UPDATE hospitals 
+             SET ${bedColumn} = GREATEST(0, ${bedColumn} - 1), capacity_updated_at = NOW()
+             WHERE id = $1 AND ${bedColumn} > 0
+             RETURNING id, name, ${bedColumn}`,
+            [id]
+        );
+
+        if (!result.rows.length) {
+            throw new ApiError(409, `No ${bedType.toUpperCase()} beds currently available at this hospital`);
+        }
+
+        // Broadcast real-time urgent handshake ping to ER staff
+        const { getSocketIO } = require('../websocket/socketManager');
+        const io = getSocketIO();
+        if (io) {
+            io.to(`hospital:${id}`).emit('hospital:bed_reserved', {
+                hospitalId: id,
+                incidentId,
+                bedType,
+                reservedUntil: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `1 ${bedType.toUpperCase()} bed locked for 15 minutes. Awaiting hospital staff handshake.`,
+            data: {
+                hospitalId: id,
+                hospitalName: result.rows[0].name,
+                remainingBeds: result.rows[0][bedColumn],
+                reservedUntil: new Date(Date.now() + 15 * 60 * 1000),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/hospitals/:id/confirm-handshake
+ * Hospital staff confirms or rejects bed reservation
+ */
+const confirmBedHandshake = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { incidentId, accepted, reason, bedType = 'er' } = req.body;
+
+        const { getSocketIO } = require('../websocket/socketManager');
+        const io = getSocketIO();
+
+        if (accepted) {
+            await query(
+                `UPDATE incidents SET assigned_hospital_id = $1, status = 'assigned', updated_at = NOW() WHERE id = $2`,
+                [id, incidentId]
+            );
+
+            if (io) {
+                io.to(`incident:${incidentId}`).emit('hospital:handshake_confirmed', {
+                    hospitalId: id,
+                    incidentId,
+                    status: 'accepted',
+                });
+            }
+
+            return res.json({ success: true, message: 'Hospital handshake confirmed. Bed locked for emergency.' });
+        } else {
+            // Restore bed count if rejected
+            const bedColumn = bedType === 'icu' ? 'icu_beds_available' : 'er_beds_available';
+            await query(
+                `UPDATE hospitals SET ${bedColumn} = ${bedColumn} + 1, capacity_updated_at = NOW() WHERE id = $1`,
+                [id]
+            );
+
+            if (io) {
+                io.to(`incident:${incidentId}`).emit('hospital:handshake_rejected', {
+                    hospitalId: id,
+                    incidentId,
+                    reason: reason || 'Bed unavailable or specialist off-shift',
+                    status: 'rejected',
+                });
+            }
+
+            return res.json({ success: true, message: 'Handshake rejected. System initiating auto-reroute to next hospital.' });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    findBestHospital,
+    getNearestHospitals,
+    getHospital,
+    getAvailability,
+    updateCapacity,
+    listHospitals,
+    reserveHospitalBed,
+    confirmBedHandshake,
+};
+

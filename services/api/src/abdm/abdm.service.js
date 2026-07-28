@@ -343,10 +343,41 @@ const purgeExpiredHealthCache = async () => {
 // Schedule purge every hour
 setInterval(purgeExpiredHealthCache, 60 * 60 * 1000);
 
+/**
+ * Create emergency trauma proxy profile for unconscious patients (No Aadhaar OTP available)
+ */
+const createUnconsciousEmergencyProfile = async (incidentId, responderId, details = {}) => {
+    const tempAbhaId = `TRAUMA-EMERGENCY-${Date.now()}`;
+    const proxyData = {
+        patientType: 'unconscious_trauma_patient',
+        incidentId,
+        approxAgeGender: details.approxAgeGender || 'Unknown',
+        responderNotes: details.notes || 'Unconscious patient emergency intake',
+        createdAt: new Date().toISOString(),
+    };
+
+    await logAbdmAudit(responderId, null, 'unconscious_emergency_override', incidentId, {
+        tempAbhaId,
+        details: proxyData,
+    });
+
+    return {
+        success: true,
+        tempAbhaId,
+        emergencyModeActive: true,
+        message: 'Unconscious Emergency Trauma Override initialized. Audit logged for DPDP compliance.',
+        proxyData,
+    };
+};
+
 module.exports = {
+    getGatewayToken,
     initiateAbhaLinking,
     verifyAbhaOTP,
     fetchEmergencyHealthRecords,
     purgeExpiredHealthCache,
     logAbdmAudit,
+    createUnconsciousEmergencyProfile,
 };
+
+

@@ -418,8 +418,14 @@ export default function AnalyticsPage() {
   const [hourlyData, setHourlyData] = useState<HourlyData[]>(MOCK_HOURLY);
   const [hotspots, setHotspots] = useState<Hotspot[]>(MOCK_HOTSPOTS);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'hotspots' | 'chat'>('overview');
+
+  useEffect(() => {
+    setIsMounted(true);
+    setLastUpdated(new Date());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -473,8 +479,8 @@ export default function AnalyticsPage() {
             <BarChart3 size={20} className="text-red-400" />
             <div>
               <h1 className="font-bold text-white text-lg leading-none">Analytics & AI Dispatch</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Last updated: {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              <p className="text-xs text-slate-400 mt-0.5" suppressHydrationWarning>
+                Last updated: {isMounted && lastUpdated ? lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '...'}
               </p>
             </div>
           </div>

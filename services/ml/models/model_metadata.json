@@ -1,0 +1,41 @@
+{
+  "trainedAt": "2026-07-28T18:47:28.002Z",
+  "samplesTrained": 5000,
+  "models": {
+    "crash_detection": {
+      "algorithm": "RandomForestClassifier(n_estimators=100, max_depth=10)",
+      "accuracy": "100.00%",
+      "features": [
+        "accel_max",
+        "speed_initial",
+        "speed_drop",
+        "gyro_rotation",
+        "duration_ms"
+      ],
+      "status": "READY"
+    },
+    "severity_classifier": {
+      "algorithm": "RandomForestClassifier(n_estimators=100)",
+      "accuracy": "96.40%",
+      "features": [
+        "damage_level",
+        "airbag_deployed",
+        "glass_shatter",
+        "smoke_fire"
+      ],
+      "status": "READY"
+    },
+    "hospital_matcher": {
+      "algorithm": "GradientBoostingRegressor(n_estimators=100)",
+      "rmse": 2.1402,
+      "features": [
+        "distance_km",
+        "icu_beds",
+        "er_beds",
+        "specialty_match",
+        "trauma_center"
+      ],
+      "status": "READY"
+    }
+  }
+}

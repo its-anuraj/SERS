@@ -4,12 +4,18 @@ Scores and ranks hospitals using weighted algorithm:
 Score = (0.4 × Proximity) + (0.3 × Bed Availability) + (0.2 × Specialty Match) + (0.1 × Historical Quality)
 """
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter  # type: ignore # pyright: ignore # noqa
+from pydantic import BaseModel  # type: ignore # pyright: ignore # noqa
 from typing import List, Optional
 import math
+import os
+import joblib  # type: ignore # pyright: ignore # noqa
+import numpy as np  # type: ignore # pyright: ignore # noqa
+
+
 
 router = APIRouter()
+
 
 
 class HospitalInput(BaseModel):
@@ -91,10 +97,22 @@ def estimate_eta(distance_m: float) -> int:
     return max(1, round(eta_seconds / 60))
 
 
+MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
+
+HOSP_MODEL_PATH = os.path.join(MODELS_DIR, 'hospital_matcher.joblib')
+
+# Load trained GradientBoostingRegressor model if present
+hosp_model = None
+if os.path.exists(HOSP_MODEL_PATH):
+    try:
+        hosp_model = joblib.load(HOSP_MODEL_PATH)
+    except Exception:
+        hosp_model = None
+
 @router.post("", response_model=HospitalMatchResponse)
 def match_hospital(request: HospitalMatchRequest):
     """
-    Score and rank hospitals for an incident.
+    Score and rank hospitals for an incident using trained GradientBoostingRegressor model.
     """
     scored = []
 
@@ -104,12 +122,18 @@ def match_hospital(request: HospitalMatchRequest):
         spec = calculate_specialty_score(hospital.specialties, request.required_specialties)
         hist = hospital.historical_rating
 
-        # Weighted score formula
-        score = (0.4 * prox) + (0.3 * beds) + (0.2 * spec) + (0.1 * hist)
+        if hosp_model is not None:
+            dist_km = hospital.distance_meters / 1000.0
+            trauma_flag = 1 if 'trauma' in [s.lower() for s in hospital.specialties] else 0
+            features = np.array([[dist_km, hospital.icu_beds_available, hospital.er_beds_available, spec, trauma_flag]])
+            ml_pred_score = float(hosp_model.predict(features)[0])
+            norm_score = min(1.0, max(0.0, ml_pred_score / 100.0))
+        else:
+            norm_score = (0.4 * prox) + (0.3 * beds) + (0.2 * spec) + (0.1 * hist)
 
         scored.append(ScoredHospital(
             id=hospital.id,
-            score=round(score, 4),
+            score=round(norm_score, 4),
             proximity_score=round(prox, 4),
             bed_score=round(beds, 4),
             specialty_score=round(spec, 4),
@@ -119,3 +143,4 @@ def match_hospital(request: HospitalMatchRequest):
 
     scored.sort(key=lambda h: h.score, reverse=True)
     return HospitalMatchResponse(ranked_hospitals=scored)
+

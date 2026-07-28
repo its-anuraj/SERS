@@ -69,11 +69,13 @@ html, body {
 .gradient-text-red {
   background: linear-gradient(135deg, #ef4444, #f97316);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .gradient-text-blue {
   background: linear-gradient(135deg, #3b82f6, #06b6d4);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 

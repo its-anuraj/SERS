@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Hospital, Search, MapPin, Phone, Bed, ChevronRight, ArrowLeft, Zap } from 'lucide-react';
 import Link from 'next/link';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface HospitalItem {
   id: string;

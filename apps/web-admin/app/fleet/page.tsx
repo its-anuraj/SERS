@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Truck, Plus, Search, RefreshCw, Edit3, MapPin, X, Save, Radio } from 'lucide-react';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;

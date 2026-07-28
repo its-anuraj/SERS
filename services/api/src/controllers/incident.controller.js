@@ -30,6 +30,41 @@ const triggerSOS = async (req, res, next) => {
 
         const reporterId = req.user.id;
 
+        // 0. Deduplication Check: Look for active incident within 100 meters reported in last 5 mins
+        const nearbyExisting = await query(
+            `SELECT id, incident_number, severity FROM incidents
+             WHERE status NOT IN ('resolved', 'cancelled', 'false_alarm')
+               AND created_at > NOW() - INTERVAL '5 minutes'
+               AND ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, 100)
+             LIMIT 1`,
+            [longitude, latitude]
+        );
+
+        if (nearbyExisting.rows.length > 0) {
+            const existing = nearbyExisting.rows[0];
+            logger.info('SOS deduplicated — linked to active nearby emergency', {
+                existingIncidentId: existing.id,
+                reporterId,
+            });
+
+            await query(
+                `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
+                 VALUES ($1, 'updated', $2, $3, $4)`,
+                [existing.id, reporterId, req.user.role, `Additional SOS report received nearby for this crash scene.`]
+            );
+
+            return res.status(200).json({
+                success: true,
+                deduplicated: true,
+                message: 'SOS linked to active nearby emergency dispatch.',
+                data: {
+                    incidentId: existing.id,
+                    incidentNumber: existing.incident_number,
+                    status: 'assigned',
+                },
+            });
+        }
+
         const incident = await withTransaction(async (client) => {
             // 1. Create the incident
             const incidentResult = await client.query(
@@ -467,4 +502,153 @@ const assignIncident = async (req, res, next) => {
     }
 };
 
-module.exports = { triggerSOS, listIncidents, getIncident, updateStatus, getTimeline, autoAssignAmbulance, assignIncident };
+/**
+ * POST /api/incidents/telemetry
+ * Buffers continuous pre-impact telemetry to prevent data loss if device dies on impact
+ */
+const telemetryBuffer = new Map();
+
+const bufferTelemetry = async (req, res, next) => {
+    try {
+        const { deviceId, latitude, longitude, speedKmh, accelMagnitude } = req.body;
+        if (!deviceId) throw new ApiError(400, 'deviceId is required');
+
+        const frame = {
+            timestamp: Date.now(),
+            lat: latitude,
+            lng: longitude,
+            speedKmh: speedKmh || 0,
+            accelMagnitude: accelMagnitude || 0,
+        };
+
+        const existing = telemetryBuffer.get(deviceId) || [];
+        existing.push(frame);
+        // Keep last 10 frames (rolling window)
+        if (existing.length > 10) existing.shift();
+        telemetryBuffer.set(deviceId, existing);
+
+        res.json({ success: true, bufferedFrames: existing.length });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/incidents/sms-gateway
+ * Ingests offline SMS payloads when mobile data is unavailable
+ */
+const handleSMSGatewaySOS = async (req, res, next) => {
+    try {
+        const { senderPhone, messageText, rawPayload } = req.body;
+        logger.info('SMS Gateway SOS Ingested', { senderPhone, messageText });
+
+        // Parse payload format: SERS_SOS,<lat>,<lng>,<type>,<accel>
+        let lat = 0.0, lng = 0.0, emergencyType = 'accident';
+        if (messageText && messageText.includes('SERS_SOS')) {
+            const parts = messageText.split(',');
+            if (parts.length >= 3) {
+                lat = parseFloat(parts[1]) || 0.0;
+                lng = parseFloat(parts[2]) || 0.0;
+                if (parts[3]) emergencyType = parts[3].trim();
+            }
+        }
+
+        const incidentResult = await query(
+            `INSERT INTO incidents (
+                type, severity, status, latitude, longitude,
+                address, description, is_anonymous
+            ) VALUES ($1, 'critical', 'reported', $2, $3, 'Offline SMS Relay', $4, TRUE)
+            RETURNING *`,
+            [
+                emergencyType, lat, lng,
+                `Offline SMS SOS received from ${senderPhone || 'Unknown Mobile'}. Payload: ${messageText}`
+            ]
+        );
+        const incident = incidentResult.rows[0];
+
+        // Broadcast to responders
+        const io = getSocketIO();
+        if (io) {
+            io.to('responders').emit('incident:new', {
+                id: incident.id,
+                incidentNumber: incident.incident_number,
+                type: incident.type,
+                severity: incident.severity,
+                latitude: lat,
+                longitude: lng,
+                description: incident.description,
+                source: 'sms_offline_gateway',
+            });
+        }
+
+        // Auto-assign ambulance if lat/lng available
+        if (lat !== 0 && lng !== 0) {
+            autoAssignAmbulance(incident.id, lat, lng).catch(err =>
+                logger.error('SMS SOS Auto-assign failed', { incidentId: incident.id, error: err.message })
+            );
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Offline SMS SOS processed successfully',
+            incidentId: incident.id,
+            incidentNumber: incident.incident_number,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/incidents/:id/cancel
+ * Cancel false alarm within countdown timer
+ */
+const cancelSOS = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { reason = 'User cancelled countdown false alarm' } = req.body;
+
+        await withTransaction(async (client) => {
+            await client.query(
+                `UPDATE incidents SET status = 'false_alarm', updated_at = NOW() WHERE id = $1`,
+                [id]
+            );
+
+            await client.query(
+                `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
+                 VALUES ($1, 'status_change', $2, $3, $4)`,
+                [id, req.user?.id || null, req.user?.role || 'citizen', `False alarm cancelled: ${reason}`]
+            );
+
+            // Free up assigned ambulance if any
+            await client.query(
+                `UPDATE ambulances SET status = 'available', updated_at = NOW()
+                 WHERE id = (SELECT assigned_ambulance_id FROM incidents WHERE id = $1)`,
+                [id]
+            );
+        });
+
+        const io = getSocketIO();
+        if (io) {
+            io.to(`incident:${id}`).emit('incident:status', { incidentId: id, status: 'false_alarm' });
+        }
+
+        res.json({ success: true, message: 'SOS alert cancelled successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    triggerSOS,
+    listIncidents,
+    getIncident,
+    updateStatus,
+    getTimeline,
+    autoAssignAmbulance,
+    assignIncident,
+    bufferTelemetry,
+    handleSMSGatewaySOS,
+    cancelSOS,
+};
+

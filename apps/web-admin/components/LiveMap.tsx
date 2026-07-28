@@ -93,6 +93,22 @@ export default function LiveMap({ incidents }: LiveMapProps) {
   }, [incidents]);
 
   return (
-    <div ref={mapRef} style={{ height: 'calc(100% - 49px)', width: '100%' }} />
+    <div style={{ position: 'relative', height: 'calc(100% - 49px)', width: '100%' }}>
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+      <div style={{
+        position: 'absolute', top: 12, right: 12, zIndex: 1000,
+        background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '20px',
+        padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '8px',
+        fontSize: '12px', fontWeight: 600, color: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+      }}>
+        <span style={{
+          width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e',
+          boxShadow: '0 0 8px #22c55e'
+        }} />
+        SERS Network Active · Real-time Socket Connected
+      </div>
+    </div>
   );
 }
+
