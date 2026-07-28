@@ -130,8 +130,8 @@ const navItems = [
   { icon: Ambulance, label: 'Fleet', href: '/fleet' },
   { icon: Hospital, label: 'Hospitals', href: '/hospitals' },
   { icon: AlertTriangle, label: 'Incidents', href: '/incidents' },
-  { icon: BarChart3, label: 'Analytics', href: '#' },
-  { icon: MessageSquare, label: 'AI Dispatch', href: '#' },
+  { icon: BarChart3, label: 'Analytics', href: '/analytics' },
+  { icon: MessageSquare, label: 'AI Dispatch', href: '/analytics#chat' },
   { icon: Settings, label: 'Settings', href: '#' },
 ];
 
@@ -183,6 +183,11 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
               {item.label === 'Command Center' && activeCount > 0 && (
                 <span className="ml-auto text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full border border-red-500/30">
                   {activeCount}
+                </span>
+              )}
+              {(item.label === 'Analytics' || item.label === 'AI Dispatch') && (
+                <span className="ml-auto text-xs bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full border border-purple-500/30">
+                  New
                 </span>
               )}
             </a>
