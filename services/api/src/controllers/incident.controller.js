@@ -11,6 +11,7 @@ const { findNearestAvailableAmbulance } = require('./ambulance.controller');
 const { findBestHospital } = require('./hospital.controller');
 const { sendPushNotification } = require('../services/notification.service');
 const { sendSMS } = require('../services/sms.service');
+const { calculateCrashConfidence } = require('../services/afdp.service');
 
 /**
  * POST /api/incidents/sos
@@ -26,9 +27,40 @@ const triggerSOS = async (req, res, next) => {
             aiCrashDetected = false,
             aiSeverityScore = null,
             aiConfidence = null,
+            maxMagnitude,
+            preImpactSpeedKmh,
+            postImpactSpeedKmh,
+            speedDropKmh,
+            bluetoothConnected,
+            audioCrashScore,
         } = req.body;
 
         const reporterId = req.user.id;
+
+        // AFDP Confidence Calculation
+        const afdpResult = calculateCrashConfidence({
+            maxMagnitude: maxMagnitude || (aiCrashDetected ? 28 : 0),
+            preImpactSpeedKmh: preImpactSpeedKmh || 0,
+            postImpactSpeedKmh: postImpactSpeedKmh || 0,
+            speedDropKmh: speedDropKmh || 0,
+            bluetoothConnected: bluetoothConnected !== false,
+            audioCrashScore: audioCrashScore || 0.5,
+            aiSeverityScore: aiSeverityScore || 5,
+        });
+
+        // Filter out accidental drops (Confidence < 0.40)
+        if (aiCrashDetected && afdpResult.tier === 'AUTO_CANCELLED') {
+            logger.info('SOS auto-cancelled by AFDP filter (Phone drop / Accidental noise)', {
+                reporterId,
+                afdpResult,
+            });
+            return res.status(200).json({
+                success: true,
+                autoCancelled: true,
+                message: 'Event filtered: Phone drop or accidental movement detected. Emergency dispatch cancelled.',
+                data: { afdpResult },
+            });
+        }
 
         // 0. Deduplication Check: Look for active incident within 100 meters reported in last 5 mins
         const nearbyExisting = await query(

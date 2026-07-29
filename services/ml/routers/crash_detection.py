@@ -29,13 +29,15 @@ class SensorReading(BaseModel):
 class CrashDetectionRequest(BaseModel):
     device_id: str
     readings: List[SensorReading]  # Last N readings (typically 2-5 seconds)
+    bluetooth_connected: Optional[bool] = True
+    post_impact_speed_kmh: Optional[float] = 0.0
 
 
 class CrashDetectionResponse(BaseModel):
     crash_probability: float    # 0.0 - 1.0
     is_crash: bool
     confidence: float
-    detected_pattern: str       # 'sudden_stop', 'rollover', 'freefall', 'phone_drop_filtered', 'none'
+    detected_pattern: str       # 'sudden_stop', 'rollover', 'freefall', 'phone_drop_filtered', 'car_floor_drop', 'none'
     requires_human_confirmation: bool = False
     trigger_threshold: float = 0.80
 
@@ -43,12 +45,7 @@ class CrashDetectionResponse(BaseModel):
 @router.post("", response_model=CrashDetectionResponse)
 def detect_crash(request: CrashDetectionRequest):
     """
-    Analyze sensor readings for crash detection with edge-case noise filtering.
-    
-    Filters:
-    - Speed drop delta check (sudden deceleration from motion)
-    - Phone drop filter (high instantaneous spike while stationary or without rotation/speed loss)
-    - Human confirmation threshold for borderline probability (0.40 - 0.79)
+    Analyze sensor readings for crash detection with AFDP edge-case noise filtering.
     """
     if not request.readings:
         return CrashDetectionResponse(
@@ -65,8 +62,6 @@ def detect_crash(request: CrashDetectionRequest):
         magnitudes.append(mag)
 
     max_magnitude = max(magnitudes)
-    avg_magnitude = sum(magnitudes) / len(magnitudes)
-    
     initial_speed = speeds[0] if speeds else 0.0
     final_speed = speeds[-1] if speeds else 0.0
     speed_drop = max(0.0, initial_speed - final_speed)
@@ -89,27 +84,22 @@ def detect_crash(request: CrashDetectionRequest):
         if initial_speed > 20.0 and speed_drop > 15.0:
             crash_probability = min(crash_probability + 0.15, 0.98)
 
-        # Phone drop filter: stationary phone dropping on floor (speed ~0, high magnitude spike, short duration)
+        # Phone drop filter: stationary phone dropping on floor
         high_spikes = sum(1 for m in magnitudes if m > 24.5)
         if initial_speed < 5.0 and high_spikes <= 2 and max_rotation < 90.0:
             crash_probability = max(0.15, crash_probability - 0.50)
             pattern = 'phone_drop_filtered'
 
-    # Rollover detection (high rotation + lateral acceleration)
-    if max_rotation > 180 and max_magnitude > 15:
-        rollover_prob = min(0.6 + max_rotation / 500.0, 0.95)
-        if rollover_prob > crash_probability:
-            crash_probability = rollover_prob
-            pattern = 'rollover'
+    # AFDP Filter 1: Car Floor Drop (device continues moving > 20 km/h post-impact inside vehicle)
+    if (request.post_impact_speed_kmh or 0.0) > 20.0:
+        crash_probability = max(0.10, crash_probability - 0.60)
+        pattern = 'car_floor_drop'
 
-    # Freefall: g-force drops to near-zero then spikes
-    if len(magnitudes) >= 3:
-        min_mag = min(magnitudes)
-        if min_mag < 3.0 and max_magnitude > 20.0:
-            freefall_prob = 0.80
-            if freefall_prob > crash_probability and pattern != 'phone_drop_filtered':
-                crash_probability = freefall_prob
-                pattern = 'freefall'
+    # AFDP Filter 2: Bluetooth disconnect (rider moved away from dropped phone)
+    if not request.bluetooth_connected:
+        crash_probability = max(0.10, crash_probability - 0.40)
+        if pattern == 'none' or pattern == 'sudden_stop':
+            pattern = 'phone_drop_filtered'
 
     threshold = 0.80
     is_crash = crash_probability >= threshold
