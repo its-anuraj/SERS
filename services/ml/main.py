@@ -3,10 +3,10 @@ SERS — ML Microservice (Python FastAPI)
 Provides AI/ML endpoints for crash detection, hospital matching, route optimization
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Header
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Depends, Header  # type: ignore # pyright: ignore # noqa
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore # pyright: ignore # noqa
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # type: ignore # pyright: ignore # noqa
 
 from routers import crash_detection, hospital_matcher, route_optimizer, hotspot, severity
 
@@ -27,8 +27,15 @@ app.add_middleware(
 
 # ---- API Key auth ----
 API_KEY = os.getenv("API_KEY", "ml_internal_api_key")
+ENV = os.getenv("ENV", "development")
+
+if API_KEY == "ml_internal_api_key" and ENV != "development":
+    import logging
+    logging.warning("⚠️ SECURITY RISK: ML Microservice running with default internal API_KEY in non-dev environment!")
 
 def verify_api_key(x_api_key: str = Header(default="")):
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
     if API_KEY and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return True

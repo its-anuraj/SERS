@@ -11,8 +11,11 @@ const logger = require('../config/logger');
 /**
  * Find the nearest available ambulance using PostGIS
  */
-const findNearestAvailableAmbulance = async (latitude, longitude, radiusMeters = 15000) => {
-    const result = await query(
+const findNearestAvailableAmbulance = async (latitude, longitude, radiusMeters = 15000, dbClient = null) => {
+    const queryFn = dbClient ? (text, params) => dbClient.query(text, params) : query;
+    const forUpdateClause = dbClient ? 'FOR UPDATE OF a SKIP LOCKED' : '';
+
+    const result = await queryFn(
         `SELECT a.*, u.name AS driver_name, u.phone AS driver_phone
          FROM ambulances a
          LEFT JOIN users u ON a.driver_id = u.id
@@ -27,7 +30,8 @@ const findNearestAvailableAmbulance = async (latitude, longitude, radiusMeters =
              a.current_location::geography,
              ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
          ) ASC
-         LIMIT 1`,
+         LIMIT 1
+         ${forUpdateClause}`,
         [longitude, latitude, radiusMeters]
     );
     return result.rows[0] || null;

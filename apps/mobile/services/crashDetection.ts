@@ -7,6 +7,7 @@
 import { Accelerometer, Gyroscope } from 'expo-sensors';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
+import * as SecureStore from 'expo-secure-store';
 import { api } from './api';
 
 const CRASH_DETECTION_TASK = 'SERS_CRASH_DETECTION';
@@ -71,6 +72,27 @@ export const startCrashDetection = (onCrash: (probability: number) => void) => {
   };
 };
 
+// Offline location buffer queue
+const offlineLocationQueue: any[] = [];
+
+const flushOfflineQueue = async (ambulanceId: string) => {
+  if (!offlineLocationQueue.length) return;
+  const queueToFlush = [...offlineLocationQueue];
+  offlineLocationQueue.length = 0;
+
+  for (const item of queueToFlush) {
+    try {
+      await api.post(`/ambulances/${ambulanceId}/location`, item, {
+        headers: { 'x-skip-db': 'true' },
+      });
+    } catch {
+      // Re-queue if network still failing
+      offlineLocationQueue.push(item);
+      break;
+    }
+  }
+};
+
 const analyzeForCrash = async (readings: any[]) => {
   if (isCrashCooldown) return;
 
@@ -89,8 +111,16 @@ const analyzeForCrash = async (readings: any[]) => {
       setTimeout(() => { isCrashCooldown = false; }, 5 * 60 * 1000);
     }
   } catch (error) {
-    // ML service unavailable — fallback to local heuristic only
-    console.warn('ML crash detection unavailable, using local heuristic');
+    // ML service unavailable — fallback to local heuristic evaluation
+    console.warn('ML crash detection unavailable, using local heuristic fallback');
+    const maxMag = Math.max(...readings.map((r: any) =>
+      Math.sqrt((r.accel_x || 0) ** 2 + (r.accel_y || 0) ** 2 + (r.accel_z || 0) ** 2)
+    ));
+    if (maxMag > 24.5 && !isCrashCooldown) {
+      isCrashCooldown = true;
+      onCrashDetected?.(0.85);
+      setTimeout(() => { isCrashCooldown = false; }, 5 * 60 * 1000);
+    }
   }
 };
 
@@ -119,21 +149,30 @@ TaskManager.defineTask(LOCATION_TRACKING_TASK, async ({ data, error }: any) => {
   const [location] = data.locations;
   if (!location) return;
 
+  const updatePayload = {
+    lat: location.coords.latitude,
+    lng: location.coords.longitude,
+    heading: location.coords.heading || 0,
+    speedKmh: location.coords.speed ? location.coords.speed * 3.6 : 0,
+    timestamp: Date.now(),
+  };
+
   try {
-    const ambulanceId = await import('expo-secure-store').then(m => m.getItemAsync('ambulance_id'));
+    const ambulanceId = await SecureStore.getItemAsync('ambulance_id');
     if (!ambulanceId) return;
 
-    await api.post(`/ambulances/${ambulanceId}/location`, {
-      lat: location.coords.latitude,
-      lng: location.coords.longitude,
-      heading: location.coords.heading,
-      speedKmh: location.coords.speed ? location.coords.speed * 3.6 : 0,
-    }, {
-      headers: { 'x-skip-db': 'true' }, // Skip DB write (Redis only) for high-freq updates
+    // Flush buffered offline items first
+    await flushOfflineQueue(ambulanceId);
+
+    await api.post(`/ambulances/${ambulanceId}/location`, updatePayload, {
+      headers: { 'x-skip-db': 'true' },
     });
   } catch (err) {
-    // Store in SQLite offline queue
-    console.warn('Location update failed, queuing offline');
+    // Buffer update in memory offline queue (max 50 points)
+    if (offlineLocationQueue.length < 50) {
+      offlineLocationQueue.push(updatePayload);
+    }
+    console.warn('Location update buffered offline:', offlineLocationQueue.length);
   }
 });
 

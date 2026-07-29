@@ -7,11 +7,19 @@ const logger = require('../config/logger');
 const sendSMS = async (phone, message) => {
     // MSG91
     if (process.env.MSG91_AUTH_KEY) {
-        return sendViaMSG91(phone, message);
+        try {
+            return await sendViaMSG91(phone, message);
+        } catch (err) {
+            logger.warn('MSG91 SMS gateway failed. Trying Twilio fallback...', { phone, error: err.message });
+        }
     }
     // Twilio fallback
     if (process.env.TWILIO_ACCOUNT_SID) {
-        return sendViaTwilio(phone, message);
+        try {
+            return await sendViaTwilio(phone, message);
+        } catch (err) {
+            logger.error('Twilio SMS fallback failed as well.', { phone, error: err.message });
+        }
     }
     // Mock for development
     logger.info('[SMS MOCK]', { to: phone, message });

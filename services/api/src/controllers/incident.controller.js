@@ -152,17 +152,20 @@ const triggerSOS = async (req, res, next) => {
  */
 const autoAssignAmbulance = async (incidentId, latitude, longitude) => {
     try {
-        // Find nearest available ambulance
-        const ambulance = await findNearestAvailableAmbulance(latitude, longitude);
-        if (!ambulance) {
-            logger.warn('No available ambulances for incident', { incidentId });
-            return;
-        }
-
-        // Find best hospital
-        const hospital = await findBestHospital(latitude, longitude);
+        let ambulance = null;
+        let hospital = null;
 
         await withTransaction(async (client) => {
+            // Find nearest available ambulance using PostGIS row locking
+            ambulance = await findNearestAvailableAmbulance(latitude, longitude, 15000, client);
+            if (!ambulance) {
+                logger.warn('No available ambulances for incident', { incidentId });
+                return;
+            }
+
+            // Find best hospital
+            hospital = await findBestHospital(latitude, longitude);
+
             // Assign ambulance + hospital to incident
             await client.query(
                 `UPDATE incidents SET
@@ -193,7 +196,9 @@ const autoAssignAmbulance = async (incidentId, latitude, longitude) => {
             );
         });
 
-        // Notify assigned responder
+        if (!ambulance) return;
+
+        // Notify assigned responder via Socket.io
         const io = getSocketIO();
         if (io && ambulance.driver_id) {
             io.to(`user:${ambulance.driver_id}`).emit('incident:assigned', {
@@ -209,9 +214,121 @@ const autoAssignAmbulance = async (incidentId, latitude, longitude) => {
             ambulanceId: ambulance.id,
             hospitalId: hospital?.id,
         });
+
+        // Schedule driver acceptance timeout cascade (30 seconds)
+        scheduleDriverReassignment(incidentId, ambulance.id, latitude, longitude, 30000);
     } catch (error) {
-        throw error;
+        logger.error('autoAssignAmbulance error', { incidentId, error: error.message });
     }
+};
+
+/**
+ * 30-Second Timeout Cascade for Driver Response
+ */
+const scheduleDriverReassignment = (incidentId, ambulanceId, latitude, longitude, timeoutMs = 30000) => {
+    setTimeout(async () => {
+        try {
+            const check = await query(
+                `SELECT status, assigned_ambulance_id FROM incidents WHERE id = $1`,
+                [incidentId]
+            );
+            if (!check.rows.length) return;
+            const inc = check.rows[0];
+
+            // If still in 'assigned' status with same ambulance, driver did not accept in time
+            if (inc.status === 'assigned' && inc.assigned_ambulance_id === ambulanceId) {
+                logger.warn('Driver response timeout. Triggering auto-reassignment cascade...', { incidentId, ambulanceId });
+
+                await withTransaction(async (client) => {
+                    // Release un-responsive ambulance back to available
+                    await client.query(
+                        `UPDATE ambulances SET status = 'available', updated_at = NOW() WHERE id = $1`,
+                        [ambulanceId]
+                    );
+
+                    // Reset incident assignment
+                    await client.query(
+                        `UPDATE incidents SET assigned_ambulance_id = NULL, assigned_responder_id = NULL, status = 'reported', updated_at = NOW() WHERE id = $1`,
+                        [incidentId]
+                    );
+
+                    // Log event
+                    await client.query(
+                        `INSERT INTO incident_events (incident_id, event_type, description)
+                         VALUES ($1, 'driver_timeout', 'Assigned driver did not respond within 30 seconds. Re-routing dispatch.')`,
+                        [incidentId]
+                    );
+                });
+
+                // Cascade: Auto-assign next nearest available ambulance
+                await autoAssignAmbulance(incidentId, latitude, longitude);
+            }
+        } catch (err) {
+            logger.error('scheduleDriverReassignment error', { incidentId, error: err.message });
+        }
+    }, timeoutMs);
+};
+
+/**
+ * POST /api/incidents/:id/accept — Responder accepts assignment
+ */
+const acceptIncident = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        await withTransaction(async (client) => {
+            await client.query(
+                `UPDATE incidents SET status = 'en_route', updated_at = NOW() WHERE id = $1`,
+                [id]
+            );
+
+            await client.query(
+                `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
+                 VALUES ($1, 'status_change', $2, $3, 'Driver accepted emergency dispatch')`,
+                [id, req.user?.id || null, req.user?.role || 'responder']
+            );
+        });
+
+        const io = getSocketIO();
+        if (io) {
+            io.to(`incident:${id}`).emit('incident:status', { incidentId: id, status: 'en_route' });
+        }
+
+        res.json({ success: true, message: 'Dispatch accepted successfully' });
+    } catch (error) { next(error); }
+};
+
+/**
+ * POST /api/incidents/:id/reject — Responder declines assignment
+ */
+const rejectIncident = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const incRes = await query(`SELECT latitude, longitude, assigned_ambulance_id FROM incidents WHERE id = $1`, [id]);
+        if (!incRes.rows.length) throw new ApiError(404, 'Incident not found');
+        const { latitude, longitude, assigned_ambulance_id } = incRes.rows[0];
+
+        await withTransaction(async (client) => {
+            if (assigned_ambulance_id) {
+                await client.query(`UPDATE ambulances SET status = 'available', updated_at = NOW() WHERE id = $1`, [assigned_ambulance_id]);
+            }
+            await client.query(
+                `UPDATE incidents SET assigned_ambulance_id = NULL, assigned_responder_id = NULL, status = 'reported', updated_at = NOW() WHERE id = $1`,
+                [id]
+            );
+            await client.query(
+                `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
+                 VALUES ($1, 'driver_rejected', $2, $3, 'Driver declined dispatch. Re-routing emergency dispatch.')`,
+                [id, req.user?.id || null, req.user?.role || 'responder']
+            );
+        });
+
+        // Trigger immediate auto-assign to next nearest ambulance
+        autoAssignAmbulance(id, parseFloat(latitude), parseFloat(longitude)).catch(() => {});
+
+        res.json({ success: true, message: 'Dispatch declined. Re-routing emergency response.' });
+    } catch (error) { next(error); }
 };
 
 /**
@@ -647,6 +764,8 @@ module.exports = {
     getTimeline,
     autoAssignAmbulance,
     assignIncident,
+    acceptIncident,
+    rejectIncident,
     bufferTelemetry,
     handleSMSGatewaySOS,
     cancelSOS,

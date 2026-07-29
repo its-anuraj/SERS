@@ -9,7 +9,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const {
     triggerSOS, listIncidents, getIncident, updateStatus, getTimeline, assignIncident,
-    bufferTelemetry, handleSMSGatewaySOS, cancelSOS
+    acceptIncident, rejectIncident, bufferTelemetry, handleSMSGatewaySOS, cancelSOS
 } = require('../controllers/incident.controller');
 
 // POST /api/incidents/sos — SOS trigger (citizen + responder)
@@ -43,6 +43,12 @@ router.get('/:id/timeline', authenticate, getTimeline);
 
 // POST /api/incidents/:id/assign — Responder self-assigns to an incident
 router.post('/:id/assign', authenticate, authorize('responder'), assignIncident);
+
+// POST /api/incidents/:id/accept — Responder accepts dispatch assignment
+router.post('/:id/accept', authenticate, authorize('responder'), acceptIncident);
+
+// POST /api/incidents/:id/reject — Responder declines dispatch assignment
+router.post('/:id/reject', authenticate, authorize('responder'), rejectIncident);
 
 // PUT /api/incidents/:id/status — Admin/coordinator/hospital_staff update
 router.put('/:id/status', authenticate, authorize('responder','hospital_staff','admin','coordinator'), [
