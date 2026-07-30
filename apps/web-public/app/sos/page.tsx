@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, MapPin, Loader2, CheckCircle2, Phone, ChevronRight, Shield, Wifi, WifiOff } from 'lucide-react';
 
+import SmartwatchWidget, { VitalsPayload } from '@/components/SmartwatchWidget';
+
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const EMERGENCY_TYPES = [
@@ -77,7 +79,14 @@ export default function SOSPage() {
   const [incidentResult, setIncidentResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [vitals, setVitals] = useState<VitalsPayload | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCardiacEmergencyAlert = (vitalsPayload: VitalsPayload) => {
+    setSelectedType('cardiac');
+    setDescription(`AUTOMATED CARDIAC ALERT: Smartwatch detected critical pulse rate of ${vitalsPayload.bpm} BPM (${vitalsPayload.pulseStatus})`);
+    setStep('confirm');
+  };
 
   // Auto-request location when user reaches location step
   useEffect(() => {
@@ -130,6 +139,9 @@ export default function SOSPage() {
         landmark: landmark || manualAddress,
         source: 'web',
       };
+      if (vitals) {
+        body.vitals = vitals;
+      }
       if (coords) {
         body.latitude = coords.lat;
         body.longitude = coords.lng;
@@ -230,6 +242,14 @@ export default function SOSPage() {
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{type.desc}</p>
                 </button>
               ))}
+            </div>
+
+            {/* Smartwatch Heart Rate & Pulse Monitoring Widget */}
+            <div className="mb-6">
+              <SmartwatchWidget
+                onVitalsUpdate={setVitals}
+                onCardiacEmergency={handleCardiacEmergencyAlert}
+              />
             </div>
 
             <div className="text-center">

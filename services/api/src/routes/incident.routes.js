@@ -128,10 +128,13 @@ router.post('/web-sos', [
             manual_address = '',
             caller_phone = '',
             source = 'web',
+            vitals = null,
         } = req.body;
 
         const lat = latitude || 0.0;
         const lng = longitude || 0.0;
+
+        const vitalsSummary = vitals ? ` · Smartwatch HR: ${vitals.bpm} BPM (${vitals.pulseStatus})` : '';
 
         // Create incident
         const result = await dbQuery(
@@ -139,12 +142,14 @@ router.post('/web-sos', [
                 type, severity, status,
                 latitude, longitude, address, landmark,
                 description, reporter_id, is_anonymous
-            ) VALUES ($1, 'unknown', 'reported', $2, $3, $4, $5, $6, NULL, TRUE)
+            ) VALUES ($1, $2, 'reported', $3, $4, $5, $6, $7, NULL, TRUE)
             RETURNING id, incident_number, type, status, created_at`,
             [
-                type, lat, lng,
+                type,
+                vitals?.isEmergency ? 'critical' : 'unknown',
+                lat, lng,
                 manual_address, landmark || manual_address,
-                description || `Web SOS — ${type}${caller_phone ? ` · Callback: ${caller_phone}` : ''}`,
+                (description || `Web SOS — ${type}${caller_phone ? ` · Callback: ${caller_phone}` : ''}`) + vitalsSummary,
             ]
         );
         const incident = result.rows[0];
@@ -152,11 +157,11 @@ router.post('/web-sos', [
         // Log creation event
         await dbQuery(
             `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
-             VALUES ($1, 'created', NULL, 'public', $2)`,
-            [incident.id, `Web SOS submitted from browser (source: ${source})`]
+             VALUES ($1, 'created', NULL, 'citizen', $2)`,
+            [incident.id, `Web SOS submitted from browser (source: ${source})${vitalsSummary}`]
         );
 
-        // Broadcast to responders
+        // Broadcast to responders & admin command center with vitals
         const io = getSocketIO();
         if (io) {
             io.to('responders').emit('incident:new', {
@@ -164,6 +169,7 @@ router.post('/web-sos', [
                 webSos: true,
                 callerPhone: caller_phone,
                 manualAddress: manual_address,
+                vitals: vitals,
             });
         }
 

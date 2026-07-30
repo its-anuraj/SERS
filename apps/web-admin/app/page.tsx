@@ -96,13 +96,18 @@ function IncidentRow({ incident }: { incident: any }) {
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-2xl">{incidentTypeIcon(incident.type)}</span>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-xs font-mono text-slate-400">
                 {incident.incident_number || incident.number}
               </span>
               <span className={severityBadge(incident.severity)}>
                 {incident.severity?.toUpperCase()}
               </span>
+              {incident.vitals && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse flex items-center gap-1">
+                  ❤️ {incident.vitals.bpm} BPM
+                </span>
+              )}
             </div>
             <p className="text-sm font-semibold text-slate-200 truncate">
               {incident.landmark || incident.address || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}`}
