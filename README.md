@@ -133,12 +133,11 @@ docker exec -it sers_api npm run db:migrate
 docker exec -it sers_api npm run db:seed
 ```
 
-### 4. Access Live Portals
-- **Public Portal & Web SOS**: [http://localhost:3001](http://localhost:3001)
-- **Web SOS Simulation**: [http://localhost:3001/sos](http://localhost:3001/sos)
-- **Admin Command Center**: [http://localhost:3002](http://localhost:3002)
-- **API Gateway Health**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
-- **ML Service Health**: [http://localhost:8001/health](http://localhost:8001/health)
+### 4. Access Portals & Microservices
+- **Public Portal & Web SOS**: `Port 3001` (`/sos` route)
+- **Admin Command Center**: `Port 3002`
+- **API Gateway**: `Port 3000` (`/api/health`)
+- **ML Microservice**: `Port 8001` (`/health`)
 
 ---
 
