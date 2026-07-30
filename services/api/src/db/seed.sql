@@ -367,7 +367,7 @@ VALUES
 ),
 (
     'd0000000-0000-0000-0000-000000000003',
-    'SERS-2024-000003',
+    'SERS-2026-000003',
     'accident', 'minor', 'reported',
     12.9783, 77.6408,
     'Indiranagar 100ft Road, Bengaluru', 'Near Blossom Book Store',
@@ -376,6 +376,36 @@ VALUES
     FALSE, 3.0,
     'Bike skid. Minor injuries.',
     NOW() - INTERVAL '10 minutes',
+    NULL
+),
+(
+    'd0000000-0000-0000-0000-000000000004',
+    'SERS-2026-000004',
+    'accident', 'critical', 'en_route',
+    12.9172, 77.6228,
+    'Silk Board Junction, Hosur Road, Bengaluru', 'Near Silk Board Flyover',
+    'b0000000-0000-0000-0000-000000000001',
+    'c0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000003',
+    'a0000000-0000-0000-0000-000000000001',
+    TRUE, 9.8,
+    'AUTOMATED AIRBAG CRASH ALERT: 100% Confirmed Real Crash. Airbag pressure pulse (+28 hPa), Impact magnitude 36.2G, Engine Stall (0 RPM). AFDP v2 Confidence: 99% · Smartwatch HR: 158 BPM (CRITICAL_TACHYCARDIA)',
+    NOW() - INTERVAL '4 minutes',
+    NULL
+),
+(
+    'd0000000-0000-0000-0000-000000000005',
+    'SERS-2026-000005',
+    'cardiac', 'critical', 'assigned',
+    12.9352, 77.6245,
+    'Koramangala 4th Block, Bengaluru', 'Near Wipro Park',
+    'b0000000-0000-0000-0000-000000000002',
+    'c0000000-0000-0000-0000-000000000005',
+    'b0000000-0000-0000-0000-000000000004',
+    'a0000000-0000-0000-0000-000000000002',
+    FALSE, 9.4,
+    'AUTOMATED CARDIAC ALERT: Smartwatch detected critical pulse rate of 165 BPM (CRITICAL_TACHYCARDIA). Patient responsive.',
+    NOW() - INTERVAL '2 minutes',
     NULL
 );
 
