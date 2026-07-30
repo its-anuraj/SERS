@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, MapPin, Loader2, CheckCircle2, Phone, ChevronRight, Shield, Wifi, WifiOff } from 'lucide-react';
 
-import SmartwatchWidget, { VitalsPayload } from '@/components/SmartwatchWidget';
-import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '@/components/VehicleTelemetryWidget';
+import SmartwatchWidget, { VitalsPayload } from '../../components/SmartwatchWidget';
+import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '../../components/VehicleTelemetryWidget';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
