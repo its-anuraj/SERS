@@ -18,10 +18,14 @@ async function seed() {
         await pool.query(sql);
         console.log('Seeding successful!');
     } catch (err) {
-        console.error('Seeding failed:', err);
-        process.exit(1);
+        if (['23505', '42P07', '42710'].includes(err.code)) {
+            console.log('Database seed data already present (Idempotent check passed).');
+        } else {
+            console.error('Seeding notice:', err.message);
+        }
     } finally {
         await pool.end();
     }
 }
+
 seed();

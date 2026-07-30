@@ -12,75 +12,32 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE user_role AS ENUM (
-    'citizen',
-    'responder',
-    'hospital_staff',
-    'admin',
-    'coordinator'
-);
-
-CREATE TYPE incident_type AS ENUM (
-    'accident',
-    'medical',
-    'fire',
-    'cardiac',
-    'drowning',
-    'fall',
-    'assault',
-    'other'
-);
-
-CREATE TYPE incident_status AS ENUM (
-    'reported',
-    'assigned',
-    'en_route',
-    'arrived',
-    'transporting',
-    'resolved',
-    'cancelled',
-    'false_alarm'
-);
-
-CREATE TYPE incident_severity AS ENUM (
-    'minor',
-    'moderate',
-    'critical',
-    'unknown'
-);
-
-CREATE TYPE ambulance_status AS ENUM (
-    'available',
-    'en_route',
-    'on_scene',
-    'transporting',
-    'at_hospital',
-    'maintenance',
-    'offline'
-);
-
-CREATE TYPE ambulance_type AS ENUM (
-    'als',
-    'bls',
-    'patient_transport',
-    'mobile_icu',
-    'bike'
-);
-
-CREATE TYPE consent_status AS ENUM (
-    'requested',
-    'granted',
-    'denied',
-    'expired',
-    'revoked'
-);
-
-CREATE TYPE consent_purpose AS ENUM (
-    'emergency',
-    'care_management',
-    'research',
-    'self_requested'
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('citizen', 'responder', 'hospital_staff', 'admin', 'coordinator');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'incident_type') THEN
+        CREATE TYPE incident_type AS ENUM ('accident', 'medical', 'fire', 'cardiac', 'drowning', 'fall', 'assault', 'other');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'incident_status') THEN
+        CREATE TYPE incident_status AS ENUM ('reported', 'assigned', 'en_route', 'arrived', 'transporting', 'resolved', 'cancelled', 'false_alarm');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'incident_severity') THEN
+        CREATE TYPE incident_severity AS ENUM ('minor', 'moderate', 'critical', 'unknown');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ambulance_status') THEN
+        CREATE TYPE ambulance_status AS ENUM ('available', 'en_route', 'on_scene', 'transporting', 'at_hospital', 'maintenance', 'offline');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ambulance_type') THEN
+        CREATE TYPE ambulance_type AS ENUM ('als', 'bls', 'patient_transport', 'mobile_icu', 'bike');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'consent_status') THEN
+        CREATE TYPE consent_status AS ENUM ('requested', 'granted', 'denied', 'expired', 'revoked');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'consent_purpose') THEN
+        CREATE TYPE consent_purpose AS ENUM ('emergency', 'care_management', 'research', 'self_requested');
+    END IF;
+END $$;
 
 -- ============================================================
 -- USERS
