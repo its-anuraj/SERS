@@ -129,12 +129,17 @@ router.post('/web-sos', [
             caller_phone = '',
             source = 'web',
             vitals = null,
+            telemetry = null,
         } = req.body;
 
         const lat = latitude || 0.0;
         const lng = longitude || 0.0;
 
+        const { calculateCrashConfidence } = require('../services/afdp.service');
+        const afdpResult = telemetry ? calculateCrashConfidence(telemetry) : null;
+
         const vitalsSummary = vitals ? ` · Smartwatch HR: ${vitals.bpm} BPM (${vitals.pulseStatus})` : '';
+        const afdpSummary = afdpResult ? ` · AFDP v2 Score: ${(afdpResult.confidenceScore * 100).toFixed(0)}% (${afdpResult.tier})` : '';
 
         // Create incident
         const result = await dbQuery(
@@ -146,10 +151,10 @@ router.post('/web-sos', [
             RETURNING id, incident_number, type, status, created_at`,
             [
                 type,
-                vitals?.isEmergency ? 'critical' : 'unknown',
+                afdpResult?.tier === 'INSTANT_DISPATCH' || vitals?.isEmergency ? 'critical' : 'unknown',
                 lat, lng,
                 manual_address, landmark || manual_address,
-                (description || `Web SOS — ${type}${caller_phone ? ` · Callback: ${caller_phone}` : ''}`) + vitalsSummary,
+                (description || `Web SOS — ${type}${caller_phone ? ` · Callback: ${caller_phone}` : ''}`) + vitalsSummary + afdpSummary,
             ]
         );
         const incident = result.rows[0];
@@ -158,10 +163,10 @@ router.post('/web-sos', [
         await dbQuery(
             `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
              VALUES ($1, 'created', NULL, 'citizen', $2)`,
-            [incident.id, `Web SOS submitted from browser (source: ${source})${vitalsSummary}`]
+            [incident.id, `Web SOS submitted from browser (source: ${source})${vitalsSummary}${afdpSummary}`]
         );
 
-        // Broadcast to responders & admin command center with vitals
+        // Broadcast to responders & admin command center with vitals and AFDP v2 telemetry
         const io = getSocketIO();
         if (io) {
             io.to('responders').emit('incident:new', {
@@ -170,6 +175,8 @@ router.post('/web-sos', [
                 callerPhone: caller_phone,
                 manualAddress: manual_address,
                 vitals: vitals,
+                telemetry: telemetry,
+                afdpResult: afdpResult,
             });
         }
 

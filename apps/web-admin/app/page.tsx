@@ -108,6 +108,11 @@ function IncidentRow({ incident }: { incident: any }) {
                   ❤️ {incident.vitals.bpm} BPM
                 </span>
               )}
+              {incident.afdpResult?.airbagConfirmed && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                  💥 AIRBAG DEPLOYED
+                </span>
+              )}
             </div>
             <p className="text-sm font-semibold text-slate-200 truncate">
               {incident.landmark || incident.address || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}`}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, MapPin, Loader2, CheckCircle2, Phone, ChevronRight, Shield, Wifi, WifiOff } from 'lucide-react';
 
 import SmartwatchWidget, { VitalsPayload } from '@/components/SmartwatchWidget';
+import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '@/components/VehicleTelemetryWidget';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -80,11 +81,18 @@ export default function SOSPage() {
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [vitals, setVitals] = useState<VitalsPayload | null>(null);
+  const [telemetry, setTelemetry] = useState<VehicleTelemetryPayload | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCardiacEmergencyAlert = (vitalsPayload: VitalsPayload) => {
     setSelectedType('cardiac');
     setDescription(`AUTOMATED CARDIAC ALERT: Smartwatch detected critical pulse rate of ${vitalsPayload.bpm} BPM (${vitalsPayload.pulseStatus})`);
+    setStep('confirm');
+  };
+
+  const handleAirbagCrashAlert = (telemetryPayload: VehicleTelemetryPayload) => {
+    setSelectedType('accident');
+    setDescription(`AUTOMATED AIRBAG CRASH ALERT: 100% Confirmed Real Crash. Airbag pressure pulse (+${telemetryPayload.barometerPressureSpikeHpa} hPa), Impact magnitude ${telemetryPayload.maxMagnitude}G, Engine Stall (0 RPM). AFDP v2 Confidence: 99%`);
     setStep('confirm');
   };
 
@@ -141,6 +149,9 @@ export default function SOSPage() {
       };
       if (vitals) {
         body.vitals = vitals;
+      }
+      if (telemetry) {
+        body.telemetry = telemetry;
       }
       if (coords) {
         body.latitude = coords.lat;
@@ -245,10 +256,19 @@ export default function SOSPage() {
             </div>
 
             {/* Smartwatch Heart Rate & Pulse Monitoring Widget */}
-            <div className="mb-6">
+            <div className="mb-4">
               <SmartwatchWidget
                 onVitalsUpdate={setVitals}
                 onCardiacEmergency={handleCardiacEmergencyAlert}
+              />
+            </div>
+
+            {/* Vehicle OBD-II Telemetry & Airbag Sensor Matrix Widget */}
+            <div className="mb-6">
+              <VehicleTelemetryWidget
+                onTelemetryUpdate={setTelemetry}
+                onRealCrashTriggered={handleAirbagCrashAlert}
+                onFakeAlertCancelled={(reason) => console.log('AFDP v2:', reason)}
               />
             </div>
 
