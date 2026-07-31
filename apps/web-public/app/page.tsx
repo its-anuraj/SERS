@@ -1466,7 +1466,7 @@ function FeaturesSection() {
   ];
 
   const coming = [
-    { icon: 'fa-plane-fly',   title: 'Autonomous Drone Reconnaissance', desc: 'Dispatches emergency drone ahead of ambulance to stream live 4K footage, assess severity & verify fake alerts in <2 min.' },
+    { icon: 'drone',          title: 'Autonomous Drone Reconnaissance', desc: 'Dispatches emergency drone ahead of ambulance to stream live 4K footage, assess severity & verify fake alerts in <2 min.' },
     { icon: 'fa-stopwatch',   title: 'SmartWatch Companion App',       desc: 'Real-time heart rate, fall detection, and haptic SOS triggers for Wear OS & Apple Watch.' },
     { icon: 'fa-car-burst',   title: 'Car Accident Telemetry',        desc: 'Direct vehicle CAN-bus connection for airbag deployment & high-G collision detection.' },
     { icon: 'fa-id-badge',    title: 'ABDM Health Records',           desc: 'Auto-share medical profile & ABHA ID with emergency room staff.' },
@@ -1515,7 +1515,18 @@ function FeaturesSection() {
               <div key={f.title} className="glass rounded-2xl p-5 opacity-70">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
                   style={{ background: 'rgba(255,181,71,0.10)', border: '1px solid rgba(255,181,71,0.2)' }}>
-                  <i className={`fa-solid ${f.icon}`} style={{ color: 'var(--amber)' }} />
+                  {f.icon === 'drone' ? (
+                    <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+                      <path d="M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4"/>
+                      <circle cx="4" cy="4" r="2.5"/>
+                      <circle cx="20" cy="4" r="2.5"/>
+                      <circle cx="4" cy="20" r="2.5"/>
+                      <circle cx="20" cy="20" r="2.5"/>
+                    </svg>
+                  ) : (
+                    <i className={`fa-solid ${f.icon}`} style={{ color: 'var(--amber)' }} />
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="text-sm font-semibold">{f.title}</div>
