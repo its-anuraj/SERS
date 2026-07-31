@@ -346,10 +346,36 @@ app.get('/', (req, res) => {
     .method-post { color: #16a34a; font-weight: 700; font-size: 0.75rem; }
 
     .footer {
-      margin-top: 3rem;
-      text-align: center;
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
       font-size: 0.85rem;
-      color: var(--text-subtle);
+      color: var(--text-muted);
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .footer-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+      font-weight: 500;
+    }
+    .footer-link:hover {
+      color: var(--text-main);
     }
   </style>
 </head>
@@ -432,7 +458,14 @@ app.get('/', (req, res) => {
     </div>
 
     <div class="footer">
-      Smart Emergency Response System (SERS) &bull; Academic Year 2025–26
+      <div class="footer-left">
+        <span>© 2026 Smart Emergency Response System (SERS). All rights reserved.</span>
+      </div>
+      <div class="footer-right">
+        <a href="/api/health" class="footer-link">System Health</a>
+        <a href="${mlUrl}/docs" target="_blank" class="footer-link">API Docs</a>
+        <span>ABDM Compliant &bull; AI Powered</span>
+      </div>
     </div>
   </div>
 </body>
