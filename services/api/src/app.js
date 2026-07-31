@@ -413,7 +413,6 @@ app.get('/', (req, res) => {
     <div class="api-sec">
       <div class="api-header">
         <div class="api-sec-title">Core Backend REST API Endpoints</div>
-        <div class="api-sec-subtitle">Base URL: http://localhost:3000</div>
       </div>
       <div class="endpoints">
         <a href="/api/health" class="ep"><span class="method-get">GET</span> /api/health</a>
