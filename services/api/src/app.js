@@ -76,251 +76,359 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SERS — Smart Emergency Response System Gateway</title>
+  <title>SERS — Smart Emergency Response System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #07090f;
-      --card-bg: rgba(17, 24, 39, 0.75);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --red: #ef4444;
-      --green: #22c55e;
-      --blue: #3b82f6;
-      --purple: #8b5cf6;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      
+      --primary: #1e293b;
+      --red-bg: #fef2f2;
+      --red-text: #dc2626;
+      --red-border: #fecaca;
+      
+      --blue-bg: #eff6ff;
+      --blue-text: #2563eb;
+      --blue-border: #bfdbfe;
+      
+      --amber-bg: #fffbeb;
+      --amber-text: #d97706;
+      --amber-border: #fde68a;
+      
+      --green-bg: #f0fdf4;
+      --green-text: #16a34a;
+      --green-border: #bbf7d0;
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-      background-image: 
-        radial-gradient(circle at 20% 20%, rgba(239, 68, 68, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 40%);
+      padding: 3rem 1.5rem;
+      -webkit-font-smoothing: antialiased;
     }
     .container {
-      max-width: 900px;
+      max-width: 960px;
       width: 100%;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 1rem;
-      border-radius: 9999px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.25);
-      color: var(--green);
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 900;
-      letter-spacing: -0.025em;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    p.subtitle {
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 2rem;
-    }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(16px);
-      border-radius: 1.25rem;
-      padding: 1.5rem;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.25s ease;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
-    }
-    .card-icon {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-    .card-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 0.35rem;
+    .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 3rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
     }
-    .card-desc {
-      color: var(--muted);
-      font-size: 0.875rem;
-      line-height: 1.45;
-      margin-bottom: 1.25rem;
-      flex-grow: 1;
-    }
-    .card-link {
-      font-size: 0.85rem;
-      font-weight: 700;
+    .brand {
       display: flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
     }
-    .card-red .card-link { color: var(--red); }
-    .card-blue .card-link { color: var(--blue); }
-    .card-purple .card-link { color: var(--purple); }
-    .card-green .card-link { color: var(--green); }
-
-    .api-sec {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 1.25rem;
-      padding: 1.5rem;
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: #dc2626;
+      color: #ffffff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2);
     }
-    .api-sec-title {
-      font-size: 0.9rem;
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      color: var(--green-text);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-text);
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .hero-tag {
+      display: inline-block;
+      font-size: 0.8rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
+      letter-spacing: 0.08em;
+      color: var(--blue-text);
+      background: var(--blue-bg);
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
       margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-hover);
+      box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    }
+    .card-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .card-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+    .port-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .card-red .card-icon-box { background: var(--red-bg); color: var(--red-text); }
+    .card-red .port-pill { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red-border); }
+    
+    .card-blue .card-icon-box { background: var(--blue-bg); color: var(--blue-text); }
+    .card-blue .port-pill { background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue-border); }
+    
+    .card-amber .card-icon-box { background: var(--amber-bg); color: var(--amber-text); }
+    .card-amber .port-pill { background: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber-border); }
+    
+    .card-green .card-icon-box { background: var(--green-bg); color: var(--green-text); }
+    .card-green .port-pill { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green-border); }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+    }
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+    .card-btn {
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      background: #f1f5f9;
+      color: #334155;
+      transition: all 0.15s ease;
+    }
+    .card:hover .card-btn {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .api-sec {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .api-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .api-sec-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .api-sec-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
     }
     .endpoints {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
     .ep {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      padding: 0.4rem 0.75rem;
-      border-radius: 0.5rem;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      color: #cbd5e1;
+      font-size: 0.825rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      color: #334155;
       text-decoration: none;
-      transition: background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
     }
     .ep:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #0f172a;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
+    .method-get { color: #2563eb; font-weight: 700; font-size: 0.75rem; }
+    .method-post { color: #16a34a; font-weight: 700; font-size: 0.75rem; }
+
     .footer {
-      margin-top: 2rem;
+      margin-top: 3rem;
       text-align: center;
-      font-size: 0.8rem;
-      color: #64748b;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <div class="badge">
-        <div class="dot"></div>
-        <span>SERS Gateway Active · Node.js API + WebSockets</span>
+    
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-icon">🚨</div>
+        <span>SERS Platform</span>
       </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>API Services Operational (Port 3000)</span>
+      </div>
+    </div>
+
+    <div class="hero">
+      <span class="hero-tag">System Control Hub</span>
       <h1>Smart Emergency Response System</h1>
-      <p class="subtitle">Unified AI-Powered Emergency Coordination Platform</p>
+      <p class="subtitle">Unified platform for emergency coordination, live ambulance dispatch, hospital management, and AI assistance.</p>
     </div>
 
     <div class="grid">
       <a href="http://localhost:3001" target="_blank" class="card card-red">
-        <div class="card-icon">🚑</div>
-        <div class="card-title">
-          <span>Public Website</span>
-          <span style="font-size: 0.75rem; background: rgba(239,68,68,0.15); color: var(--red); padding: 2px 8px; border-radius: 6px;">Port 3001</span>
+        <div class="card-header-row">
+          <div class="card-icon-box">🚑</div>
+          <span class="port-pill">PORT 3001</span>
         </div>
-        <div class="card-desc">Citizen landing page, public hospital directory, and instant Web SOS emergency trigger.</div>
-        <div class="card-link">Open Public Portal →</div>
+        <div class="card-title">Public Website</div>
+        <div class="card-desc">Citizen emergency landing portal, public hospital directory, and instant Web SOS request.</div>
+        <div class="card-btn">Open Citizen Portal &rarr;</div>
       </a>
 
       <a href="http://localhost:3002" target="_blank" class="card card-blue">
-        <div class="card-icon">⚡</div>
-        <div class="card-title">
-          <span>Command Center</span>
-          <span style="font-size: 0.75rem; background: rgba(59,130,246,0.15); color: var(--blue); padding: 2px 8px; border-radius: 6px;">Port 3002</span>
+        <div class="card-header-row">
+          <div class="card-icon-box">⚡</div>
+          <span class="port-pill">PORT 3002</span>
         </div>
-        <div class="card-desc">Admin dashboard, live ambulance fleet tracker, ICU bed manager, and Gemini AI Chat.</div>
-        <div class="card-link">Open Admin Dashboard →</div>
+        <div class="card-title">Command Center</div>
+        <div class="card-desc">Admin control dashboard, live GPS fleet tracking, hospital ICU bed manager, and Gemini AI assistant.</div>
+        <div class="card-btn">Open Admin Dashboard &rarr;</div>
       </a>
 
-      <a href="http://localhost:3001/sos" target="_blank" class="card card-purple">
-        <div class="card-icon">🆘</div>
-        <div class="card-title">
-          <span>Web Emergency SOS</span>
-          <span style="font-size: 0.75rem; background: rgba(139,92,246,0.15); color: var(--purple); padding: 2px 8px; border-radius: 6px;">Browser</span>
+      <a href="http://localhost:3001/sos" target="_blank" class="card card-amber">
+        <div class="card-header-row">
+          <div class="card-icon-box">🆘</div>
+          <span class="port-pill">BROWSER</span>
         </div>
-        <div class="card-desc">Browser-based GPS location detection and instant emergency dispatch form.</div>
-        <div class="card-link">Trigger Web SOS →</div>
+        <div class="card-title">Web Emergency SOS</div>
+        <div class="card-desc">Browser-based GPS location detection and one-click emergency dispatch form.</div>
+        <div class="card-btn">Launch Web SOS &rarr;</div>
       </a>
 
       <a href="http://localhost:8001/docs" target="_blank" class="card card-green">
-        <div class="card-icon">🤖</div>
-        <div class="card-title">
-          <span>Python ML Service</span>
-          <span style="font-size: 0.75rem; background: rgba(34,197,94,0.15); color: var(--green); padding: 2px 8px; border-radius: 6px;">Port 8001</span>
+        <div class="card-header-row">
+          <div class="card-icon-box">🤖</div>
+          <span class="port-pill">PORT 8001</span>
         </div>
-        <div class="card-desc">FastAPI Swagger documentation for Crash Detection, Hospital Matcher, and Hotspot AI.</div>
-        <div class="card-link">Open Swagger Docs →</div>
+        <div class="card-title">Python ML Service</div>
+        <div class="card-desc">FastAPI Swagger documentation for AI Crash Detection, Hospital Matcher, and Hotspot Analytics.</div>
+        <div class="card-btn">View API Docs &rarr;</div>
       </a>
     </div>
 
     <div class="api-sec">
-      <div class="api-sec-title">Available REST API Endpoints (Port 3000)</div>
+      <div class="api-header">
+        <div class="api-sec-title">Core Backend REST API Endpoints</div>
+        <div class="api-sec-subtitle">Base URL: http://localhost:3000</div>
+      </div>
       <div class="endpoints">
-        <a href="/api/health" class="ep">GET /api/health</a>
-        <a href="/api/incidents" class="ep">GET /api/incidents</a>
-        <a href="/api/hospitals" class="ep">GET /api/hospitals</a>
-        <a href="/api/ambulances" class="ep">GET /api/ambulances</a>
-        <a href="/api/analytics/summary" class="ep">GET /api/analytics/summary</a>
-        <a href="/api/analytics/hotspots" class="ep">GET /api/analytics/hotspots</a>
-        <span class="ep">POST /api/incidents/web-sos</span>
-        <span class="ep">POST /api/analytics/llm-query</span>
+        <a href="/api/health" class="ep"><span class="method-get">GET</span> /api/health</a>
+        <a href="/api/incidents" class="ep"><span class="method-get">GET</span> /api/incidents</a>
+        <a href="/api/hospitals" class="ep"><span class="method-get">GET</span> /api/hospitals</a>
+        <a href="/api/ambulances" class="ep"><span class="method-get">GET</span> /api/ambulances</a>
+        <a href="/api/analytics/summary" class="ep"><span class="method-get">GET</span> /api/analytics/summary</a>
+        <a href="/api/analytics/hotspots" class="ep"><span class="method-get">GET</span> /api/analytics/hotspots</a>
+        <span class="ep"><span class="method-post">POST</span> /api/incidents/web-sos</span>
+        <span class="ep"><span class="method-post">POST</span> /api/analytics/llm-query</span>
       </div>
     </div>
 
     <div class="footer">
-      SERS (Smart Emergency Response System) · Academic Year 2025–26
+      Smart Emergency Response System (SERS) &bull; Academic Year 2025–26
     </div>
   </div>
 </body>
