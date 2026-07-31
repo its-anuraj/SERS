@@ -72,7 +72,7 @@ const sosLimiter = rateLimit({
 app.get('/', (req, res) => {
     const publicUrl = process.env.PUBLIC_WEB_URL || 'http://localhost:3001';
     const adminUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3002';
-    const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8001';
+    const mlUrl = process.env.PUBLIC_ML_URL || 'http://localhost:8001';
 
     if (req.headers.accept && req.headers.accept.includes('text/html')) {
         return res.send(`<!DOCTYPE html>
