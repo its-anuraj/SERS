@@ -9,14 +9,14 @@ import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '../../component
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 const EMERGENCY_TYPES = [
-  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / crash' },
-  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest' },
-  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious' },
-  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury' },
-  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency' },
-  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture' },
-  { id: 'assault',   label: 'Assault / Injury',  emoji: '⚠️', desc: 'Violence-related injury' },
-  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Any other life-threatening situation' },
+  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / rollover crash', severity: 'CRITICAL', color: 'border-red-500/50 bg-red-950/20 text-red-400' },
+  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest',       severity: 'CRITICAL', color: 'border-rose-500/50 bg-rose-950/20 text-rose-400' },
+  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious',       severity: 'HIGH',     color: 'border-amber-500/50 bg-amber-950/20 text-amber-400' },
+  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury',        severity: 'HIGH',     color: 'border-orange-500/50 bg-orange-950/20 text-orange-400' },
+  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency',                  severity: 'CRITICAL', color: 'border-cyan-500/50 bg-cyan-950/20 text-cyan-400' },
+  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture',       severity: 'URGENT',   color: 'border-purple-500/50 bg-purple-950/20 text-purple-400' },
+  { id: 'assault',   label: 'Assault / Trauma',  emoji: '⚠️', desc: 'Violence-related injury',          severity: 'HIGH',     color: 'border-yellow-500/50 bg-yellow-950/20 text-yellow-400' },
+  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Life-threatening situation',        severity: 'URGENT',   color: 'border-blue-500/50 bg-blue-950/20 text-blue-400' },
 ];
 
 type Step = 'type' | 'location' | 'details' | 'confirm' | 'submitted';
@@ -200,16 +200,16 @@ export default function SOSPage() {
           </div>
           <span className="font-black text-white text-xl tracking-tight">SERS</span>
         </a>
-        <div className="flex items-center gap-2 text-sm font-semibold text-red-400">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-          EMERGENCY DISPATCH PORTAL
+        <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          SYSTEM ONLINE · SOCKETS CONNECTED
         </div>
         <a href="tel:112" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all">
           <Phone size={14} /> Call 112
         </a>
       </header>
 
-      <main className="max-w-xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 py-8">
 
         {/* ── STEP: TYPE ── */}
         {step === 'type' && (
@@ -218,58 +218,76 @@ export default function SOSPage() {
               <div className="flex justify-center mb-4">
                 <div className="relative">
                   <PulseRing />
-                  <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-4xl z-10 bg-red-500/15 border-2 border-red-500/40 shadow-xl shadow-red-500/20">
+                  <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-4xl z-10 bg-red-500/15 border-2 border-red-500/40 shadow-2xl shadow-red-500/30">
                     🆘
                   </div>
                 </div>
               </div>
-              <h1 className="text-3xl font-black text-white mb-2">Emergency Web SOS</h1>
-              <p className="text-slate-400 text-sm max-w-sm mx-auto">
-                Select the type of emergency. GPS location & nearest hospital will be matched automatically.
+              <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Emergency Dispatch Portal</h1>
+              <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
+                Select the type of medical or crash emergency. High-precision GPS location & hospital ICU matching will start instantly.
               </p>
-              <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-red-500/10 border border-red-500/25 text-red-400">
-                <Shield size={13} /> Automatic GPS Location & Hospital Dispatch
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 border border-slate-700 text-slate-300">
+                <Shield size={13} className="text-emerald-400" /> Automatic GPS Detection & 3-Party Dispatch Active
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            {/* Emergency Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-8">
               {EMERGENCY_TYPES.map(type => (
                 <button key={type.id}
                   id={`sos-type-${type.id}`}
                   onClick={() => { setSelectedType(type.id); setStep('location'); }}
-                  className={`text-left p-4 rounded-2xl transition-all duration-200 border ${
+                  className={`text-left p-4.5 rounded-2xl transition-all duration-200 border relative overflow-hidden group ${
                     selectedType === type.id
-                      ? 'bg-red-500/20 border-red-500 shadow-lg shadow-red-500/20 scale-[1.02]'
-                      : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                      ? 'bg-red-500/20 border-red-500 shadow-xl shadow-red-500/20 scale-[1.02]'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
                   }`}>
-                  <div className="text-3xl mb-2">{type.emoji}</div>
-                  <p className="font-bold text-white text-sm leading-tight">{type.label}</p>
-                  <p className="text-xs text-slate-400 mt-1 leading-snug">{type.desc}</p>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="text-3xl p-2 rounded-xl bg-slate-800/80 border border-slate-700/50 group-hover:scale-110 transition-transform">
+                      {type.emoji}
+                    </div>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${type.color}`}>
+                      {type.severity}
+                    </span>
+                  </div>
+                  <p className="font-bold text-white text-base leading-tight mb-1">{type.label}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{type.desc}</p>
                 </button>
               ))}
             </div>
 
-            {/* Smartwatch Heart Rate & Pulse Monitoring Widget */}
-            <div className="mb-4">
-              <SmartwatchWidget
-                onVitalsUpdate={setVitals}
-                onCardiacEmergency={handleCardiacEmergencyAlert}
-              />
+            {/* Telemetry Widgets Grid */}
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              <div className="p-1 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <SmartwatchWidget
+                  onVitalsUpdate={setVitals}
+                  onCardiacEmergency={handleCardiacEmergencyAlert}
+                />
+              </div>
+              <div className="p-1 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <VehicleTelemetryWidget
+                  onTelemetryUpdate={setTelemetry}
+                  onRealCrashTriggered={handleAirbagCrashAlert}
+                  onFakeAlertCancelled={(reason) => console.log('AFDP v2:', reason)}
+                />
+              </div>
             </div>
 
-            {/* Vehicle OBD-II Telemetry & Airbag Sensor Matrix Widget */}
-            <div className="mb-6">
-              <VehicleTelemetryWidget
-                onTelemetryUpdate={setTelemetry}
-                onRealCrashTriggered={handleAirbagCrashAlert}
-                onFakeAlertCancelled={(reason) => console.log('AFDP v2:', reason)}
-              />
-            </div>
-
-            <div className="text-center">
-              <p className="text-xs" style={{ color: 'var(--muted-2)' }}>
-                Already calling? <a href="tel:112" className="underline" style={{ color: '#ff6b85' }}>Dial 112</a> — India's national emergency number
-              </p>
+            {/* Direct Call Banner */}
+            <div className="p-4.5 rounded-2xl bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900 border border-red-500/30 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center text-lg shrink-0">
+                  📞
+                </div>
+                <div>
+                  <p className="font-bold text-white text-sm">Need immediate phone assistance?</p>
+                  <p className="text-xs text-slate-400">Direct connect to National Emergency 112 Dispatch Command</p>
+                </div>
+              </div>
+              <a href="tel:112" className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-600 text-white shrink-0 shadow-lg shadow-red-500/20 transition-all">
+                Dial 112
+              </a>
             </div>
           </div>
         )}
