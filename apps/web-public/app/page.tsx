@@ -1231,31 +1231,34 @@ function HowItWorksSection() {
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal">
           <div className="text-xs font-mono-custom uppercase tracking-widest mb-4" style={{ color: 'var(--violet)' }}>
-            // 04 · How It Works
+            // 03 · End-to-End Emergency Resolution
           </div>
           <h2 className="font-bold text-4xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-            Emergency resolved in <span className="text-gradient-cyan">minutes.</span>
+            How SERS resolves emergencies in <span className="text-gradient-cyan">sub-4 minutes.</span>
           </h2>
+          <p className="mt-4 text-base text-slate-600">
+            From the instant a crash happens to hospital ER admission, every step is automated by AI.
+          </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Steps */}
           <div className="space-y-4 reveal">
             {[
-              { step: '01', title: 'Detection',        color: 'var(--red)',   desc: 'SERS sensors detect crash or user presses SOS. AI crash detection needs no human action.' },
-              { step: '02', title: 'Instant Dispatch', color: 'var(--amber)', desc: 'Nearest available ambulance auto-assigned using PostGIS geo-queries. Responder notified instantly.' },
-              { step: '03', title: 'Smart Routing',    color: 'var(--amber)', desc: 'AI optimizes ambulance route using live traffic and road conditions.' },
-              { step: '04', title: 'Hospital Ready',   color: 'var(--green)', desc: 'Best hospital auto-selected. ER receives medical profile before the patient arrives.' },
-              { step: '05', title: 'Live Tracking',    color: 'var(--cyan)',  desc: 'Patient, family, and hospital all see the live ambulance position on the shared map below.' },
+              { step: '01', title: 'Multi-Modal Detection (0.8s)',   color: 'var(--red)',   desc: 'Sensors analyze accelerometer/gyroscope patterns, Voice AI listens for distress keywords, or user taps 1-tap Web SOS button.' },
+              { step: '02', title: 'Smart Hospital Selection (3.2s)',color: 'var(--amber)', desc: 'AI algorithm evaluates ICU bed availability, trauma specialists, traffic ETA, and hospital ER workload headroom to select the optimal hospital.' },
+              { step: '03', title: 'Automated Dispatch (1.4s)',      color: 'var(--violet)',desc: 'PostGIS geo-spatial queries auto-assign the nearest equipped ambulance unit and stream turn-by-turn navigation.' },
+              { step: '04', title: 'ER ICU Bed Reservation',        color: 'var(--green)', desc: 'Selected hospital ER receives real-time victim telemetry and reserves an ICU trauma bed before patient arrival.' },
+              { step: '05', title: 'Live 3-Party Telemetry Sync',   color: 'var(--cyan)',  desc: 'Victim, Responder, and ER Doctor share a synchronized live WebSocket map feed to eliminate handoff delays.' },
             ].map((item) => (
-              <div key={item.step} className="glass rounded-2xl p-6 flex items-start gap-6 feature-card">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-black text-lg font-mono-custom"
-                  style={{ background: `${item.color}20`, color: item.color, border: `1px solid ${item.color}40` }}>
+              <div key={item.step} className="glass rounded-2xl p-6 flex items-start gap-6 feature-card bg-white border border-slate-200">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-black text-lg font-mono-custom shadow-sm"
+                  style={{ background: `${item.color}15`, color: item.color, border: `1px solid ${item.color}30` }}>
                   {item.step}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-lg mb-1" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>{item.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>{item.desc}</p>
+                  <h3 className="font-bold text-slate-900 text-lg mb-1" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -1264,12 +1267,65 @@ function HowItWorksSection() {
           {/* Live map — right beside steps */}
           <div className="reveal" style={{ transitionDelay: '0.15s' }}>
             <div className="mb-4">
-              <h3 className="font-bold text-xl" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Live Incident Map</h3>
-              <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>Real-time view of active emergencies</p>
+              <h3 className="font-bold text-xl text-slate-900" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Live Incident Map</h3>
+              <p className="text-sm mt-1 text-slate-500">Real-time view of active emergencies & ambulance positions</p>
             </div>
-            <div className="glass-strong rounded-2xl overflow-hidden" style={{ height: '500px' }}>
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-xl border border-slate-200" style={{ height: '500px' }}>
               <PublicMap />
             </div>
+          </div>
+        </div>
+
+        {/* 3-Stakeholder Real-Time Sync Explanation Box */}
+        <div className="mt-16 glass-strong rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl bg-white reveal">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg">
+              <i className="fa-solid fa-network-wired text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-xl text-slate-900" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
+                What is 3-Stakeholder Synchronization & Why is it Critical?
+              </h3>
+              <p className="text-xs text-slate-500 font-mono-custom">ELIMINATING VOICE-CALL DISCONNECTS IN THE GOLDEN HOUR</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-600 leading-relaxed mb-6">
+            In traditional 108/911 ambulance systems, three separate parties operate in isolation via chaotic voice calls where critical location details and medical history are lost. SERS unifies all three stakeholders on a single, synchronized WebSocket data stream:
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              {
+                icon: 'fa-user-nurse',
+                color: 'text-red-600',
+                bg: 'bg-red-50 border-red-200',
+                title: '1. Citizen / Victim',
+                desc: 'Monitors live ambulance GPS tracking map, driver contact details, and precise arrival ETA on their phone screen in real time.'
+              },
+              {
+                icon: 'fa-truck-medical',
+                color: 'text-amber-600',
+                bg: 'bg-amber-50 border-amber-200',
+                title: '2. Ambulance Responder',
+                desc: 'Receives turn-by-turn traffic navigation, victim location coordinates, and ABHA medical history before arriving at the scene.'
+              },
+              {
+                icon: 'fa-hospital-user',
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50 border-emerald-200',
+                title: '3. Hospital ER Team',
+                desc: 'Receives real-time crash severity score, patient vitals, and reserves an ICU trauma bed BEFORE the ambulance arrives.'
+              }
+            ].map((s) => (
+              <div key={s.title} className={`p-4.5 rounded-2xl border ${s.bg}`}>
+                <div className="flex items-center gap-2.5 font-semibold text-sm text-slate-900 mb-2">
+                  <i className={`fa-solid ${s.icon} ${s.color} text-base`} />
+                  {s.title}
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

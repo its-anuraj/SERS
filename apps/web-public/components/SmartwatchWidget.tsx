@@ -57,13 +57,13 @@ export default function SmartwatchWidget({ onVitalsUpdate, onCardiacEmergency }:
   // Web Bluetooth GATT Scanner for Heart Rate Monitors (Service 0x180D)
   const connectBluetoothSmartwatch = async () => {
     try {
-      if (!navigator.bluetooth) {
+      if (!(navigator as any).bluetooth) {
         alert('Web Bluetooth is not supported in this browser. Switching to Smartwatch Simulator mode!');
         toggleSimulation(true);
         return;
       }
 
-      const device = await navigator.bluetooth.requestDevice({
+      const device = await (navigator as any).bluetooth.requestDevice({
         filters: [{ services: ['heart_rate'] }],
       });
 
