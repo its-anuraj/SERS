@@ -9,14 +9,14 @@ import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '../../component
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 const EMERGENCY_TYPES = [
-  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / rollover crash', severity: 'CRITICAL', color: 'border-red-500/50 bg-red-950/20 text-red-400' },
-  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest',       severity: 'CRITICAL', color: 'border-rose-500/50 bg-rose-950/20 text-rose-400' },
-  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious',       severity: 'HIGH',     color: 'border-amber-500/50 bg-amber-950/20 text-amber-400' },
-  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury',        severity: 'HIGH',     color: 'border-orange-500/50 bg-orange-950/20 text-orange-400' },
-  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency',                  severity: 'CRITICAL', color: 'border-cyan-500/50 bg-cyan-950/20 text-cyan-400' },
-  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture',       severity: 'URGENT',   color: 'border-purple-500/50 bg-purple-950/20 text-purple-400' },
-  { id: 'assault',   label: 'Assault / Trauma',  emoji: '⚠️', desc: 'Violence-related injury',          severity: 'HIGH',     color: 'border-yellow-500/50 bg-yellow-950/20 text-yellow-400' },
-  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Life-threatening situation',        severity: 'URGENT',   color: 'border-blue-500/50 bg-blue-950/20 text-blue-400' },
+  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / rollover crash', severity: 'CRITICAL', color: 'border-red-200 bg-red-50 text-red-700' },
+  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest',       severity: 'CRITICAL', color: 'border-rose-200 bg-rose-50 text-rose-700' },
+  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious',       severity: 'HIGH',     color: 'border-amber-200 bg-amber-50 text-amber-800' },
+  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury',        severity: 'HIGH',     color: 'border-orange-200 bg-orange-50 text-orange-800' },
+  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency',                  severity: 'CRITICAL', color: 'border-cyan-200 bg-cyan-50 text-cyan-800' },
+  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture',       severity: 'URGENT',   color: 'border-purple-200 bg-purple-50 text-purple-700' },
+  { id: 'assault',   label: 'Assault / Trauma',  emoji: '⚠️', desc: 'Violence-related injury',          severity: 'HIGH',     color: 'border-yellow-200 bg-yellow-50 text-yellow-800' },
+  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Life-threatening situation',        severity: 'URGENT',   color: 'border-blue-200 bg-blue-50 text-blue-700' },
 ];
 
 type Step = 'type' | 'location' | 'details' | 'confirm' | 'submitted';
@@ -24,7 +24,7 @@ type Step = 'type' | 'location' | 'details' | 'confirm' | 'submitted';
 interface Coords { lat: number; lng: number; accuracy: number }
 
 // ─── Pulse ring animation component ──────────────────────────────────────────
-function PulseRing({ color = '#ff3b5c' }: { color?: string }) {
+function PulseRing({ color = '#dc2626' }: { color?: string }) {
   return (
     <div className="relative flex items-center justify-center">
       {[0, 1, 2].map(i => (
@@ -51,16 +51,16 @@ function ProgressBar({ step }: { step: Step }) {
         <div key={s} className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
             style={{
-              background: i < idx ? '#10b981' : i === idx ? '#ff3b5c' : '#1e293b',
-              color: 'white',
-              boxShadow: i === idx ? '0 0 16px rgba(255,59,92,0.5)' : 'none',
-              border: i <= idx ? 'none' : '1px solid #334155'
+              background: i < idx ? '#10b981' : i === idx ? '#dc2626' : '#e2e8f0',
+              color: i <= idx ? 'white' : '#64748b',
+              boxShadow: i === idx ? '0 0 12px rgba(220,38,38,0.3)' : 'none',
+              border: i <= idx ? 'none' : '1px solid #cbd5e1'
             }}>
             {i < idx ? '✓' : i + 1}
           </div>
           {i < steps.length - 1 && (
             <div className="h-0.5 w-8 transition-all"
-              style={{ background: i < idx ? '#10b981' : '#334155' }} />
+              style={{ background: i < idx ? '#10b981' : '#cbd5e1' }} />
           )}
         </div>
       ))}
@@ -191,20 +191,20 @@ export default function SOSPage() {
   const selectedTypeObj = EMERGENCY_TYPES.find(t => t.id === selectedType);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#07090f', color: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      {/* Light Header */}
+      <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
         <a href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/20">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black bg-red-600 text-white shadow-md shadow-red-600/20">
             🆘
           </div>
-          <span className="font-black text-white text-xl tracking-tight">SERS</span>
+          <span className="font-black text-slate-900 text-xl tracking-tight">SERS</span>
         </a>
-        <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           SYSTEM ONLINE · SOCKETS CONNECTED
         </div>
-        <a href="tel:112" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all">
+        <a href="tel:112" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-all">
           <Phone size={14} /> Call 112
         </a>
       </header>
@@ -218,54 +218,54 @@ export default function SOSPage() {
               <div className="flex justify-center mb-4">
                 <div className="relative">
                   <PulseRing />
-                  <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-4xl z-10 bg-red-500/15 border-2 border-red-500/40 shadow-2xl shadow-red-500/30">
+                  <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-4xl z-10 bg-red-50 border-2 border-red-300 shadow-xl shadow-red-500/10">
                     🆘
                   </div>
                 </div>
               </div>
-              <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Emergency Dispatch Portal</h1>
-              <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
+              <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Emergency Dispatch Portal</h1>
+              <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed">
                 Select the type of medical or crash emergency. High-precision GPS location & hospital ICU matching will start instantly.
               </p>
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 border border-slate-700 text-slate-300">
-                <Shield size={13} className="text-emerald-400" /> Automatic GPS Detection & 3-Party Dispatch Active
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-sm">
+                <Shield size={13} className="text-emerald-600" /> Automatic GPS Detection & 3-Party Dispatch Active
               </div>
             </div>
 
-            {/* Emergency Grid */}
+            {/* Emergency Grid — Light Theme Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-8">
               {EMERGENCY_TYPES.map(type => (
                 <button key={type.id}
                   id={`sos-type-${type.id}`}
                   onClick={() => { setSelectedType(type.id); setStep('location'); }}
-                  className={`text-left p-4.5 rounded-2xl transition-all duration-200 border relative overflow-hidden group ${
+                  className={`text-left p-4.5 rounded-2xl transition-all duration-200 border relative overflow-hidden group shadow-sm hover:shadow-md ${
                     selectedType === type.id
-                      ? 'bg-red-500/20 border-red-500 shadow-xl shadow-red-500/20 scale-[1.02]'
-                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
+                      ? 'bg-red-50 border-red-500 shadow-md shadow-red-500/10 scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-red-300 hover:bg-slate-50'
                   }`}>
                   <div className="flex items-start justify-between mb-3">
-                    <div className="text-3xl p-2 rounded-xl bg-slate-800/80 border border-slate-700/50 group-hover:scale-110 transition-transform">
+                    <div className="text-3xl p-2 rounded-xl bg-slate-100 border border-slate-200 group-hover:scale-110 transition-transform">
                       {type.emoji}
                     </div>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${type.color}`}>
+                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${type.color}`}>
                       {type.severity}
                     </span>
                   </div>
-                  <p className="font-bold text-white text-base leading-tight mb-1">{type.label}</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">{type.desc}</p>
+                  <p className="font-bold text-slate-900 text-base leading-tight mb-1">{type.label}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">{type.desc}</p>
                 </button>
               ))}
             </div>
 
-            {/* Telemetry Widgets Grid */}
+            {/* Telemetry Widgets Grid — Light Cards */}
             <div className="grid md:grid-cols-2 gap-4 mb-8">
-              <div className="p-1 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <div className="p-1 rounded-2xl bg-white border border-slate-200 shadow-sm">
                 <SmartwatchWidget
                   onVitalsUpdate={setVitals}
                   onCardiacEmergency={handleCardiacEmergencyAlert}
                 />
               </div>
-              <div className="p-1 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <div className="p-1 rounded-2xl bg-white border border-slate-200 shadow-sm">
                 <VehicleTelemetryWidget
                   onTelemetryUpdate={setTelemetry}
                   onRealCrashTriggered={handleAirbagCrashAlert}
@@ -274,18 +274,18 @@ export default function SOSPage() {
               </div>
             </div>
 
-            {/* Direct Call Banner */}
-            <div className="p-4.5 rounded-2xl bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900 border border-red-500/30 flex items-center justify-between">
+            {/* Direct Call Light Banner */}
+            <div className="p-4.5 rounded-2xl bg-white border border-red-200 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center text-lg shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-red-100 border border-red-200 text-red-600 flex items-center justify-center text-lg shrink-0">
                   📞
                 </div>
                 <div>
-                  <p className="font-bold text-white text-sm">Need immediate phone assistance?</p>
-                  <p className="text-xs text-slate-400">Direct connect to National Emergency 112 Dispatch Command</p>
+                  <p className="font-bold text-slate-900 text-sm">Need immediate phone assistance?</p>
+                  <p className="text-xs text-slate-500">Direct connect to National Emergency 112 Dispatch Command</p>
                 </div>
               </div>
-              <a href="tel:112" className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-600 text-white shrink-0 shadow-lg shadow-red-500/20 transition-all">
+              <a href="tel:112" className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shrink-0 shadow-md shadow-red-600/20 transition-all">
                 Dial 112
               </a>
             </div>
@@ -298,44 +298,41 @@ export default function SOSPage() {
             <ProgressBar step={step} />
             <div className="text-center mb-6">
               <div className="text-4xl mb-3">{selectedTypeObj?.emoji}</div>
-              <h2 className="text-xl font-black text-white mb-1">{selectedTypeObj?.label}</h2>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>We need your location to dispatch help</p>
+              <h2 className="text-2xl font-black text-slate-900 mb-1">{selectedTypeObj?.label}</h2>
+              <p className="text-sm text-slate-600">We need your location to dispatch help</p>
             </div>
 
             <div className="space-y-4 mb-6">
               {/* GPS detection */}
-              <div className="p-5 rounded-2xl"
-                style={{
-                  background: locationStatus === 'granted' ? 'rgba(54,211,153,0.08)' : 'rgba(255,255,255,0.04)',
-                  border: `1.5px solid ${locationStatus === 'granted' ? 'rgba(54,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                }}>
-                <div className="flex items-center gap-3 mb-3">
+              <div className={`p-5 rounded-2xl border ${
+                locationStatus === 'granted' ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <div className="flex items-center gap-3">
                   {locationStatus === 'loading' ? (
-                    <Loader2 size={20} className="text-amber-400 animate-spin" />
+                    <Loader2 size={20} className="text-amber-500 animate-spin" />
                   ) : locationStatus === 'granted' ? (
-                    <CheckCircle2 size={20} style={{ color: '#36d399' }} />
+                    <CheckCircle2 size={20} className="text-emerald-600" />
                   ) : locationStatus === 'denied' ? (
-                    <WifiOff size={20} className="text-red-400" />
+                    <WifiOff size={20} className="text-red-500" />
                   ) : (
-                    <MapPin size={20} style={{ color: '#ff3b5c' }} />
+                    <MapPin size={20} className="text-red-600" />
                   )}
                   <div>
-                    <p className="font-semibold text-white text-sm">
+                    <p className="font-bold text-slate-900 text-sm">
                       {locationStatus === 'loading' ? 'Detecting your location...' :
                        locationStatus === 'granted' ? 'Location detected ✓' :
                        locationStatus === 'denied' ? 'Location access denied' :
                        'GPS Location'}
                     </p>
                     {locationStatus === 'granted' && coords && (
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                        {coords.lat.toFixed(5)}°N, {coords.lng.toFixed(5)}°E · ±{coords.accuracy.toFixed(0)}m
+                      <p className="text-xs text-slate-600 mt-0.5 font-mono">
+                        {coords.lat.toFixed(5)}°N, {coords.lng.toFixed(5)}°E · ±{coords.accuracy.toFixed(0)}m accuracy
                       </p>
                     )}
                   </div>
                   {locationStatus === 'denied' && (
                     <button onClick={requestLocation}
-                      className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg"
-                      style={{ background: 'rgba(255,181,71,0.15)', border: '1px solid rgba(255,181,71,0.3)', color: '#ffb547' }}>
+                      className="ml-auto text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300">
                       Retry
                     </button>
                   )}
@@ -344,7 +341,7 @@ export default function SOSPage() {
 
               {/* Manual fallback */}
               <div>
-                <p className="text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
+                <p className="text-xs font-semibold text-slate-700 mb-2">
                   {locationStatus === 'denied' ? '⚠️ Enter your location manually:' : 'Or add an address/landmark (optional):'}
                 </p>
                 <input
@@ -353,13 +350,7 @@ export default function SOSPage() {
                   placeholder="e.g., Near Koramangala 5th Block, Next to Forum Mall"
                   value={manualAddress}
                   onChange={e => setManualAddress(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none transition-all"
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1.5px solid rgba(255,255,255,0.1)',
-                  }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(255,59,92,0.5)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-slate-900 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all shadow-sm"
                 />
               </div>
             </div>
@@ -368,12 +359,11 @@ export default function SOSPage() {
               id="sos-location-next"
               onClick={() => setStep('details')}
               disabled={locationStatus === 'loading' || (locationStatus !== 'granted' && !manualAddress)}
-              className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all disabled:opacity-40"
-              style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff6b85)', boxShadow: '0 8px 32px rgba(255,59,92,0.35)' }}>
+              className="w-full py-4 rounded-2xl font-bold text-white text-base bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/25 disabled:opacity-40">
               Continue →
             </button>
             <button onClick={() => setStep('type')}
-              className="w-full mt-2 py-2 text-sm" style={{ color: 'var(--muted)' }}>
+              className="w-full mt-2 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900">
               ← Back
             </button>
           </div>
@@ -385,63 +375,53 @@ export default function SOSPage() {
             <ProgressBar step={step} />
             <div className="text-center mb-6">
               <div className="text-4xl mb-3">{selectedTypeObj?.emoji}</div>
-              <h2 className="text-xl font-black text-white mb-1">Additional Details</h2>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>Optional — helps responders prepare</p>
+              <h2 className="text-2xl font-black text-slate-900 mb-1">Additional Details</h2>
+              <p className="text-sm text-slate-600">Optional — helps responders prepare</p>
             </div>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted)' }}>LANDMARK / DESCRIPTION</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">LANDMARK / BUILDING NAME</label>
                 <input
                   id="sos-landmark"
                   type="text"
-                  placeholder="e.g., Red building, ground floor"
+                  placeholder="e.g., Red building, ground floor, gate 2"
                   value={landmark}
                   onChange={e => setLandmark(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(255,59,92,0.5)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-slate-900 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted)' }}>DESCRIBE SITUATION (OPTIONAL)</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">DESCRIBE SITUATION (OPTIONAL)</label>
                 <textarea
                   id="sos-description"
                   rows={3}
                   placeholder="e.g., Person unconscious, bleeding from head, 2 people involved..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none resize-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(255,59,92,0.5)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-slate-900 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 resize-none shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted)' }}>CALLBACK NUMBER (OPTIONAL)</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">CALLBACK PHONE NUMBER (OPTIONAL)</label>
                 <input
                   id="sos-callback"
                   type="tel"
                   placeholder="+91 98765 43210"
                   value={callbackPhone}
                   onChange={e => setCallbackPhone(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(255,59,92,0.5)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-slate-900 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 shadow-sm"
                 />
               </div>
             </div>
 
             <button id="sos-details-next" onClick={() => setStep('confirm')}
-              className="w-full py-4 rounded-2xl font-bold text-white text-base"
-              style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff6b85)', boxShadow: '0 8px 32px rgba(255,59,92,0.35)' }}>
+              className="w-full py-4 rounded-2xl font-bold text-white text-base bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/25">
               Review & Send SOS →
             </button>
-            <button onClick={() => setStep('location')} className="w-full mt-2 py-2 text-sm" style={{ color: 'var(--muted)' }}>
+            <button onClick={() => setStep('location')} className="w-full mt-2 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900">
               ← Back
             </button>
           </div>
@@ -458,12 +438,11 @@ export default function SOSPage() {
                   <div className="relative text-4xl z-10">{selectedTypeObj?.emoji}</div>
                 </div>
               </div>
-              <h2 className="text-xl font-black text-white mb-1">Confirm Emergency SOS</h2>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>Review details before dispatching help</p>
+              <h2 className="text-2xl font-black text-slate-900 mb-1">Confirm Emergency SOS</h2>
+              <p className="text-sm text-slate-600">Review details before dispatching help</p>
             </div>
 
-            <div className="rounded-2xl p-5 mb-6 space-y-4"
-              style={{ background: 'rgba(255,59,92,0.08)', border: '1.5px solid rgba(255,59,92,0.25)' }}>
+            <div className="rounded-2xl p-5 mb-6 space-y-4 bg-red-50 border border-red-200 shadow-sm">
               {[
                 { label: 'EMERGENCY TYPE', value: `${selectedTypeObj?.emoji} ${selectedTypeObj?.label}` },
                 { label: 'LOCATION', value: locationStatus === 'granted' && coords
@@ -474,16 +453,15 @@ export default function SOSPage() {
                 ...(callbackPhone ? [{ label: 'CALLBACK', value: callbackPhone }] : []),
               ].map(row => (
                 <div key={row.label}>
-                  <p className="text-xs font-bold tracking-wider mb-0.5" style={{ color: 'rgba(255,59,92,0.7)' }}>{row.label}</p>
-                  <p className="text-sm text-white font-medium">{row.value}</p>
+                  <p className="text-xs font-bold tracking-wider mb-0.5 text-red-700 font-mono">{row.label}</p>
+                  <p className="text-sm text-slate-900 font-semibold">{row.value}</p>
                 </div>
               ))}
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-xl text-sm text-red-300 flex items-center gap-2"
-                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <AlertTriangle size={14} /> {error}
+              <div className="mb-4 p-3.5 rounded-xl text-sm text-red-800 bg-red-100 border border-red-300 flex items-center gap-2 font-medium">
+                <AlertTriangle size={16} className="text-red-600" /> {error}
               </div>
             )}
 
@@ -491,12 +469,7 @@ export default function SOSPage() {
               id="sos-submit-btn"
               onClick={submitSOS}
               disabled={isSubmitting}
-              className="w-full py-5 rounded-2xl font-black text-white text-lg flex items-center justify-center gap-3 transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #ff3b5c, #dc2626)',
-                boxShadow: '0 12px 40px rgba(255,59,92,0.5)',
-                animation: 'pulse-btn 2s ease-in-out infinite',
-              }}>
+              className="w-full py-5 rounded-2xl font-black text-white text-lg flex items-center justify-center gap-3 transition-all bg-red-600 hover:bg-red-700 shadow-xl shadow-red-600/30">
               {isSubmitting ? (
                 <><Loader2 size={20} className="animate-spin" /> Dispatching Help...</>
               ) : (
@@ -504,11 +477,11 @@ export default function SOSPage() {
               )}
             </button>
 
-            <button onClick={() => setStep('details')} className="w-full mt-3 py-2 text-sm" style={{ color: 'var(--muted)' }}>
+            <button onClick={() => setStep('details')} className="w-full mt-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900">
               ← Edit Details
             </button>
 
-            <p className="text-xs text-center mt-4" style={{ color: 'var(--muted-2)' }}>
+            <p className="text-xs text-center mt-4 text-slate-500">
               By submitting, you agree this is a genuine emergency. False alarms are a criminal offence.
             </p>
           </div>
@@ -520,28 +493,25 @@ export default function SOSPage() {
             {/* Success animation */}
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="absolute inset-0 rounded-full"
-                  style={{ background: 'rgba(54,211,153,0.2)', animation: 'ping-ring 1.5s ease-out infinite' }} />
-                <div className="relative w-24 h-24 rounded-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #36d399, #22c55e)', boxShadow: '0 0 40px rgba(54,211,153,0.5)' }}>
-                  <CheckCircle2 size={42} className="text-white" strokeWidth={2.5} />
+                <div className="absolute inset-0 rounded-full bg-emerald-100 animate-ping opacity-50" />
+                <div className="relative w-24 h-24 rounded-full flex items-center justify-center bg-emerald-600 text-white shadow-xl shadow-emerald-600/30">
+                  <CheckCircle2 size={46} strokeWidth={2.5} />
                 </div>
               </div>
             </div>
 
-            <h2 className="text-2xl font-black text-white mb-2">Help is on the way!</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Help is on the way!</h2>
+            <p className="text-sm text-slate-600 mb-6">
               Your emergency has been registered and responders have been alerted.
             </p>
 
             {incidentResult?.incident_number && (
-              <div className="inline-block px-6 py-4 rounded-2xl mb-6"
-                style={{ background: 'rgba(54,211,153,0.1)', border: '1.5px solid rgba(54,211,153,0.3)' }}>
-                <p className="text-xs font-bold mb-1" style={{ color: 'rgba(54,211,153,0.7)' }}>INCIDENT NUMBER</p>
-                <p className="text-2xl font-black" style={{ color: '#36d399', fontFamily: "'JetBrains Mono', monospace" }}>
+              <div className="inline-block px-6 py-4 rounded-2xl mb-6 bg-emerald-50 border border-emerald-200 shadow-sm">
+                <p className="text-xs font-bold mb-1 text-emerald-800 font-mono">INCIDENT NUMBER</p>
+                <p className="text-2xl font-black text-emerald-700 font-mono">
                   {incidentResult.incident_number}
                 </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Save this for follow-up</p>
+                <p className="text-xs mt-1 text-slate-600">Save this for follow-up</p>
               </div>
             )}
 
@@ -551,23 +521,20 @@ export default function SOSPage() {
                 { icon: '🏥', text: 'Nearest hospital has been alerted' },
                 { icon: '📱', text: 'Responder will contact you shortly' },
               ].map(item => (
-                <div key={item.text} className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div key={item.text} className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white border border-slate-200 shadow-sm">
                   <span className="text-xl">{item.icon}</span>
-                  <span className="text-sm text-white font-medium">{item.text}</span>
+                  <span className="text-sm text-slate-900 font-semibold">{item.text}</span>
                 </div>
               ))}
             </div>
 
             <a href="tel:112"
               id="sos-call-112"
-              className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-white mb-3"
-              style={{ background: 'linear-gradient(135deg, #ff3b5c, #ff6b85)', boxShadow: '0 8px 24px rgba(255,59,92,0.35)' }}>
+              className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-white mb-3 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/25">
               <Phone size={18} /> Also call 112 directly
             </a>
 
-            <a href="/"
-              className="text-sm" style={{ color: 'var(--muted)' }}>
+            <a href="/" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
               ← Return to SERS Home
             </a>
           </div>
@@ -578,10 +545,6 @@ export default function SOSPage() {
         @keyframes ping-ring {
           0% { transform: scale(0.9); opacity: 0.8; }
           100% { transform: scale(1.6); opacity: 0; }
-        }
-        @keyframes pulse-btn {
-          0%, 100% { box-shadow: 0 12px 40px rgba(255,59,92,0.5); }
-          50% { box-shadow: 0 12px 60px rgba(255,59,92,0.8); }
         }
       `}</style>
     </div>
