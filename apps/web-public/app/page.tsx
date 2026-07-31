@@ -1565,7 +1565,7 @@ function Footer() {
             <span className="text-white/20">|</span>
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
           </div>
-          <p className="text-xs" style={{ color: 'var(--muted-2)' }}>© 2024 SERS. All rights reserved.</p>
+          <p className="text-xs" style={{ color: 'var(--muted-2)' }}>© {new Date().getFullYear()} SERS. All rights reserved.</p>
         </div>
       </div>
     </footer>
