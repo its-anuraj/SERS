@@ -57,10 +57,10 @@ function generateWave(pts: number, amp: number, freq: number, phase: number) {
 // Hospital scoring (local simulation — real data in admin panel)
 // ─────────────────────────────────────────────────────────────
 const BASE_HOSPITALS = [
-  { name: "St. Mary's Trauma Center", icu: 8,  beds: 22, eta: 4, specialty: ['Trauma', 'Neuro'], workload: 0.4  },
-  { name: 'City General Hospital',    icu: 3,  beds: 14, eta: 7, specialty: ['Cardio'],           workload: 0.72 },
-  { name: 'Apollo Emergency',         icu: 5,  beds: 18, eta: 6, specialty: ['Trauma', 'Ortho'],  workload: 0.58 },
-  { name: 'Manipal Super Specialty',  icu: 2,  beds: 9,  eta: 9, specialty: ['Neuro'],            workload: 0.85 },
+  { name: "St. John's Emergency & Multi-Specialty Hospital", icu: 8,  beds: 22, eta: 4, specialty: ['Emergency', 'Neuro'], workload: 0.4  },
+  { name: 'City General Super Specialty Hospital',           icu: 3,  beds: 14, eta: 7, specialty: ['Cardio'],              workload: 0.72 },
+  { name: 'Apollo Emergency Center',                        icu: 5,  beds: 18, eta: 6, specialty: ['Emergency', 'Ortho'], workload: 0.58 },
+  { name: 'Manipal Hospital',                               icu: 2,  beds: 9,  eta: 9, specialty: ['Neuro'],               workload: 0.85 },
 ];
 
 function scoreHospital(h: typeof BASE_HOSPITALS[0]) {

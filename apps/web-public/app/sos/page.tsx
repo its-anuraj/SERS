@@ -386,7 +386,7 @@ export default function SOSPage() {
             <div className="space-y-3 mb-8">
               {[
                 { icon: '📍', text: 'Ambulance #07 dispatched to your GPS location (ETA 4 min)' },
-                { icon: '🏥', text: "St. Mary's Trauma Center ER alerted & ICU bed reserved" },
+                { icon: '🏥', text: "City Emergency & Multi-Specialty Hospital ER alerted & ICU bed reserved" },
                 { icon: '📱', text: 'Family emergency contacts notified via SMS & WhatsApp' },
               ].map(item => (
                 <div key={item.text} className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white border border-slate-200 shadow-sm text-left">
