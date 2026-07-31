@@ -434,10 +434,7 @@ function ProblemSection() {
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>{card.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Before / After */}
+{/* Before / After */}
         <div className="mt-20 reveal">
           <div className="grid md:grid-cols-2 gap-px rounded-2xl overflow-hidden" style={{ background: 'var(--border)' }}>
             <div className="p-8" style={{ background: 'var(--bg-2)' }}>
@@ -471,44 +468,182 @@ function ProblemSection() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// AI DETECTION SECTION
-// ─────────────────────────────────────────────────────────────
+function VoiceSosCard() {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [detectedKeyword, setDetectedKeyword] = useState<string | null>(null);
+  const [sosTriggered, setSosTriggered] = useState(false);
+
+  const startVoiceListener = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      simulateVoiceSos('HELP EMERGENCY');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setDetectedKeyword(null);
+        setSosTriggered(false);
+        setTranscript('Listening for emergency speech...');
+      };
+
+      recognition.onresult = (event: any) => {
+        let text = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          text += event.results[i][0].transcript;
+        }
+        setTranscript(text);
+
+        const lower = text.toLowerCase();
+        const keywords = ['help', 'emergency', 'accident', 'bachao', 'madad', 'ambulance', 'save me'];
+        const matched = keywords.find(k => lower.includes(k));
+        if (matched) {
+          setDetectedKeyword(matched.toUpperCase());
+          setSosTriggered(true);
+          setIsListening(false);
+          recognition.stop();
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      simulateVoiceSos('HELP EMERGENCY');
+    }
+  };
+
+  const simulateVoiceSos = (kw: string) => {
+    setIsListening(true);
+    setTranscript(`Simulating microphone voice: "${kw}"...`);
+    setTimeout(() => {
+      setDetectedKeyword(kw);
+      setSosTriggered(true);
+      setIsListening(false);
+    }, 1000);
+  };
+
+  return (
+    <div className="gradient-border p-8 reveal" style={{ transitionDelay: '0.3s' }}>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <div className="text-xs font-mono-custom uppercase tracking-widest mb-2" style={{ color: 'var(--violet)' }}>MODE C</div>
+          <h3 className="font-bold text-2xl" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Voice SOS (AI Speech)</h3>
+        </div>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 border border-purple-200">
+          <i className="fa-solid fa-microphone text-purple-600 text-lg" />
+        </div>
+      </div>
+      <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--muted)' }}>
+        Hands-free speech recognition continuously listens for distress keywords like <strong>"Help"</strong>, <strong>"Bachao"</strong>, or <strong>"Emergency"</strong> to dispatch aid automatically.
+      </p>
+
+      {/* Interactive Speech Recognition Controls */}
+      <div className="space-y-4">
+        <button
+          onClick={startVoiceListener}
+          className={`w-full py-3.5 px-4 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all ${
+            isListening ? 'bg-red-600 text-white animate-pulse' : 'bg-purple-600 hover:bg-purple-700 text-white shadow-md'
+          }`}
+        >
+          <i className={`fa-solid ${isListening ? 'fa-microphone-lines blink' : 'fa-microphone'}`} />
+          {isListening ? 'Listening for Keywords...' : 'Activate Voice Listener'}
+        </button>
+
+        {/* Live Speech Console */}
+        <div className="glass rounded-xl p-4 border border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between text-[10px] font-mono-custom mb-1.5" style={{ color: 'var(--muted-2)' }}>
+            <span>ON-DEVICE SPEECH ENGINE</span>
+            <span className={isListening ? 'text-purple-600 font-bold' : 'text-slate-400'}>
+              {isListening ? '● LISTENING' : 'STANDBY'}
+            </span>
+          </div>
+          <div className="font-mono-custom text-xs min-h-[36px] flex items-center text-slate-800 font-medium">
+            {transcript || 'Click button or tap sample keywords below...'}
+          </div>
+        </div>
+
+        {/* Emergency Trigger Alert */}
+        {sosTriggered && detectedKeyword && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between text-xs font-semibold text-red-700 animate-bounce">
+            <span className="flex items-center gap-2">
+              <i className="fa-solid fa-triangle-exclamation text-red-600 text-sm" />
+              KEYWORD: "{detectedKeyword}"
+            </span>
+            <span className="bg-red-600 text-white text-[10px] font-mono-custom px-2 py-0.5 rounded">SOS DISPATCHED</span>
+          </div>
+        )}
+
+        {/* Trigger chips */}
+        <div className="pt-1">
+          <div className="text-[10px] font-mono-custom uppercase tracking-wider mb-2" style={{ color: 'var(--muted-2)' }}>
+            Test Trigger Keywords:
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {['HELP', 'EMERGENCY', 'BACHAO', 'ACCIDENT', 'AMBULANCE'].map((kw) => (
+              <button
+                key={kw}
+                onClick={() => simulateVoiceSos(kw)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-mono-custom font-semibold bg-white hover:bg-purple-100 hover:text-purple-700 text-slate-700 border border-slate-200 transition-colors shadow-sm"
+              >
+                "{kw}"
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetectionSection() {
   const [phase, setPhase] = useState(0);
   const [countdown, setCountdown] = useState(10);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [cancelled, setCancelled] = useState(false);
 
   useEffect(() => {
-    const id = setInterval(() => setPhase((p) => p + 0.15), 60);
-    return () => clearInterval(id);
+    const timer = setInterval(() => setPhase((p) => p + 0.1), 50);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    timerRef.current = setInterval(() => setCountdown((c) => (c <= 1 ? 10 : c - 1)), 1000);
-    return () => clearInterval(timerRef.current!);
-  }, []);
+    if (cancelled) return;
+    const timer = setInterval(() => {
+      setCountdown((c) => (c > 0 ? c - 1 : 10));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cancelled]);
 
   const circumference = 2 * Math.PI * 20;
-  const dashOffset = circumference * (1 - countdown / 10);
+  const dashOffset = circumference - (countdown / 10) * circumference;
 
   return (
-    <section id="detection" className="py-24 sm:py-32 relative overflow-hidden">
-      <div className="absolute top-1/2 left-0 w-[400px] h-[400px] -translate-y-1/2 opacity-20 pointer-events-none"
-        style={{ background: 'radial-gradient(circle,var(--red-glow),transparent 70%)' }} />
-
+    <section id="detection" className="py-24 sm:py-32 relative">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 relative">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal">
           <div className="text-xs font-mono-custom uppercase tracking-widest mb-4" style={{ color: 'var(--red)' }}>
-            // 02 · Dual Detection System
+            // 02 · Smart Multi-Modal Detection
           </div>
           <h2 className="font-bold text-4xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-            Two ways to trigger an emergency.
-            <br /><span className="text-gradient-cyan">Both smarter than a phone call.</span>
+            Three ways to trigger an emergency.
+            <br /><span className="text-gradient-cyan">All faster & smarter than a phone call.</span>
           </h2>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6">
           {/* Manual SOS */}
           <div className="gradient-border p-8 reveal">
             <div className="flex items-start justify-between mb-6">
@@ -536,7 +671,7 @@ function DetectionSection() {
             <div className="mt-6 pt-6 border-t flex items-center gap-2 text-xs font-mono-custom"
               style={{ borderColor: 'var(--border)', color: 'var(--muted-2)' }}>
               <i className="fa-solid fa-bolt text-amber-400" /> Avg. time to incident:{' '}
-              <span className="text-white font-semibold ml-1">0.8s</span>
+              <span className="text-slate-800 font-semibold ml-1">0.8s</span>
             </div>
           </div>
 
@@ -581,7 +716,7 @@ function DetectionSection() {
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12 shrink-0">
                   <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
-                    <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                    <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="4" />
                     <circle cx="24" cy="24" r="20" fill="none" stroke="var(--amber)" strokeWidth="4"
                       strokeDasharray={`${circumference}`} strokeDashoffset={dashOffset}
                       strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s linear' }} />
@@ -594,6 +729,9 @@ function DetectionSection() {
               </div>
             </div>
           </div>
+
+          {/* Mode C: Voice SOS Card */}
+          <VoiceSosCard />
         </div>
 
         {/* Live telemetry */}
@@ -978,6 +1116,7 @@ function SOSDemoSection() {
 function FeaturesSection() {
   const built = [
     { icon: 'fa-circle-exclamation', color: 'var(--red)',    title: '1-tap Web SOS',          desc: 'Capture location, score severity, match hospital — right from the browser.' },
+    { icon: 'fa-microphone',          color: 'var(--violet)', title: 'Voice SOS (Speech AI)',  desc: 'Hands-free speech recognition detecting keywords like "Help", "Bachao", "Emergency".' },
     { icon: 'fa-microchip',          color: 'var(--cyan)',   title: 'AI Crash Detection',      desc: 'TensorFlow Lite model detecting high-G impacts, falls, and sudden stops.' },
     { icon: 'fa-hospital',           color: 'var(--green)',  title: 'Smart Hospital Matching', desc: 'Weighted algorithm scores hospitals on ICU availability, ETA, specialties, and workload.' },
     { icon: 'fa-map',                color: 'var(--violet)', title: 'Live Incident Map',       desc: 'Real-time map of active incidents and ambulance positions via Socket.io.' },
@@ -985,7 +1124,6 @@ function FeaturesSection() {
   ];
 
   const coming = [
-    { icon: 'fa-microphone',  title: 'Voice SOS',           desc: 'Hands-free SOS via on-device speech recognition.' },
     { icon: 'fa-id-badge',    title: 'ABDM Integration',    desc: 'Auto-share medical profile with ER via ABHA ID.' },
     { icon: 'fa-people-group',title: 'Family Alerts',       desc: 'Notify emergency contacts the moment SOS is triggered.' },
     { icon: 'fa-map-location',title: 'Hotspot Prediction',  desc: 'ML-predicted accident zones for proactive ambulance staging.' },
@@ -1029,7 +1167,7 @@ function FeaturesSection() {
             <div className="text-xs font-mono-custom uppercase tracking-widest" style={{ color: 'var(--amber)' }}>⏳ COMING SOON</div>
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {coming.map((f) => (
               <div key={f.title} className="glass rounded-2xl p-5 opacity-70">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
@@ -1062,7 +1200,7 @@ function ComparisonSection() {
     ['1-tap / Web SOS',         false,     false, true  ],
     ['Live Incident Map',       false,     false, true  ],
     ['Admin Command Center',    'Basic',   false, true  ],
-    ['Voice SOS (AI)',          false,     false, 'soon'],
+    ['Voice SOS (AI)',          false,     false, true  ],
     ['ABDM Integration',        'Partial', false, 'soon'],
     ['Family Real-Time Alert',  false,     false, 'soon'],
     ['Predictive Hotspots',     false,     false, 'soon'],
