@@ -197,20 +197,20 @@ function Hero() {
       <div className="max-w-7xl mx-auto px-5 sm:px-8 w-full relative z-10">
         
         {/* Ticker */}
-        <div className="mb-10 border-t border-b py-3 overflow-hidden"
-          style={{ borderColor: 'var(--border)', background: 'rgba(7,9,15,0.6)' }}>
+        <div className="mb-10 border-y py-3.5 overflow-hidden rounded-xl"
+          style={{ borderColor: 'var(--border)', background: '#f8fafc', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div className="flex marquee-track whitespace-nowrap">
             {[...Array(2)].map((_, rep) => (
-              <div key={rep} className="flex items-center gap-12 px-6 font-mono-custom text-xs" style={{ color: 'var(--muted)' }}>
+              <div key={rep} className="flex items-center gap-12 px-6 font-mono-custom text-xs font-semibold" style={{ color: '#1e293b' }}>
                 {[
-                  { dot: 'text-red-500',     text: 'INCIDENT DETECTED · AI AUTO-TRIGGER · DISPATCHING' },
-                  { dot: 'text-cyan-400',    text: "HOSPITAL MATCH · ST. MARY'S TRAUMA · 89% SCORE" },
-                  { dot: 'text-amber-400',   text: 'AMBULANCE #07 · ETA 4 MIN · EN ROUTE' },
-                  { dot: 'text-emerald-400', text: 'ICU BEDS AVAILABLE · 8 / 12 OCCUPIED' },
-                  { dot: 'text-violet-400',  text: 'AI MODEL · TF LITE · v2.4.1 · 94.3% ACCURACY' },
+                  { dot: 'text-red-600',     text: 'INCIDENT DETECTED · AI AUTO-TRIGGER · DISPATCHING' },
+                  { dot: 'text-sky-600',     text: "HOSPITAL MATCH · ST. MARY'S TRAUMA · 89% SCORE" },
+                  { dot: 'text-amber-600',   text: 'AMBULANCE #07 · ETA 4 MIN · EN ROUTE' },
+                  { dot: 'text-emerald-600', text: 'ICU BEDS AVAILABLE · 8 / 12 OCCUPIED' },
+                  { dot: 'text-violet-600',  text: 'AI MODEL · TF LITE · v2.4.1 · 94.3% ACCURACY' },
                 ].map((t, i) => (
-                  <span key={i} className="flex items-center gap-2">
-                    <i className={`fa-solid fa-circle ${t.dot} text-[6px]`} />
+                  <span key={i} className="flex items-center gap-2.5">
+                    <i className={`fa-solid fa-circle ${t.dot} text-[7px]`} />
                     {t.text}
                   </span>
                 ))}
