@@ -262,10 +262,10 @@ function Hero() {
               </div>
               <div>
                 <div className="text-3xl sm:text-4xl font-bold text-gradient-cyan" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-                  {c3}
+                  {c3}s
                 </div>
                 <div className="text-xs mt-1 font-mono-custom uppercase tracking-wider" style={{ color: 'var(--muted-2)' }}>
-                  Stakeholders Synced
+                  Crash Detection
                 </div>
               </div>
               <div>
@@ -1284,14 +1284,14 @@ function HowItWorksSection() {
             </div>
             <div>
               <h3 className="font-semibold text-xl text-slate-900" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-                What is 3-Stakeholder Synchronization & Why is it Critical?
+                Unified 3-Party Real-Time Network (Victim ↔ Ambulance ↔ ER Hospital)
               </h3>
               <p className="text-xs text-slate-500 font-mono-custom">ELIMINATING VOICE-CALL DISCONNECTS IN THE GOLDEN HOUR</p>
             </div>
           </div>
 
           <p className="text-sm text-slate-600 leading-relaxed mb-6">
-            In traditional 108/911 ambulance systems, three separate parties operate in isolation via chaotic voice calls where critical location details and medical history are lost. SERS unifies all three stakeholders on a single, synchronized WebSocket data stream:
+            In traditional 108/911 ambulance systems, three separate parties operate in isolation via chaotic voice calls where critical location details and medical history are lost. SERS unifies all three participants on a single, synchronized WebSocket data stream:
           </p>
 
           <div className="grid md:grid-cols-3 gap-4">
