@@ -953,8 +953,8 @@ function FamilyAlertsSection() {
   const [sentAlerts, setSentAlerts] = useState(false);
 
   const contacts = [
-    { name: 'Papa (Primary Contact)', phone: '+91 98765 43210', relation: 'Father', channels: ['SMS', 'WhatsApp'], icon: 'fa-user-shield', color: 'text-amber-600' },
-    { name: 'Priya (Secondary Contact)', phone: '+91 91234 56789', relation: 'Sister', channels: ['WhatsApp', 'Push'], icon: 'fa-heart', color: 'text-rose-600' },
+    { name: 'Emergency Contact 1 (Primary)', phone: '+91 98765 *****', relation: 'Configured in App', channels: ['SMS', 'WhatsApp'], icon: 'fa-user-shield', color: 'text-amber-600' },
+    { name: 'Emergency Contact 2 (Secondary)', phone: '+91 91234 *****', relation: 'Configured in App', channels: ['WhatsApp', 'Push'], icon: 'fa-heart', color: 'text-rose-600' },
   ];
 
   const triggerFamilyAlert = () => {
@@ -1017,18 +1017,18 @@ function FamilyAlertsSection() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Emergency Family Network</h3>
-                    <div className="text-xs text-slate-500 font-mono-custom">2 CONTACTS CONFIGURED</div>
+                    <div className="text-xs text-slate-500 font-mono-custom">DEMO BROADCAST SIMULATOR</div>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-mono-custom font-semibold">
-                  ● SYNCED
+                  ● PRIVACY PROTECTED
                 </span>
               </div>
 
               {/* Contacts list */}
               <div className="mt-6 space-y-3">
                 {contacts.map((c) => (
-                  <div key={c.phone} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div key={c.name} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-sm">
                         <i className={`fa-solid ${c.icon} ${c.color}`} />
@@ -1047,6 +1047,10 @@ function FamilyAlertsSection() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-3 text-[11px] text-slate-500 font-mono-custom flex items-center gap-1.5">
+                <i className="fa-solid fa-lock text-amber-600" /> Contacts are configured privately in the SERS Citizen Mobile App
               </div>
 
               {/* Trigger Button */}
