@@ -1400,7 +1400,9 @@ function FeaturesSection() {
   ];
 
   const coming = [
-    { icon: 'fa-id-badge',    title: 'ABDM Integration',    desc: 'Auto-share medical profile with ER via ABHA ID.' },
+    { icon: 'fa-stopwatch',   title: 'SmartWatch Integration',    desc: 'Real-time heart rate, fall detection, and haptic SOS triggers for Wear OS & Apple Watch.' },
+    { icon: 'fa-car-burst',   title: 'Car Accident Telemetry',   desc: 'Direct vehicle CAN-bus connection for airbag deployment & high-G collision detection.' },
+    { icon: 'fa-id-badge',    title: 'ABDM Health Records',      desc: 'Auto-share medical profile & ABHA ID with emergency room staff.' },
   ];
 
   return (
@@ -1450,7 +1452,7 @@ function FeaturesSection() {
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="text-sm font-semibold">{f.title}</div>
-                  <span className="text-[9px] font-mono-custom px-1.5 py-0.5 rounded"
+                  <span className="text-[9px] font-mono-custom px-1.5 py-0.5 rounded font-bold"
                     style={{ background: 'rgba(255,181,71,0.15)', color: 'var(--amber)' }}>SOON</span>
                 </div>
                 <div className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{f.desc}</div>
@@ -1477,8 +1479,9 @@ function ComparisonSection() {
     ['Voice SOS (AI)',          false,     false, true  ],
     ['Family Real-Time Alert',  false,     false, true  ],
     ['Predictive Hotspots',     false,     false, true  ],
+    ['SmartWatch Integration',  false,     false, 'soon'],
+    ['Car Accident Telemetry',  false,     false, 'soon'],
     ['ABDM Integration',        'Partial', false, 'soon'],
-  ];
   ];
 
   const cell = (v: boolean | string) => {
