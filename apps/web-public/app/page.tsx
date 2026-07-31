@@ -913,6 +913,15 @@ function HospitalSection() {
               </div>
             </div>
 
+            {/* Hospital Tie-Up Disclosure */}
+            <div className="mt-3 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs flex items-start gap-2.5">
+              <i className="fa-solid fa-circle-exclamation text-amber-400 text-sm mt-0.5 shrink-0" />
+              <div>
+                <span className="font-bold uppercase tracking-wider text-[11px] text-amber-300 block mb-0.5">ℹ️ Integration & Telemetry Disclosure</span>
+                Currently demonstrating hospital scoring based on simulated live ICU bed & workload data. Upon official tie-up with partner hospitals & health authorities, the AI scoring system connects directly to live hospital HIS/EMR database feeds.
+              </div>
+            </div>
+
             {/* AI explanation */}
             <div className="mt-4 glass rounded-2xl p-5">
               <div className="flex items-start gap-3">

@@ -299,7 +299,16 @@ export default function SOSPage() {
 
               {showDeviceMatrix && (
                 <div className="p-4 border-t border-slate-200 bg-slate-50/50 space-y-4">
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                  {/* Real-world vs Mock Data Disclosure */}
+                  <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+                    <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div className="leading-relaxed">
+                      <strong className="font-bold text-amber-950 block mb-0.5">ℹ️ Real-World Operational Note:</strong>
+                      GPS location capture, backend SOS incident creation, and 112 emergency phone call triggers are <strong>100% live working features</strong>. Sensor metrics (Airbag pressure spike & Smartwatch vitals) currently run on simulated test data. Upon formal tie-ups with partner hospitals & vehicle OEMs, these will operate on live hardware API feeds.
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
                     Test automatic cardiac pulse alerts and vehicle OBD-II airbag sensor triggers below:
                   </p>
                   <div className="grid md:grid-cols-2 gap-4 items-stretch">
