@@ -251,21 +251,13 @@ function Hero() {
             </div>
 
             {/* Stats */}
-            <div className="mt-12 grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl">
+            <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-8 max-w-lg">
               <div>
                 <div className="text-3xl sm:text-4xl font-bold text-gradient-red" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
                   {c42}%
                 </div>
                 <div className="text-xs mt-1 font-mono-custom uppercase tracking-wider" style={{ color: 'var(--muted-2)' }}>
-                  Faster Response
-                </div>
-              </div>
-              <div>
-                <div className="text-3xl sm:text-4xl font-bold text-gradient-cyan" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-                  {c3}s
-                </div>
-                <div className="text-xs mt-1 font-mono-custom uppercase tracking-wider" style={{ color: 'var(--muted-2)' }}>
-                  Crash Detection
+                  Faster Response Time
                 </div>
               </div>
               <div>
@@ -273,7 +265,7 @@ function Hero() {
                   {c24}/7
                 </div>
                 <div className="text-xs mt-1 font-mono-custom uppercase tracking-wider" style={{ color: 'var(--muted-2)' }}>
-                  AI Monitoring
+                  Active AI Monitoring
                 </div>
               </div>
             </div>
