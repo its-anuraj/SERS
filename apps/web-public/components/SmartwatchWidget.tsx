@@ -139,94 +139,102 @@ export default function SmartwatchWidget({ onVitalsUpdate, onCardiacEmergency }:
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isConnected ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-slate-400'}`}>
-            <i className={`fa-solid fa-heart-pulse text-xl ${isConnected ? 'animate-bounce' : ''}`}></i>
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm h-full flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isConnected ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+              <i className={`fa-solid fa-heart-pulse text-xl ${isConnected ? 'animate-bounce' : ''}`}></i>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                Smartwatch Health Sync
+                {isConnected && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+              </h3>
+              <p className="text-xs text-slate-500">{deviceOwner}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-white text-base flex items-center gap-2">
-              Smartwatch Health Sync
-              {isConnected && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>}
-            </h3>
-            <p className="text-xs text-slate-400">{deviceOwner}</p>
-          </div>
+
+          <button
+            onClick={isConnected ? () => { setIsConnected(false); setIsSimulating(false); } : connectBluetoothSmartwatch}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              isConnected
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                : 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20'
+            }`}
+          >
+            {isConnected ? 'Disconnect Watch' : 'Pair Smartwatch'}
+          </button>
         </div>
 
-        <button
-          onClick={isConnected ? () => { setIsConnected(false); setIsSimulating(false); } : connectBluetoothSmartwatch}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            isConnected
-              ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-              : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-900/30'
-          }`}
-        >
-          {isConnected ? 'Disconnect Watch' : 'Pair Smartwatch'}
-        </button>
-      </div>
+        {isConnected ? (
+          <div className="space-y-4">
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Live Pulse Rate</div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-slate-900 tracking-tight">{bpm}</span>
+                  <span className="text-sm font-semibold text-slate-500">BPM</span>
+                </div>
+              </div>
 
-      {isConnected ? (
-        <div className="space-y-4">
-          <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Live Pulse Rate</div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black text-white tracking-tight">{bpm}</span>
-                <span className="text-sm font-semibold text-slate-400">BPM</span>
+              <div className="text-right">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
+                  pulseStatus.includes('CRITICAL') ? 'bg-red-100 text-red-700 border-red-300 animate-pulse' :
+                  pulseStatus.includes('TACHYCARDIA') ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                  'bg-emerald-100 text-emerald-800 border-emerald-300'
+                }`}>
+                  {pulseStatus.replace('_', ' ')}
+                </span>
+                <div className="text-[11px] text-slate-500 mt-1 font-mono">GATT HR Service (0x180D)</div>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass()}`}>
-                {pulseStatus.replace('_', ' ')}
-              </span>
-              <div className="text-[11px] text-slate-500 mt-1">GATT HR Service (0x180D)</div>
+            {/* Cardiac Simulation Controls for Testing */}
+            <div className="pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Test Emergency Triggers</span>
+                <span className="text-[11px] text-slate-500 font-mono">Simulator Active</span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => triggerSpikeTest(75)}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition"
+                >
+                  Normal (75)
+                </button>
+
+                <button
+                  onClick={() => triggerSpikeTest(165)}
+                  className="flex-1 py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 rounded-xl text-xs font-bold transition"
+                >
+                  High (165)
+                </button>
+
+                <button
+                  onClick={() => triggerSpikeTest(35)}
+                  className="flex-1 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold transition"
+                >
+                  Low (35)
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Cardiac Simulation Controls for Testing */}
-          <div className="pt-2 border-t border-slate-800/80">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Test Emergency Triggers</span>
-              <span className="text-[11px] text-slate-500">Simulator Mode</span>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => triggerSpikeTest(75)}
-                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition"
-              >
-                Normal (75)
-              </button>
-              <button
-                onClick={() => triggerSpikeTest(165)}
-                className="flex-1 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-lg text-xs font-medium transition"
-              >
-                High Spike (165)
-              </button>
-              <button
-                onClick={() => triggerSpikeTest(35)}
-                className="flex-1 py-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-400 border border-amber-800/60 rounded-lg text-xs font-medium transition"
-              >
-                Low Drop (35)
-              </button>
-            </div>
+        ) : (
+          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 text-center space-y-3 my-auto">
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              Pair your Smartwatch or Fitness Band to enable continuous heartbeat monitoring & automatic cardiac emergency detection.
+            </p>
+            <button
+              onClick={() => toggleSimulation(true)}
+              className="text-xs font-bold text-red-600 hover:text-red-700 underline"
+            >
+              Or start Smartwatch Simulator mode
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="bg-slate-950/50 border border-dashed border-slate-800 rounded-xl p-4 text-center">
-          <p className="text-xs text-slate-400 mb-3">
-            Pair your Smartwatch or Fitness Band to enable continuous heartbeat monitoring & automatic cardiac emergency detection.
-          </p>
-          <button
-            onClick={() => toggleSimulation(true)}
-            className="text-xs text-rose-400 hover:text-rose-300 font-semibold underline underline-offset-4"
-          >
-            Or start Smartwatch Simulator mode
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

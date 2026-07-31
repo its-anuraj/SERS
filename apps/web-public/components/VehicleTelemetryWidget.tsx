@@ -109,79 +109,84 @@ export default function VehicleTelemetryWidget({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-            <i className="fa-solid fa-car-burst text-xl"></i>
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm h-full flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-200 shrink-0">
+              <i className="fa-solid fa-car-burst text-xl"></i>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                Vehicle OBD-II & Airbag Matrix
+                <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-300 font-mono font-semibold">
+                  AFDP v2 Engine
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500">6-Layer Anti-Fake Verification Guard</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-white text-base flex items-center gap-2">
-              Vehicle OBD-II & Airbag Sensor Matrix
-              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700 font-mono">
-                AFDP v2 Engine
-              </span>
-            </h3>
-            <p className="text-xs text-slate-400">6-Layer Anti-Fake Verification Guard</p>
+
+          <div className="text-right">
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
+              afdpTier === 'INSTANT_DISPATCH'
+                ? 'bg-red-100 text-red-700 border-red-300 animate-pulse'
+                : afdpTier === 'AUTO_CANCELLED'
+                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                : 'bg-blue-100 text-blue-800 border-blue-300'
+            }`}>
+              {afdpTier === 'INSTANT_DISPATCH' && '🚨 100% CONFIRMED REAL CRASH'}
+              {afdpTier === 'AUTO_CANCELLED' && '🛡️ FAKE ALERT AUTO-CANCELLED'}
+              {afdpTier === 'SECURE' && '🟢 SYSTEM SECURE'}
+            </span>
+            <div className="text-[11px] text-slate-500 mt-1 font-mono">
+              Confidence: {(confidenceScore * 100).toFixed(0)}%
+            </div>
           </div>
         </div>
 
-        <div className="text-right">
-          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
-            afdpTier === 'INSTANT_DISPATCH'
-              ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse'
-              : afdpTier === 'AUTO_CANCELLED'
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-              : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-          }`}>
-            {afdpTier === 'INSTANT_DISPATCH' && '🚨 100% CONFIRMED REAL CRASH'}
-            {afdpTier === 'AUTO_CANCELLED' && '🛡️ FAKE ALERT AUTO-CANCELLED'}
-            {afdpTier === 'SECURE' && '🟢 SYSTEM SECURE'}
-          </span>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono">
-            Confidence: {(confidenceScore * 100).toFixed(0)}%
+        {/* Telemetry Gauge Indicators — Grid 2-cols or 4-cols with no overlap */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Car Speed</div>
+            <div className="text-lg font-black text-slate-900 mt-0.5">{speed} <span className="text-[10px] text-slate-500">km/h</span></div>
+          </div>
+
+          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Engine RPM</div>
+            <div className="text-lg font-black text-slate-900 mt-0.5">{rpm} <span className="text-[10px] text-slate-500">RPM</span></div>
+          </div>
+
+          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Barometer</div>
+            <div className={`text-lg font-black mt-0.5 ${pressureSpike > 10 ? 'text-red-600 animate-pulse' : 'text-emerald-700'}`}>
+              +{pressureSpike} <span className="text-[10px] text-slate-500">hPa</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Airbag ECU</div>
+            <div className={`text-xs font-black mt-1 ${airbagDeployed ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>
+              {airbagDeployed ? 'DEPLOYED' : 'NORMAL'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Telemetry Gauge Indicators */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase">Car Speed</div>
-          <div className="text-xl font-bold text-white mt-0.5">{speed} <span className="text-xs text-slate-400">km/h</span></div>
-        </div>
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase">Engine RPM</div>
-          <div className="text-xl font-bold text-white mt-0.5">{rpm} <span className="text-xs text-slate-400">RPM</span></div>
-        </div>
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase">Barometer Pulse</div>
-          <div className={`text-xl font-bold mt-0.5 ${pressureSpike > 10 ? 'text-red-400 animate-pulse' : 'text-emerald-400'}`}>
-            +{pressureSpike} <span className="text-xs text-slate-400">hPa</span>
-          </div>
-        </div>
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center">
-          <div className="text-[10px] text-slate-400 font-semibold uppercase">Airbag ECU</div>
-          <div className={`text-sm font-black mt-1 ${airbagDeployed ? 'text-red-400 animate-pulse' : 'text-slate-400'}`}>
-            {airbagDeployed ? 'DEPLOYED' : 'NORMAL'}
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Anti-Fake Test Control Buttons for Judges */}
-      <div className="pt-3 border-t border-slate-800/80">
+      {/* Interactive Anti-Fake Test Control Buttons */}
+      <div className="pt-3 border-t border-slate-200">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Test Anti-Fake Verification Matrix</span>
-          <span className="text-[11px] text-slate-500 font-mono">Live Interactive Demo</span>
+          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Test Anti-Fake Verification Matrix</span>
+          <span className="text-[11px] text-slate-500 font-mono">Live Demo</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             onClick={() => runScenario('NORMAL')}
-            className={`py-2 px-3 rounded-xl text-xs font-semibold transition border ${
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
               activeScenario === 'NORMAL'
-                ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
-                : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                ? 'bg-blue-600 text-white border-blue-700 shadow-md'
+                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
             }`}
           >
             🚗 Normal Driving
@@ -189,24 +194,24 @@ export default function VehicleTelemetryWidget({
 
           <button
             onClick={() => runScenario('PHONE_DROP')}
-            className={`py-2 px-3 rounded-xl text-xs font-semibold transition border ${
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
               activeScenario === 'PHONE_DROP'
-                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
-                : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
+                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
             }`}
           >
-            📱 Phone Drop (Fake Alert)
+            📱 Phone Drop (Fake)
           </button>
 
           <button
             onClick={() => runScenario('AIRBAG_CRASH')}
-            className={`py-2 px-3 rounded-xl text-xs font-semibold transition border ${
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
               activeScenario === 'AIRBAG_CRASH'
-                ? 'bg-red-600 text-white border-red-400 shadow-lg animate-pulse'
-                : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                ? 'bg-red-600 text-white border-red-700 shadow-md animate-pulse'
+                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
             }`}
           >
-            💥 Airbag Crash (Real SOS)
+            💥 Airbag Crash (Real)
           </button>
         </div>
       </div>
