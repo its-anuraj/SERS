@@ -195,6 +195,30 @@ function Hero() {
       </div>
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8 w-full relative z-10">
+        
+        {/* Ticker */}
+        <div className="mb-10 border-t border-b py-3 overflow-hidden"
+          style={{ borderColor: 'var(--border)', background: 'rgba(7,9,15,0.6)' }}>
+          <div className="flex marquee-track whitespace-nowrap">
+            {[...Array(2)].map((_, rep) => (
+              <div key={rep} className="flex items-center gap-12 px-6 font-mono-custom text-xs" style={{ color: 'var(--muted)' }}>
+                {[
+                  { dot: 'text-red-500',     text: 'INCIDENT DETECTED · AI AUTO-TRIGGER · DISPATCHING' },
+                  { dot: 'text-cyan-400',    text: "HOSPITAL MATCH · ST. MARY'S TRAUMA · 89% SCORE" },
+                  { dot: 'text-amber-400',   text: 'AMBULANCE #07 · ETA 4 MIN · EN ROUTE' },
+                  { dot: 'text-emerald-400', text: 'ICU BEDS AVAILABLE · 8 / 12 OCCUPIED' },
+                  { dot: 'text-violet-400',  text: 'AI MODEL · TF LITE · v2.4.1 · 94.3% ACCURACY' },
+                ].map((t, i) => (
+                  <span key={i} className="flex items-center gap-2">
+                    <i className={`fa-solid fa-circle ${t.dot} text-[6px]`} />
+                    {t.text}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-12 gap-12 items-center">
 
           {/* Left */}
@@ -369,28 +393,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* Ticker */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-b py-3 overflow-hidden"
-        style={{ borderColor: 'var(--border)', background: 'rgba(7,9,15,0.6)' }}>
-        <div className="flex marquee-track whitespace-nowrap">
-          {[...Array(2)].map((_, rep) => (
-            <div key={rep} className="flex items-center gap-12 px-6 font-mono-custom text-xs" style={{ color: 'var(--muted)' }}>
-              {[
-                { dot: 'text-red-500',     text: 'INCIDENT DETECTED · AI AUTO-TRIGGER · DISPATCHING' },
-                { dot: 'text-cyan-400',    text: "HOSPITAL MATCH · ST. MARY'S TRAUMA · 89% SCORE" },
-                { dot: 'text-amber-400',   text: 'AMBULANCE #07 · ETA 4 MIN · EN ROUTE' },
-                { dot: 'text-emerald-400', text: 'ICU BEDS AVAILABLE · 8 / 12 OCCUPIED' },
-                { dot: 'text-violet-400',  text: 'AI MODEL · TF LITE · v2.4.1 · 94.3% ACCURACY' },
-              ].map((t, i) => (
-                <span key={i} className="flex items-center gap-2">
-                  <i className={`fa-solid fa-circle ${t.dot} text-[6px]`} />
-                  {t.text}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
