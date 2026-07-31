@@ -931,6 +931,280 @@ function HospitalSection() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// FAMILY ALERTS SECTION
+// ─────────────────────────────────────────────────────────────
+function FamilyAlertsSection() {
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchStep, setDispatchStep] = useState(0);
+  const [sentAlerts, setSentAlerts] = useState(false);
+
+  const contacts = [
+    { name: 'Papa (Primary Contact)', phone: '+91 98765 43210', relation: 'Father', channels: ['SMS', 'WhatsApp'], icon: 'fa-user-shield', color: 'text-amber-600' },
+    { name: 'Priya (Secondary Contact)', phone: '+91 91234 56789', relation: 'Sister', channels: ['WhatsApp', 'Push'], icon: 'fa-heart', color: 'text-rose-600' },
+  ];
+
+  const triggerFamilyAlert = () => {
+    setIsDispatching(true);
+    setSentAlerts(false);
+    setDispatchStep(1);
+
+    setTimeout(() => setDispatchStep(2), 600);
+    setTimeout(() => setDispatchStep(3), 1200);
+    setTimeout(() => {
+      setDispatchStep(4);
+      setIsDispatching(false);
+      setSentAlerts(true);
+    }, 1800);
+  };
+
+  return (
+    <section id="family-alerts" className="py-20 relative">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+
+          {/* Left info */}
+          <div className="lg:col-span-5 reveal">
+            <div className="text-xs font-mono-custom uppercase tracking-widest mb-4 text-amber-600">
+              // 04 · Real-Time Family Broadcast
+            </div>
+            <h2 className="font-bold text-4xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
+              Family alerts<br /><span className="text-gradient-red">sent in 0.4 seconds.</span>
+            </h2>
+            <p className="mt-6 text-base leading-relaxed" style={{ color: 'var(--muted)' }}>
+              The exact moment an SOS is triggered or crash is detected, SERS dispatches real-time SMS & WhatsApp alerts to family contacts with GPS location, assigned hospital, and live tracking links.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                { title: 'Zero delay broadcast', desc: 'Alerts bypass queue using multi-provider SMS & WhatsApp Cloud API.' },
+                { title: 'Live GPS Tracking Link', desc: 'Family receives a secure live web link to monitor ambulance ETA.' },
+                { title: 'ABDM Medical Summary', desc: 'Includes blood group, allergies, and pre-existing conditions.' },
+              ].map((f, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                    ✓
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{f.title}</div>
+                    <div className="text-xs text-slate-500">{f.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Card: Contacts & Alert Dispatcher */}
+          <div className="lg:col-span-7 reveal">
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl bg-white">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                    <i className="fa-solid fa-users text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Emergency Family Network</h3>
+                    <div className="text-xs text-slate-500 font-mono-custom">2 CONTACTS CONFIGURED</div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-mono-custom font-semibold">
+                  ● SYNCED
+                </span>
+              </div>
+
+              {/* Contacts list */}
+              <div className="mt-6 space-y-3">
+                {contacts.map((c) => (
+                  <div key={c.phone} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-sm">
+                        <i className={`fa-solid ${c.icon} ${c.color}`} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800">{c.name}</div>
+                        <div className="text-xs text-slate-500 font-mono-custom">{c.phone} · {c.relation}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {c.channels.map((ch) => (
+                        <span key={ch} className="px-2 py-0.5 rounded text-[10px] font-mono-custom font-semibold bg-white border border-slate-200 text-slate-700">
+                          {ch}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Trigger Button */}
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <button
+                  onClick={triggerFamilyAlert}
+                  disabled={isDispatching}
+                  className="w-full py-3.5 px-5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
+                >
+                  <i className={`fa-solid ${isDispatching ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`} />
+                  {isDispatching ? 'Broadcasting Family Emergency Alerts...' : 'Test Trigger Family Alert Dispatch'}
+                </button>
+              </div>
+
+              {/* Simulated Progress & SMS Payload */}
+              {isDispatching && (
+                <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs font-mono-custom space-y-2 text-amber-900">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping" />
+                    <span>Step {dispatchStep}/4: {
+                      dispatchStep === 1 ? 'Attaching GPS location & medical profile...' :
+                      dispatchStep === 2 ? 'Packaging Twilio SMS Gateway payload...' :
+                      dispatchStep === 3 ? 'Broadcasting Meta WhatsApp Cloud API alert...' :
+                      'Dispatched to all family contacts!'
+                    }</span>
+                  </div>
+                  <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-amber-600 h-full transition-all duration-500" style={{ width: `${dispatchStep * 25}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {sentAlerts && (
+                <div className="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                  <div className="font-semibold flex items-center gap-2 text-emerald-700">
+                    <i className="fa-solid fa-circle-check text-base" />
+                    ALERTS DELIVERED SUCCESSFULLY (0.38s latency)
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-emerald-200 font-mono-custom text-[11px] text-slate-700 leading-relaxed shadow-sm">
+                    <strong>SMS Payload Delivered:</strong><br />
+                    "🚨 SERS EMERGENCY ALERT: Anuraj has triggered an SOS at Outer Ring Road, Bellandur, Bengaluru. Live Tracking: https://sers.app/track/inc_98241. Ambulance #07 dispatched to St. Mary's Trauma (ETA 4 min)."
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// HOTSPOT PREDICTION SECTION
+// ─────────────────────────────────────────────────────────────
+function HotspotPredictionSection() {
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [hotspots, setHotspots] = useState([
+    { name: 'Electronic City Flyover (NH-44)', risk: 92, status: 'HIGH RISK', color: 'text-red-600', bg: 'bg-red-100', action: 'Pre-stage Ambulance #03 at Toll Plaza' },
+    { name: 'Silk Board Junction Flyover', risk: 84, status: 'MED-HIGH', color: 'text-amber-600', bg: 'bg-amber-100', action: 'Deploy Rapid Bike Unit #01' },
+    { name: 'Outer Ring Road (Bellandur)', risk: 78, status: 'ELEVATED', color: 'text-purple-600', bg: 'bg-purple-100', action: 'Alert St. John Trauma ER' },
+  ]);
+
+  const runPrediction = () => {
+    setIsPredicting(true);
+    setTimeout(() => {
+      setHotspots([
+        { name: 'Electronic City Flyover (NH-44)', risk: Math.min(99, 90 + Math.floor(Math.random() * 8)), status: 'HIGH RISK', color: 'text-red-600', bg: 'bg-red-100', action: 'Pre-stage Ambulance #03 at Toll Plaza' },
+        { name: 'Silk Board Junction Flyover', risk: Math.min(95, 82 + Math.floor(Math.random() * 10)), status: 'MED-HIGH', color: 'text-amber-600', bg: 'bg-amber-100', action: 'Deploy Rapid Bike Unit #01' },
+        { name: 'Outer Ring Road (Bellandur)', risk: Math.min(90, 75 + Math.floor(Math.random() * 12)), status: 'ELEVATED', color: 'text-purple-600', bg: 'bg-purple-100', action: 'Alert St. John Trauma ER' },
+      ]);
+      setIsPredicting(false);
+    }, 800);
+  };
+
+  return (
+    <section id="hotspots" className="py-20 bg-slate-50 border-y border-slate-200 relative">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+
+          {/* Left Card: Hotspot ML Prediction Dashboard */}
+          <div className="lg:col-span-7 reveal">
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl bg-white">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-lg">
+                    <i className="fa-solid fa-map-location-dot text-cyan-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>Accident Risk Hotspot Predictor</h3>
+                    <div className="text-xs text-slate-500 font-mono-custom">MODEL: XGBOOST + SPATIAL DENSITY</div>
+                  </div>
+                </div>
+                <button
+                  onClick={runPrediction}
+                  disabled={isPredicting}
+                  className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-mono-custom font-semibold flex items-center gap-2 shadow-sm transition-all disabled:opacity-50"
+                >
+                  <i className={`fa-solid ${isPredicting ? 'fa-arrows-rotate fa-spin' : 'fa-bolt'}`} />
+                  {isPredicting ? 'Running ML Model...' : 'Re-run ML Model'}
+                </button>
+              </div>
+
+              {/* Hotspot Cards */}
+              <div className="mt-6 space-y-3">
+                {hotspots.map((h) => (
+                  <div key={h.name} className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-sm text-slate-900">{h.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono-custom font-bold ${h.color}`}>{h.risk}% RISK</span>
+                        <span className={`text-[10px] font-mono-custom px-2 py-0.5 rounded-full ${h.bg} ${h.color} font-bold`}>
+                          {h.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-2">
+                      <div className="bg-gradient-to-r from-amber-500 to-red-600 h-full transition-all duration-700" style={{ width: `${h.risk}%` }} />
+                    </div>
+                    <div className="text-xs text-slate-600 font-mono-custom flex items-center gap-1.5">
+                      <i className="fa-solid fa-truck-medical text-cyan-600 text-[11px]" />
+                      Action: <strong>{h.action}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 p-3.5 rounded-xl bg-cyan-50 border border-cyan-200 text-xs font-mono-custom text-cyan-900 flex items-center justify-between">
+                <span>FEATURES: Rain (0.8) + Night Lighting + Historical Crash Density</span>
+                <span className="font-bold">ACCURACY: 91.8%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right info */}
+          <div className="lg:col-span-5 reveal">
+            <div className="text-xs font-mono-custom uppercase tracking-widest mb-4 text-cyan-600">
+              // 05 · Proactive ML Staging
+            </div>
+            <h2 className="font-bold text-4xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
+              Staging ambulances<br /><span className="text-gradient-cyan">before accidents happen.</span>
+            </h2>
+            <p className="mt-6 text-base leading-relaxed" style={{ color: 'var(--muted)' }}>
+              Rather than waiting for a crash to occur, SERS uses machine learning trained on spatial crash density, weather, and traffic data to position ambulances at high-risk highway stretches in advance.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                { title: '40% Reduced Response Time', desc: 'Pre-staging ambulances at hotspots reduces arrival times from 14 mins to under 4 mins.' },
+                { title: 'Spatial Clustering Analysis', desc: 'Identifies dangerous turns, unlit stretches, and high-speed corridors.' },
+                { title: 'Dynamic Weather Adapting', desc: 'Recalculates risk parameters live during rain, fog, or night hours.' },
+              ].map((f, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                    ✓
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{f.title}</div>
+                    <div className="text-xs text-slate-500">{f.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // HOW IT WORKS — steps + live map
 // ─────────────────────────────────────────────────────────────
 function HowItWorksSection() {
@@ -1117,6 +1391,8 @@ function FeaturesSection() {
   const built = [
     { icon: 'fa-circle-exclamation', color: 'var(--red)',    title: '1-tap Web SOS',          desc: 'Capture location, score severity, match hospital — right from the browser.' },
     { icon: 'fa-microphone',          color: 'var(--violet)', title: 'Voice SOS (Speech AI)',  desc: 'Hands-free speech recognition detecting keywords like "Help", "Bachao", "Emergency".' },
+    { icon: 'fa-people-group',        color: 'var(--amber)',  title: 'Family Emergency Alerts',desc: 'Notify emergency contacts with SMS, WhatsApp & live location tracking link when SOS triggers.' },
+    { icon: 'fa-map-location-dot',    color: 'var(--cyan)',   title: 'Hotspot AI Prediction',  desc: 'ML-predicted high-risk accident zones for proactive ambulance staging.' },
     { icon: 'fa-microchip',          color: 'var(--cyan)',   title: 'AI Crash Detection',      desc: 'TensorFlow Lite model detecting high-G impacts, falls, and sudden stops.' },
     { icon: 'fa-hospital',           color: 'var(--green)',  title: 'Smart Hospital Matching', desc: 'Weighted algorithm scores hospitals on ICU availability, ETA, specialties, and workload.' },
     { icon: 'fa-map',                color: 'var(--violet)', title: 'Live Incident Map',       desc: 'Real-time map of active incidents and ambulance positions via Socket.io.' },
@@ -1125,8 +1401,6 @@ function FeaturesSection() {
 
   const coming = [
     { icon: 'fa-id-badge',    title: 'ABDM Integration',    desc: 'Auto-share medical profile with ER via ABHA ID.' },
-    { icon: 'fa-people-group',title: 'Family Alerts',       desc: 'Notify emergency contacts the moment SOS is triggered.' },
-    { icon: 'fa-map-location',title: 'Hotspot Prediction',  desc: 'ML-predicted accident zones for proactive ambulance staging.' },
   ];
 
   return (
@@ -1147,7 +1421,7 @@ function FeaturesSection() {
             <div className="text-xs font-mono-custom uppercase tracking-widest" style={{ color: 'var(--green)' }}>✓ BUILT & WORKING</div>
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {built.map((f) => (
               <div key={f.title} className="glass rounded-2xl p-5 feature-card">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
@@ -1201,9 +1475,10 @@ function ComparisonSection() {
     ['Live Incident Map',       false,     false, true  ],
     ['Admin Command Center',    'Basic',   false, true  ],
     ['Voice SOS (AI)',          false,     false, true  ],
+    ['Family Real-Time Alert',  false,     false, true  ],
+    ['Predictive Hotspots',     false,     false, true  ],
     ['ABDM Integration',        'Partial', false, 'soon'],
-    ['Family Real-Time Alert',  false,     false, 'soon'],
-    ['Predictive Hotspots',     false,     false, 'soon'],
+  ];
   ];
 
   const cell = (v: boolean | string) => {
@@ -1296,6 +1571,10 @@ export default function HomePage() {
       <DetectionSection />
       <div className="divider-line" />
       <HospitalSection />
+      <div className="divider-line" />
+      <FamilyAlertsSection />
+      <div className="divider-line" />
+      <HotspotPredictionSection />
       <div className="divider-line" />
       <HowItWorksSection />
       <div className="divider-line" />
