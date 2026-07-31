@@ -70,6 +70,10 @@ const sosLimiter = rateLimit({
 // ============================================================
 // Welcome / Root Control Center
 app.get('/', (req, res) => {
+    const publicUrl = process.env.PUBLIC_WEB_URL || 'http://localhost:3001';
+    const adminUrl = process.env.ADMIN_WEB_URL || 'http://localhost:3002';
+    const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8001';
+
     if (req.headers.accept && req.headers.accept.includes('text/html')) {
         return res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -240,11 +244,12 @@ app.get('/', (req, res) => {
       font-size: 1.35rem;
     }
     .port-pill {
-      font-size: 0.75rem;
+      font-size: 0.725rem;
       font-weight: 700;
+      letter-spacing: 0.04em;
       padding: 0.25rem 0.65rem;
       border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
     }
     
     .card-red .card-icon-box { background: var(--red-bg); color: var(--red-text); }
@@ -358,7 +363,7 @@ app.get('/', (req, res) => {
       </div>
       <div class="status-badge">
         <div class="status-dot"></div>
-        <span>API Services Operational (Port 3000)</span>
+        <span>API Services Operational</span>
       </div>
     </div>
 
@@ -369,40 +374,40 @@ app.get('/', (req, res) => {
     </div>
 
     <div class="grid">
-      <a href="http://localhost:3001" target="_blank" class="card card-red">
+      <a href="${publicUrl}" target="_blank" class="card card-red">
         <div class="card-header-row">
           <div class="card-icon-box">🚑</div>
-          <span class="port-pill">PORT 3001</span>
+          <span class="port-pill">CITIZEN PORTAL</span>
         </div>
         <div class="card-title">Public Website</div>
         <div class="card-desc">Citizen emergency landing portal, public hospital directory, and instant Web SOS request.</div>
         <div class="card-btn">Open Citizen Portal &rarr;</div>
       </a>
 
-      <a href="http://localhost:3002" target="_blank" class="card card-blue">
+      <a href="${adminUrl}" target="_blank" class="card card-blue">
         <div class="card-header-row">
           <div class="card-icon-box">⚡</div>
-          <span class="port-pill">PORT 3002</span>
+          <span class="port-pill">ADMIN PORTAL</span>
         </div>
         <div class="card-title">Command Center</div>
         <div class="card-desc">Admin control dashboard, live GPS fleet tracking, hospital ICU bed manager, and Gemini AI assistant.</div>
         <div class="card-btn">Open Admin Dashboard &rarr;</div>
       </a>
 
-      <a href="http://localhost:3001/sos" target="_blank" class="card card-amber">
+      <a href="${publicUrl}/sos" target="_blank" class="card card-amber">
         <div class="card-header-row">
           <div class="card-icon-box">🆘</div>
-          <span class="port-pill">BROWSER</span>
+          <span class="port-pill">EMERGENCY SOS</span>
         </div>
         <div class="card-title">Web Emergency SOS</div>
         <div class="card-desc">Browser-based GPS location detection and one-click emergency dispatch form.</div>
         <div class="card-btn">Launch Web SOS &rarr;</div>
       </a>
 
-      <a href="http://localhost:8001/docs" target="_blank" class="card card-green">
+      <a href="${mlUrl}/docs" target="_blank" class="card card-green">
         <div class="card-header-row">
           <div class="card-icon-box">🤖</div>
-          <span class="port-pill">PORT 8001</span>
+          <span class="port-pill">AI ENGINE</span>
         </div>
         <div class="card-title">Python ML Service</div>
         <div class="card-desc">FastAPI Swagger documentation for AI Crash Detection, Hospital Matcher, and Hotspot Analytics.</div>
