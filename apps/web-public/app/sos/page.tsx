@@ -9,14 +9,14 @@ import VehicleTelemetryWidget, { VehicleTelemetryPayload } from '../../component
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 const EMERGENCY_TYPES = [
-  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / rollover crash', severity: 'CRITICAL', color: 'border-red-200 bg-red-50 text-red-700' },
-  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest',       severity: 'CRITICAL', color: 'border-rose-200 bg-rose-50 text-rose-700' },
-  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious',       severity: 'HIGH',     color: 'border-amber-200 bg-amber-50 text-amber-800' },
-  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury',        severity: 'HIGH',     color: 'border-orange-200 bg-orange-50 text-orange-800' },
-  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency',                  severity: 'CRITICAL', color: 'border-cyan-200 bg-cyan-50 text-cyan-800' },
-  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture',       severity: 'URGENT',   color: 'border-purple-200 bg-purple-50 text-purple-700' },
-  { id: 'assault',   label: 'Assault / Trauma',  emoji: '⚠️', desc: 'Violence-related injury',          severity: 'HIGH',     color: 'border-yellow-200 bg-yellow-50 text-yellow-800' },
-  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Life-threatening situation',        severity: 'URGENT',   color: 'border-blue-200 bg-blue-50 text-blue-700' },
+  { id: 'accident',  label: 'Road Accident',    emoji: '🚗', desc: 'Vehicle collision / rollover crash' },
+  { id: 'cardiac',   label: 'Heart Attack',      emoji: '❤️', desc: 'Chest pain / cardiac arrest' },
+  { id: 'medical',   label: 'Medical Emergency', emoji: '🏥', desc: 'Sudden illness / unconscious' },
+  { id: 'fire',      label: 'Fire / Burns',      emoji: '🔥', desc: 'Fire hazard or burn injury' },
+  { id: 'drowning',  label: 'Drowning',          emoji: '🌊', desc: 'Water emergency' },
+  { id: 'fall',      label: 'Severe Fall',       emoji: '🪜', desc: 'Fall from height / fracture' },
+  { id: 'assault',   label: 'Assault / Trauma',  emoji: '⚠️', desc: 'Violence-related injury' },
+  { id: 'other',     label: 'Other Emergency',   emoji: '🆘', desc: 'Life-threatening situation' },
 ];
 
 type Step = 'type' | 'location' | 'details' | 'confirm' | 'submitted';
@@ -243,13 +243,10 @@ export default function SOSPage() {
                       ? 'bg-red-50 border-red-500 shadow-md shadow-red-500/10 scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-red-300 hover:bg-slate-50'
                   }`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="text-3xl p-2 rounded-xl bg-slate-100 border border-slate-200 group-hover:scale-110 transition-transform">
+                  <div className="mb-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                       {type.emoji}
                     </div>
-                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${type.color}`}>
-                      {type.severity}
-                    </span>
                   </div>
                   <p className="font-bold text-slate-900 text-base leading-tight mb-1">{type.label}</p>
                   <p className="text-xs text-slate-500 leading-relaxed">{type.desc}</p>
