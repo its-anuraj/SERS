@@ -145,28 +145,28 @@ export default function VehicleTelemetryWidget({
           </div>
         </div>
 
-        {/* Telemetry Gauge Indicators — Grid 2-cols or 4-cols with no overlap */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
-          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Car Speed</div>
-            <div className="text-lg font-black text-slate-900 mt-0.5">{speed} <span className="text-[10px] text-slate-500">km/h</span></div>
+        {/* Telemetry Gauge Indicators — Clean 2-column Grid with zero text overlap */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center overflow-hidden">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Vehicle Speed</div>
+            <div className="text-xl font-black text-slate-900 mt-0.5">{speed} <span className="text-xs text-slate-500 font-normal">km/h</span></div>
           </div>
 
-          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Engine RPM</div>
-            <div className="text-lg font-black text-slate-900 mt-0.5">{rpm} <span className="text-[10px] text-slate-500">RPM</span></div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center overflow-hidden">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Engine Speed</div>
+            <div className="text-xl font-black text-slate-900 mt-0.5">{rpm} <span className="text-xs text-slate-500 font-normal">RPM</span></div>
           </div>
 
-          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Barometer</div>
-            <div className={`text-lg font-black mt-0.5 ${pressureSpike > 10 ? 'text-red-600 animate-pulse' : 'text-emerald-700'}`}>
-              +{pressureSpike} <span className="text-[10px] text-slate-500">hPa</span>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center overflow-hidden">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Air Pulse</div>
+            <div className={`text-xl font-black mt-0.5 ${pressureSpike > 10 ? 'text-red-600 animate-pulse' : 'text-emerald-700'}`}>
+              +{pressureSpike} <span className="text-xs text-slate-500 font-normal">hPa</span>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Airbag ECU</div>
-            <div className={`text-xs font-black mt-1 ${airbagDeployed ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center overflow-hidden">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Airbag Status</div>
+            <div className={`text-sm font-black mt-1 ${airbagDeployed ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>
               {airbagDeployed ? 'DEPLOYED' : 'NORMAL'}
             </div>
           </div>
