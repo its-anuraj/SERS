@@ -434,7 +434,10 @@ function ProblemSection() {
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>{card.desc}</p>
               </div>
             ))}
-{/* Before / After */}
+          </div>
+        </div>
+
+        {/* Before / After */}
         <div className="mt-20 reveal">
           <div className="grid md:grid-cols-2 gap-px rounded-2xl overflow-hidden" style={{ background: 'var(--border)' }}>
             <div className="p-8" style={{ background: 'var(--bg-2)' }}>
