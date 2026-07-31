@@ -1466,9 +1466,10 @@ function FeaturesSection() {
   ];
 
   const coming = [
-    { icon: 'fa-stopwatch',   title: 'SmartWatch Integration',    desc: 'Real-time heart rate, fall detection, and haptic SOS triggers for Wear OS & Apple Watch.' },
-    { icon: 'fa-car-burst',   title: 'Car Accident Telemetry',   desc: 'Direct vehicle CAN-bus connection for airbag deployment & high-G collision detection.' },
-    { icon: 'fa-id-badge',    title: 'ABDM Health Records',      desc: 'Auto-share medical profile & ABHA ID with emergency room staff.' },
+    { icon: 'fa-plane-fly',   title: 'Autonomous Drone Reconnaissance', desc: 'Dispatches emergency drone ahead of ambulance to stream live 4K footage, assess severity & verify fake alerts in <2 min.' },
+    { icon: 'fa-stopwatch',   title: 'SmartWatch Companion App',       desc: 'Real-time heart rate, fall detection, and haptic SOS triggers for Wear OS & Apple Watch.' },
+    { icon: 'fa-car-burst',   title: 'Car Accident Telemetry',        desc: 'Direct vehicle CAN-bus connection for airbag deployment & high-G collision detection.' },
+    { icon: 'fa-id-badge',    title: 'ABDM Health Records',           desc: 'Auto-share medical profile & ABHA ID with emergency room staff.' },
   ];
 
   return (
@@ -1509,7 +1510,7 @@ function FeaturesSection() {
             <div className="text-xs font-mono-custom uppercase tracking-widest" style={{ color: 'var(--amber)' }}>⏳ COMING SOON</div>
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {coming.map((f) => (
               <div key={f.title} className="glass rounded-2xl p-5 opacity-70">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
@@ -1537,17 +1538,18 @@ function FeaturesSection() {
 function ComparisonSection() {
   // true = ✅ built, 'soon' = 🔜 coming, false = ❌
   const rows: [string, boolean | string, boolean | string, boolean | 'soon'][] = [
-    ['Auto Crash Detection',    false,     false, true  ],
-    ['AI Hospital Matching',    false,     false, true  ],
-    ['1-tap / Web SOS',         false,     false, true  ],
-    ['Live Incident Map',       false,     false, true  ],
-    ['Admin Command Center',    'Basic',   false, true  ],
-    ['Voice SOS (AI)',          false,     false, true  ],
-    ['Family Real-Time Alert',  false,     false, true  ],
-    ['Predictive Hotspots',     false,     false, true  ],
-    ['SmartWatch Integration',  false,     false, 'soon'],
-    ['Car Accident Telemetry',  false,     false, 'soon'],
-    ['ABDM Integration',        'Partial', false, 'soon'],
+    ['Auto Crash Detection',        false,     false, true  ],
+    ['AI Hospital Matching',        false,     false, true  ],
+    ['1-tap / Web SOS',             false,     false, true  ],
+    ['Live Incident Map',           false,     false, true  ],
+    ['Admin Command Center',        'Basic',   false, true  ],
+    ['Voice SOS (AI)',              false,     false, true  ],
+    ['Family Real-Time Alert',      false,     false, true  ],
+    ['Predictive Hotspots',         false,     false, true  ],
+    ['Autonomous Drone Recon',      false,     false, 'soon'],
+    ['SmartWatch Integration',      false,     false, 'soon'],
+    ['Car Accident Telemetry',      false,     false, 'soon'],
+    ['ABDM Integration',            'Partial', false, 'soon'],
   ];
 
   const cell = (v: boolean | string) => {
