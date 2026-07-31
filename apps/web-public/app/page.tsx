@@ -946,7 +946,7 @@ function FamilyAlertsSection() {
 
   const contacts = [
     { name: 'Emergency Contact 1 (Primary)', phone: '+91 98765 *****', relation: 'Configured in App', channels: ['SMS', 'WhatsApp'], icon: 'fa-user-shield', color: 'text-amber-600' },
-    { name: 'Emergency Contact 2 (Secondary)', phone: '+91 91234 *****', relation: 'Configured in App', channels: ['WhatsApp', 'Push'], icon: 'fa-heart', color: 'text-rose-600' },
+    { name: 'Emergency Contact 2 (Secondary)', phone: '+91 91234 *****', relation: 'Configured in App', channels: ['SMS', 'WhatsApp'], icon: 'fa-heart', color: 'text-rose-600' },
   ];
 
   const triggerFamilyAlert = () => {
