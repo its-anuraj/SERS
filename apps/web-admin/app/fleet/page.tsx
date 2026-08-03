@@ -1,12 +1,11 @@
 'use client';
 
 /**
- * SERS Admin — Ambulance Fleet Management Page
- * View all ambulances, update status, assign to hospitals
+ * SERS Admin — Ambulance Fleet Management Page (Light Theme)
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Truck, Plus, Search, RefreshCw, Edit3, MapPin, X, Save, Radio, ArrowLeft } from 'lucide-react';
+import { Truck, Plus, Search, RefreshCw, Edit3, MapPin, X, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -38,14 +37,14 @@ interface Ambulance {
   is_demo?: boolean;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  available:    { label: 'Available',    color: '#22c55e' },
-  dispatched:   { label: 'Dispatched',   color: '#3b82f6' },
-  en_route:     { label: 'En Route',     color: '#06b6d4' },
-  at_scene:     { label: 'At Scene',     color: '#8b5cf6' },
-  transporting: { label: 'Transporting', color: '#f97316' },
-  maintenance:  { label: 'Maintenance',  color: '#f59e0b' },
-  offline:      { label: 'Offline',      color: '#64748b' },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  available:    { label: 'Available',    color: '#16a34a', bg: '#f0fdf4' },
+  dispatched:   { label: 'Dispatched',   color: '#2563eb', bg: '#eff6ff' },
+  en_route:     { label: 'En Route',     color: '#0891b2', bg: '#ecfeff' },
+  at_scene:     { label: 'At Scene',     color: '#9333ea', bg: '#faf5ff' },
+  transporting: { label: 'Transporting', color: '#ea580c', bg: '#fff7ed' },
+  maintenance:  { label: 'Maintenance',  color: '#d97706', bg: '#fffbeb' },
+  offline:      { label: 'Offline',      color: '#64748b', bg: '#f8fafc' },
 };
 
 const DEMO_FLEET: Ambulance[] = [
@@ -144,7 +143,6 @@ export default function FleetPage() {
       setModalOpen(false);
       fetchFleet();
     } catch {
-      // Local fallback for testing UI
       if (editing.id) {
         setFleet(prev => prev.map(a => a.id === editing.id ? { ...a, ...editing } as Ambulance : a));
       } else {
@@ -180,28 +178,28 @@ export default function FleetPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-slate-100 p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors">
+            <Link href="/" className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs transition-colors">
               <ArrowLeft size={18} />
             </Link>
-            <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
-              <Truck size={22} className="text-blue-400" />
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center">
+              <Truck size={22} className="text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-white">Ambulance Fleet Dispatcher</h1>
-              <p className="text-xs text-slate-400">{fleet.length} total emergency units in fleet network</p>
+              <h1 className="text-2xl font-extrabold text-slate-900">Ambulance Fleet Dispatcher</h1>
+              <p className="text-xs text-slate-500 font-semibold">{fleet.length} total emergency units in fleet network</p>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={fetchFleet} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer">
+            <button onClick={fetchFleet} className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
-            <button onClick={openAdd} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer">
+            <button onClick={openAdd} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md shadow-blue-600/20 transition-all cursor-pointer">
               <Plus size={15} /> Add Vehicle
             </button>
           </div>
@@ -213,8 +211,8 @@ export default function FleetPage() {
             onClick={() => setFilter('all')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-all cursor-pointer ${
               filterStatus === 'all'
-                ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
             }`}>
             All Vehicles ({fleet.length})
           </button>
@@ -224,9 +222,9 @@ export default function FleetPage() {
               onClick={() => setFilter(key)}
               className="px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition-all cursor-pointer"
               style={{
-                background: filterStatus === key ? `${cfg.color}20` : '#111827',
-                borderColor: filterStatus === key ? cfg.color : '#1e293b',
-                color: filterStatus === key ? cfg.color : '#94a3b8',
+                background: filterStatus === key ? cfg.bg : '#ffffff',
+                borderColor: filterStatus === key ? cfg.color : '#e2e8f0',
+                color: filterStatus === key ? cfg.color : '#475569',
               }}>
               ● {cfg.label} ({statusCounts[key] || 0})
             </button>
@@ -235,51 +233,51 @@ export default function FleetPage() {
 
         {/* Search */}
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by registration number, driver name, or unit type..."
-            className="w-full bg-slate-900/90 border border-slate-800 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:border-blue-500 shadow-xs"
           />
         </div>
 
         {/* Fleet Grid */}
         {loading ? (
-          <div className="text-center py-16 text-slate-500">Loading live fleet GPS telemetry...</div>
+          <div className="text-center py-16 text-slate-500 font-semibold">Loading live fleet GPS telemetry...</div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(a => {
-              const sc = STATUS_CONFIG[a.status] || { label: a.status, color: '#64748b' };
+              const sc = STATUS_CONFIG[a.status] || { label: a.status, color: '#64748b', bg: '#f8fafc' };
               return (
-                <div key={a.id} className="glass-card p-5 rounded-2xl border space-y-3 flex flex-col justify-between hover:border-slate-700 transition-all" style={{ borderColor: `${sc.color}40` }}>
+                <div key={a.id} className="glass-card p-5 rounded-2xl bg-white border space-y-3 flex flex-col justify-between shadow-sm hover:border-slate-300 transition-all" style={{ borderColor: '#e2e8f0' }}>
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-extrabold text-base text-white">{a.registration_number}</h3>
-                        <p className="text-xs text-slate-400 font-medium">{a.vehicle_type}</p>
+                        <h3 className="font-extrabold text-base text-slate-900">{a.registration_number}</h3>
+                        <p className="text-xs text-slate-500 font-semibold">{a.vehicle_type}</p>
                       </div>
-                      <span className="text-xs font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1.5" style={{ background: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                      <span className="text-xs font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1.5 border" style={{ background: sc.bg, color: sc.color, borderColor: `${sc.color}40` }}>
                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.color }} />
                         {sc.label.toUpperCase()}
                       </span>
                     </div>
 
                     {a.is_demo && (
-                      <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                         PRE-CONFIGURED FLEET UNIT
                       </span>
                     )}
 
-                    <div className="pt-2 border-t border-slate-800/80 space-y-1 text-xs text-slate-300">
+                    <div className="pt-2 border-t border-slate-100 space-y-1 text-xs text-slate-700 font-medium">
                       <p><strong>Driver:</strong> 🧑‍✈️ {a.driver_name} ({a.driver_phone})</p>
                       {a.paramedic_name && <p><strong>Paramedic:</strong> 🩺 {a.paramedic_name}</p>}
-                      {a.hospital_name && <p className="text-slate-400 flex items-center gap-1"><MapPin size={12} /> {a.hospital_name}</p>}
+                      {a.hospital_name && <p className="text-slate-500 flex items-center gap-1"><MapPin size={12} /> {a.hospital_name}</p>}
                     </div>
 
                     {a.equipment?.length > 0 && (
                       <div className="flex items-center gap-1 flex-wrap pt-1">
                         {a.equipment.map(eq => (
-                          <span key={eq} className="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
+                          <span key={eq} className="text-[10px] bg-slate-100 border border-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-md">
                             {eq}
                           </span>
                         ))}
@@ -289,7 +287,7 @@ export default function FleetPage() {
 
                   <button
                     onClick={() => openEdit(a)}
-                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2">
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2">
                     <Edit3 size={13} /> Edit Vehicle & Status
                   </button>
                 </div>
@@ -301,36 +299,36 @@ export default function FleetPage() {
 
       {/* Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card max-w-md w-full p-6 space-y-4 border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="glass-card max-w-md w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{editing.id ? 'Edit Vehicle Status' : 'Add Vehicle to Fleet'}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+              <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Edit Vehicle Status' : 'Add Vehicle to Fleet'}</h2>
+              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={18} /></button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 font-semibold mb-1 block">Registration Number</label>
+                <label className="text-slate-500 font-bold mb-1 block">Registration Number</label>
                 <input
                   value={editing.registration_number || ''}
                   onChange={e => setEditing(prev => ({ ...prev, registration_number: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-bold"
                 />
               </div>
               <div>
-                <label className="text-slate-400 font-semibold mb-1 block">Driver Name</label>
+                <label className="text-slate-500 font-bold mb-1 block">Driver Name</label>
                 <input
                   value={editing.driver_name || ''}
                   onChange={e => setEditing(prev => ({ ...prev, driver_name: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-bold"
                 />
               </div>
               <div>
-                <label className="text-slate-400 font-semibold mb-1 block">Status</label>
+                <label className="text-slate-500 font-bold mb-1 block">Status</label>
                 <select
                   value={editing.status || 'available'}
                   onChange={e => setEditing(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200">
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-bold">
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
@@ -339,7 +337,7 @@ export default function FleetPage() {
             <button
               onClick={save}
               disabled={saving}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
+              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
               <Save size={16} /> {saving ? 'Saving...' : 'Save Vehicle'}
             </button>
           </div>

@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  AlertTriangle, Clock, CheckCircle2, XCircle, ChevronRight,
-  Search, Filter, RefreshCw, X, Radio, Ambulance, Hospital,
-  MapPin, User, Zap, Activity, TrendingUp, ArrowLeft
+  AlertTriangle, Clock, CheckCircle2,
+  Search, RefreshCw, X, Radio, Ambulance, Hospital,
+  MapPin, User, Zap, Activity, ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-const WS  = process.env.NEXT_PUBLIC_WS_URL  || 'http://localhost:3000';
 
 interface Incident {
   id: string;
@@ -46,20 +44,20 @@ interface TimelineEvent {
 }
 
 const SEVERITY_CONFIG: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  critical: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.4)', text: '#ef4444', label: 'Critical' },
-  moderate: { bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', text: '#f97316', label: 'Moderate' },
-  minor:    { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.4)',  text: '#22c55e', label: 'Minor' },
+  critical: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Critical' },
+  moderate: { bg: '#fff7ed', border: '#ffedd5', text: '#ea580c', label: 'Moderate' },
+  minor:    { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Minor' },
 };
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
-  reported:     { color: '#eab308', label: 'Reported',     icon: '📡' },
-  assigned:     { color: '#3b82f6', label: 'Assigned',     icon: '🔗' },
-  en_route:     { color: '#06b6d4', label: 'En Route',     icon: '🚑' },
-  arrived:      { color: '#a855f7', label: 'Arrived',      icon: '📍' },
-  transporting: { color: '#f97316', label: 'Transporting', icon: '🏥' },
-  resolved:     { color: '#22c55e', label: 'Resolved',     icon: '✅' },
+  reported:     { color: '#d97706', label: 'Reported',     icon: '📡' },
+  assigned:     { color: '#2563eb', label: 'Assigned',     icon: '🔗' },
+  en_route:     { color: '#0891b2', label: 'En Route',     icon: '🚑' },
+  arrived:      { color: '#9333ea', label: 'Arrived',      icon: '📍' },
+  transporting: { color: '#ea580c', label: 'Transporting', icon: '🏥' },
+  resolved:     { color: '#16a34a', label: 'Resolved',     icon: '✅' },
   cancelled:    { color: '#64748b', label: 'Cancelled',    icon: '❌' },
-  false_alarm:  { color: '#94a3b8', label: 'False Alarm',  icon: '⚠️' },
+  false_alarm:  { color: '#64748b', label: 'False Alarm',  icon: '⚠️' },
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -145,10 +143,6 @@ function timeAgo(dateStr: string) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-function fmtTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
 async function apiFetch(path: string, options?: RequestInit) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
   const res = await fetch(`${API}${path}`, {
@@ -168,17 +162,8 @@ function IncidentDrawer({ incident, onClose, onStatusUpdate }: {
   onClose: () => void;
   onStatusUpdate: (id: string, status: string) => void;
 }) {
-  const [timeline, setTimeline] = useState<TimelineEvent[]>(incident.timeline || []);
   const [updating, setUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
-
-  useEffect(() => {
-    if (!incident.is_demo) {
-      apiFetch(`/api/incidents/${incident.id}/timeline`)
-        .then(d => setTimeline(d.data || []))
-        .catch(() => {});
-    }
-  }, [incident.id]);
 
   const handleStatusUpdate = async () => {
     if (!newStatus) return;
@@ -203,86 +188,74 @@ function IncidentDrawer({ incident, onClose, onStatusUpdate }: {
   const stat = STATUS_CONFIG[incident.status] || { color: '#64748b', label: incident.status, icon: '?' };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50, display: 'flex',
-      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
-    }} onClick={onClose}>
-      <div style={{ marginLeft: 'auto', width: '100%', maxWidth: 540, height: '100%', overflowY: 'auto', background: '#111827', borderLeft: '1px solid #1e293b' }}
+    <div className="fixed inset-0 z-50 flex bg-slate-900/60 backdrop-blur-xs" onClick={onClose}>
+      <div className="ml-auto w-full max-w-lg h-full overflow-y-auto bg-white border-l border-slate-200 shadow-2xl p-6 space-y-6"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #1e293b', position: 'sticky', top: 0, background: '#111827', zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 28 }}>{TYPE_ICON[incident.type] || '📋'}</span>
-              <div>
-                <p style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>{incident.incident_number}</p>
-                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', textTransform: 'capitalize' }}>{incident.type} Emergency</h2>
-              </div>
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{TYPE_ICON[incident.type] || '📋'}</span>
+            <div>
+              <p className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">{incident.incident_number}</p>
+              <h2 className="text-xl font-extrabold text-slate-900 capitalize">{incident.type} Emergency</h2>
             </div>
-            <button onClick={onClose} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 12px', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <X size={16} /> Close
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Badges */}
+        <div className="flex gap-2 flex-wrap">
+          <span className="px-3 py-1 rounded-full text-xs font-extrabold border" style={{ background: sev.bg, borderColor: sev.border, color: sev.text }}>
+            {sev.label}
+          </span>
+          <span className="px-3 py-1 rounded-full text-xs font-extrabold border" style={{ background: `${stat.color}15`, borderColor: `${stat.color}40`, color: stat.color }}>
+            {stat.icon} {stat.label}
+          </span>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-700 font-medium">
+          <div>
+            <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><MapPin size={12} /> Location</p>
+            <p className="font-bold text-slate-900">{incident.address || `${incident.latitude}, ${incident.longitude}`}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><Clock size={12} /> Reported</p>
+            <p className="font-bold text-slate-900">{timeAgo(incident.created_at)}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><User size={12} /> Reporter</p>
+            <p className="font-bold text-slate-900">{incident.reporter_name}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><Activity size={12} /> Contact</p>
+            <p className="font-bold text-slate-900">{incident.reporter_phone}</p>
+          </div>
+        </div>
+
+        {/* Status Update */}
+        <div className="space-y-2 pt-2 border-t border-slate-200">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Update Emergency Status</p>
+          <div className="flex gap-2">
+            <select
+              value={newStatus}
+              onChange={e => setNewStatus(e.target.value)}
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900">
+              <option value="">Select status…</option>
+              {['assigned','en_route','arrived','transporting','resolved','cancelled','false_alarm'].map(s => (
+                <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleStatusUpdate}
+              disabled={!newStatus || updating}
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl text-xs cursor-pointer">
+              Update
             </button>
           </div>
-          {/* Badges */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sev.bg, border: `1px solid ${sev.border}`, color: sev.text }}>{sev.label}</span>
-            <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${stat.color}20`, border: `1px solid ${stat.color}40`, color: stat.color }}>{stat.icon} {stat.label}</span>
-            {incident.ai_crash_detected && (
-              <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}>
-                🤖 AI Crash Verified {incident.ai_severity_score != null ? `· Score ${incident.ai_severity_score}/10` : ''}
-              </span>
-            )}
-          </div>
         </div>
-
-        {/* Info grid */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #1e293b', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {[
-            { icon: <MapPin size={14} />, label: 'Location', value: incident.address || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}` },
-            { icon: <Clock size={14} />, label: 'Reported', value: timeAgo(incident.created_at) },
-            { icon: <User size={14} />, label: 'Reporter', value: incident.reporter_name || '—' },
-            { icon: <Activity size={14} />, label: 'Phone', value: incident.reporter_phone || '—' },
-            { icon: <Ambulance size={14} />, label: 'Ambulance', value: incident.ambulance_reg || 'HR-26-EQ-1008 (Assigned)' },
-            { icon: <Hospital size={14} />, label: 'Hospital', value: incident.hospital_name || 'City Emergency Hospital' },
-          ].map(item => (
-            <div key={item.label}>
-              <p style={{ fontSize: 11, color: '#64748b', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
-                {item.icon} {item.label}
-              </p>
-              <p style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, wordBreak: 'break-word' }}>{item.value}</p>
-            </div>
-          ))}
-          {incident.description && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <p style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>Description</p>
-              <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>{incident.description}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Status update */}
-        {!['resolved','cancelled','false_alarm'].includes(incident.status) && (
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid #1e293b', background: 'rgba(255,255,255,0.02)' }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Update Status</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select
-                value={newStatus}
-                onChange={e => setNewStatus(e.target.value)}
-                style={{ flex: 1, padding: '9px 12px', borderRadius: 10, background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', fontSize: 13 }}>
-                <option value="">Select new status…</option>
-                {['assigned','en_route','arrived','transporting','resolved','cancelled','false_alarm'].map(s => (
-                  <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleStatusUpdate}
-                disabled={!newStatus || updating}
-                style={{ padding: '9px 18px', borderRadius: 10, background: newStatus ? '#ef4444' : '#1e293b', color: '#fff', border: 'none', fontWeight: 700, fontSize: 13, cursor: newStatus ? 'pointer' : 'not-allowed', opacity: updating ? 0.6 : 1 }}>
-                {updating ? '…' : 'Update'}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -293,9 +266,6 @@ export default function IncidentsPage() {
   const [filtered, setFiltered] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('');
-  const [filterType, setFilterType] = useState('');
   const [selected, setSelected] = useState<Incident | null>(null);
 
   const fetchIncidents = useCallback(async () => {
@@ -322,15 +292,11 @@ export default function IncidentsPage() {
       list = list.filter(i =>
         i.incident_number?.toLowerCase().includes(q) ||
         i.type?.toLowerCase().includes(q) ||
-        i.address?.toLowerCase().includes(q) ||
-        i.reporter_name?.toLowerCase().includes(q)
+        i.address?.toLowerCase().includes(q)
       );
     }
-    if (filterStatus) list = list.filter(i => i.status === filterStatus);
-    if (filterSeverity) list = list.filter(i => i.severity === filterSeverity);
-    if (filterType) list = list.filter(i => i.type === filterType);
     setFiltered(list);
-  }, [incidents, search, filterStatus, filterSeverity, filterType]);
+  }, [incidents, search]);
 
   const handleStatusUpdate = (id: string, status: string) => {
     setIncidents(prev => prev.map(i => i.id === id ? { ...i, status } : i));
@@ -343,106 +309,96 @@ export default function IncidentsPage() {
   const aiDetected = incidents.filter(i => i.ai_crash_detected).length;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0e1a', padding: '24px 28px 60px', color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link href="/" style={{ padding: 8, borderRadius: 10, background: '#111827', border: '1px solid #1e293b', color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs transition-colors">
               <ArrowLeft size={18} />
             </Link>
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-                <AlertTriangle size={24} color="#ef4444" /> Emergency Incident Logs
+              <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                <AlertTriangle size={24} className="text-red-600" /> Emergency Incident Logs
               </h1>
-              <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 0' }}>
-                Realtime incoming alert history & response tracking ({incidents.length} total logged)
-              </p>
+              <p className="text-xs text-slate-500 font-semibold">Realtime incoming alert history & response tracking ({incidents.length} total logged)</p>
             </div>
           </div>
           <button
             onClick={fetchIncidents}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#111827', border: '1px solid #1e293b', borderRadius: 10, color: '#94a3b8', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Logs
           </button>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginTop: 20 }}>
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Active Alerts', value: active, color: '#ef4444', icon: <Radio size={16} /> },
-            { label: 'Critical Trauma', value: critical, color: '#f97316', icon: <AlertTriangle size={16} /> },
-            { label: 'Resolved Cases', value: resolved, color: '#22c55e', icon: <CheckCircle2 size={16} /> },
-            { label: 'AI Crash Verified', value: aiDetected, color: '#a855f7', icon: <Zap size={16} /> },
+            { label: 'Active Alerts', value: active, color: '#dc2626', icon: <Radio size={16} /> },
+            { label: 'Critical Trauma', value: critical, color: '#ea580c', icon: <AlertTriangle size={16} /> },
+            { label: 'Resolved Cases', value: resolved, color: '#16a34a', icon: <CheckCircle2 size={16} /> },
+            { label: 'AI Crash Verified', value: aiDetected, color: '#9333ea', icon: <Zap size={16} /> },
           ].map(s => (
-            <div key={s.label} style={{ background: '#111827', border: '1px solid #1e293b', borderRadius: 14, padding: '14px 18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700 }}>{s.label}</span>
+            <div key={s.label} className="glass-card p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{s.label}</span>
                 <div style={{ color: s.color }}>{s.icon}</div>
               </div>
-              <p style={{ fontSize: 26, fontWeight: 900, color: s.color, margin: 0 }}>{loading ? '—' : s.value}</p>
+              <p className="text-2xl font-black" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Filters */}
-      <div style={{ marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+        {/* Search */}
+        <div className="relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by incident number, location, or patient..."
-            style={{ width: '100%', padding: '9px 12px 9px 36px', background: '#111827', border: '1px solid #1e293b', borderRadius: 10, color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+            placeholder="Search by incident number, location, or reporter..."
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:border-red-500 shadow-xs font-medium"
           />
         </div>
-      </div>
 
-      {/* Table */}
-      <div style={{ borderRadius: 16, border: '1px solid #1e293b', overflow: 'hidden', background: '#111827' }}>
-        {loading ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>Loading incident telemetry logs...</div>
-        ) : (
-          filtered.map((incident, idx) => {
-            const sev = SEVERITY_CONFIG[incident.severity] || SEVERITY_CONFIG.minor;
-            const stat = STATUS_CONFIG[incident.status] || { color: '#64748b', label: incident.status, icon: '?' };
+        {/* Table */}
+        <div className="glass-card rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+          {loading ? (
+            <div className="p-16 text-center text-slate-500 font-semibold">Loading incident telemetry logs...</div>
+          ) : (
+            filtered.map((incident, idx) => {
+              const sev = SEVERITY_CONFIG[incident.severity] || SEVERITY_CONFIG.minor;
+              const stat = STATUS_CONFIG[incident.status] || { color: '#64748b', label: incident.status, icon: '?' };
 
-            return (
-              <div
-                key={incident.id}
-                onClick={() => setSelected(incident)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 18px', borderBottom: idx < filtered.length - 1 ? '1px solid #1e293b' : 'none',
-                  cursor: 'pointer', gap: 12,
-                }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                  <span style={{ fontSize: 24 }}>{TYPE_ICON[incident.type] || '📋'}</span>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', fontFamily: 'monospace' }}>{incident.incident_number}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: sev.bg, border: `1px solid ${sev.border}`, color: sev.text }}>{sev.label}</span>
-                      {incident.is_demo && (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: '#3b82f620', color: '#3b82f6', border: '1px solid #3b82f640' }}>DEMO RECORD</span>
-                      )}
+              return (
+                <div
+                  key={incident.id}
+                  onClick={() => setSelected(incident)}
+                  className="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-2xl">{TYPE_ICON[incident.type] || '📋'}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono font-extrabold text-slate-900">{incident.incident_number}</span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border" style={{ background: sev.bg, borderColor: sev.border, color: sev.text }}>
+                          {sev.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-bold flex items-center gap-1 truncate">
+                        <MapPin size={12} className="text-slate-400" /> {incident.address}
+                      </p>
                     </div>
-                    <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <MapPin size={11} /> {incident.address || `${incident.latitude}, ${incident.longitude}`}
-                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs font-extrabold px-3 py-1 rounded-full border" style={{ background: `${stat.color}15`, borderColor: `${stat.color}30`, color: stat.color }}>
+                      {stat.icon} {stat.label}
+                    </span>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, shrink: 0 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 8, background: `${stat.color}20`, color: stat.color, border: `1px solid ${stat.color}40` }}>
-                    {stat.icon} {stat.label}
-                  </span>
-                  <ChevronRight size={16} color="#64748b" />
-                </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
       {selected && (

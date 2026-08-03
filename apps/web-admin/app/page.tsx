@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  AlertTriangle, Activity, Ambulance, Hospital, Users, Zap,
-  MapPin, Clock, ChevronRight, Radio, TrendingUp, Bell, Volume2, VolumeX,
-  Shield, Menu, X, LogOut, Settings, BarChart3, MessageSquare, RefreshCw, Play, CheckCircle2, Heart, Car
+  AlertTriangle, Activity, Ambulance, Hospital, Zap,
+  MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
+  Shield, Menu, X, BarChart3, RefreshCw, Play, CheckCircle2, Heart, ExternalLink
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -19,9 +19,9 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const WS  = process.env.NEXT_PUBLIC_WS_URL  || 'http://localhost:3000';
 
 const PIE_COLORS: Record<string, string> = {
-  accident: '#ef4444', cardiac: '#f97316', medical: '#3b82f6',
-  fire: '#f59e0b', drowning: '#06b6d4', fall: '#8b5cf6',
-  assault: '#ec4899', other: '#64748b',
+  accident: '#dc2626', cardiac: '#ea580c', medical: '#2563eb',
+  fire: '#d97706', drowning: '#0891b2', fall: '#9333ea',
+  assault: '#db2777', other: '#64748b',
 };
 
 async function apiFetch(path: string, options?: RequestInit) {
@@ -47,11 +47,11 @@ const severityBadge = (severity: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    reported: 'text-yellow-400', assigned: 'text-blue-400',
-    en_route: 'text-cyan-400', arrived: 'text-purple-400',
-    transporting: 'text-orange-400', resolved: 'text-green-400',
+    reported: 'text-amber-600 font-bold', assigned: 'text-blue-600 font-bold',
+    en_route: 'text-cyan-600 font-bold', arrived: 'text-purple-600 font-bold',
+    transporting: 'text-orange-600 font-bold', resolved: 'text-emerald-600 font-bold',
   };
-  return map[status] || 'text-slate-400';
+  return map[status] || 'text-slate-600 font-semibold';
 };
 
 const incidentTypeIcon = (type: string) => {
@@ -120,18 +120,18 @@ function StatCard({ label, value, icon: Icon, color, pulse, loading }: {
   color: string; pulse?: string; loading?: boolean;
 }) {
   return (
-    <div className="glass-card p-5 hover-lift cursor-default">
+    <div className="glass-card p-5 hover-lift cursor-default bg-white border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${pulse || ''}`}
-          style={{ background: `${color}20`, border: `1px solid ${color}40` }}>
+          style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
           <Icon size={18} style={{ color }} />
         </div>
       </div>
       {loading ? (
         <Skeleton className="h-9 w-16" />
       ) : (
-        <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-3xl font-extrabold text-slate-900">
           {value ?? '—'}
         </p>
       )}
@@ -140,55 +140,55 @@ function StatCard({ label, value, icon: Icon, color, pulse, loading }: {
 }
 
 function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void }) {
-  const borderColor = incident.severity === 'critical' ? '#ef4444'
-    : incident.severity === 'moderate' ? '#f97316' : '#22c55e';
+  const borderColor = incident.severity === 'critical' ? '#dc2626'
+    : incident.severity === 'moderate' ? '#ea580c' : '#16a34a';
   return (
     <div
       onClick={onClick}
-      className="glass-card p-4 hover-lift cursor-pointer group transition-all"
+      className="glass-card p-4 hover-lift cursor-pointer group transition-all bg-white border border-slate-200 shadow-sm"
       style={{ borderLeft: `4px solid ${borderColor}` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-2xl">{incidentTypeIcon(incident.type)}</span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-xs font-mono text-slate-400 font-bold">
+              <span className="text-xs font-mono text-slate-900 font-extrabold">
                 {incident.incident_number || incident.number}
               </span>
               <span className={severityBadge(incident.severity)}>
                 {incident.severity?.toUpperCase()}
               </span>
               {incident.is_demo && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  DEMO / HARDWARE SIMULATION
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  DEMO SIMULATION
                 </span>
               )}
               {incident.vitals?.bpm && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse flex items-center gap-1">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 animate-pulse flex items-center gap-1">
                   ❤️ {incident.vitals.bpm} BPM
                 </span>
               )}
               {incident.afdpResult?.airbagConfirmed && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
                   💥 AIRBAG DEPLOYED
                 </span>
               )}
             </div>
-            <p className="text-sm font-semibold text-slate-200 truncate">
+            <p className="text-sm font-bold text-slate-900 truncate">
               {incident.landmark || incident.address || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}`}
             </p>
             <div className="flex items-center gap-3 mt-1">
-              <span className={`text-xs font-medium ${statusColor(incident.status)}`}>
+              <span className={`text-xs ${statusColor(incident.status)}`}>
                 ● {incident.status?.replace('_', ' ').toUpperCase()}
               </span>
-              <span className="text-xs text-slate-500 flex items-center gap-1">
-                <Clock size={10} />
+              <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                <Clock size={11} />
                 {new Date(incident.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
         </div>
-        <ChevronRight size={18} className="text-slate-500 group-hover:text-white transition-colors shrink-0 mt-2" />
+        <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors shrink-0 mt-2" />
       </div>
     </div>
   );
@@ -206,43 +206,38 @@ const navItems = [
 function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () => void; activeCount: number }) {
   return (
     <>
-      {open && <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={onClose} />}
+      {open && <div className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-xs lg:hidden" onClick={onClose} />}
       <aside className={`fixed left-0 top-0 h-full z-40 w-64 flex flex-col transition-transform duration-300
-        ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
-        style={{ background: 'rgba(10,14,26,0.95)', borderRight: '1px solid var(--border)', backdropFilter: 'blur(20px)' }}>
+        ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 bg-white border-r border-slate-200 shadow-sm`}>
 
-        <div className="p-6 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center status-pulse-red"
-              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: 'var(--glow-red)' }}>
-              <Zap size={20} className="text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center status-pulse-red bg-gradient-to-br from-red-600 to-red-700 text-white shadow-md shadow-red-600/20">
+              <Zap size={20} />
             </div>
             <div>
-              <p className="font-bold text-white text-lg leading-none">SERS</p>
-              <p className="text-xs text-slate-400 mt-0.5">Hospital Command Center</p>
+              <p className="font-extrabold text-slate-900 text-lg leading-none">SERS</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Hospital Command Center</p>
             </div>
           </div>
         </div>
 
-        <div className="mx-4 mt-4 px-3 py-2 rounded-lg flex items-center gap-2"
-          style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-          <div className="w-2.5 h-2.5 rounded-full bg-green-400 status-pulse-green" />
-          <span className="text-xs text-green-400 font-semibold">Hospital Network Active</span>
+        <div className="mx-4 mt-4 px-3 py-2 rounded-xl flex items-center gap-2 bg-emerald-50 border border-emerald-200">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 status-pulse-green" />
+          <span className="text-xs text-emerald-800 font-bold">Hospital Network Active</span>
         </div>
 
-        <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 mt-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => (
             <a key={item.label} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group
-                ${item.active ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              style={item.active ? {
-                background: 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.15))',
-                border: '1px solid rgba(239,68,68,0.25)',
-              } : {}}>
-              <item.icon size={18} className={item.active ? 'text-red-400' : 'text-slate-500 group-hover:text-slate-300'} />
-              <span className="text-sm font-medium">{item.label}</span>
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-bold text-sm
+                ${item.active
+                  ? 'bg-red-50 text-red-700 border border-red-200 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
+              <item.icon size={18} className={item.active ? 'text-red-600' : 'text-slate-400 group-hover:text-slate-700'} />
+              <span>{item.label}</span>
               {item.label === 'Command Center' && activeCount > 0 && (
-                <span className="ml-auto text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 font-bold">
+                <span className="ml-auto text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-extrabold">
                   {activeCount}
                 </span>
               )}
@@ -250,15 +245,14 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
           ))}
         </nav>
 
-        <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="p-4 border-t border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}>
-              <Shield size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs">
+              <Shield size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">City Emergency Hospital</p>
-              <p className="text-xs text-slate-400">ICU / Trauma Unit</p>
+              <p className="text-sm font-bold text-slate-900 truncate">City Emergency Hospital</p>
+              <p className="text-xs text-slate-500 font-semibold">ICU / Trauma Unit</p>
             </div>
           </div>
         </div>
@@ -300,7 +294,6 @@ export default function DashboardPage() {
       if (summaryRes.success) setStats(summaryRes.data);
 
       let loadedIncidents = incidentsRes.success ? (incidentsRes.data || []) : [];
-      // If database has 0 incidents, use demonstration items so dashboard is testable right away
       if (loadedIncidents.length === 0) {
         loadedIncidents = DEMO_FALLBACK_INCIDENTS;
       }
@@ -322,16 +315,15 @@ export default function DashboardPage() {
         })));
       } else {
         setTypeData([
-          { name: 'Accident', value: 45, color: '#ef4444' },
-          { name: 'Cardiac', value: 25, color: '#f97316' },
-          { name: 'Medical', value: 20, color: '#3b82f6' },
-          { name: 'Fall', value: 10, color: '#8b5cf6' },
+          { name: 'Accident', value: 45, color: '#dc2626' },
+          { name: 'Cardiac', value: 25, color: '#ea580c' },
+          { name: 'Medical', value: 20, color: '#2563eb' },
+          { name: 'Fall', value: 10, color: '#9333ea' },
         ]);
       }
 
       setLastRefresh(new Date());
     } catch {
-      // Fallback demo state if API fails
       setIncidents(DEMO_FALLBACK_INCIDENTS);
     } finally {
       setLoading(false);
@@ -382,7 +374,6 @@ export default function DashboardPage() {
         setIncidents(prev => [res.data, ...prev]);
         setSelectedIncident(res.data);
       } else {
-        // Local simulation fallback
         const mockNew = {
           id: `sim-${Date.now()}`,
           incident_number: `INC-SIM-${Math.floor(100 + Math.random() * 900)}`,
@@ -420,7 +411,6 @@ export default function DashboardPage() {
         setSelectedIncident((prev: any) => prev ? { ...prev, status: 'assigned' } : null);
       }
     } catch {
-      // Local UI update fallback
       setIncidents(prev => prev.map(i => i.id === incId ? { ...i, status: 'assigned' } : i));
       if (selectedIncident?.id === incId) {
         setSelectedIncident((prev: any) => prev ? { ...prev, status: 'assigned' } : null);
@@ -431,17 +421,17 @@ export default function DashboardPage() {
   const activeIncidents = incidents.filter(i => i.status !== 'resolved');
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-slate-100 flex font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} activeCount={activeIncidents.length} />
 
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between sticky top-0 bg-[#0a0e1a]/90 backdrop-blur-xl z-20">
+        {/* Top Header */}
+        <header className="h-16 border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 shadow-xs">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400 hover:text-white">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-600 hover:text-slate-900">
               <Menu size={20} />
             </button>
-            <h1 className="text-lg font-bold text-white hidden sm:block">Hospital Emergency Command Center</h1>
+            <h1 className="text-lg font-extrabold text-slate-900 hidden sm:block">Hospital Emergency Command Center</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -449,15 +439,15 @@ export default function DashboardPage() {
             <button
               onClick={triggerTestEmergency}
               disabled={simulating}
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-extrabold px-3 py-2 rounded-xl shadow-lg shadow-red-500/20 border border-red-400/40 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer">
+              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-extrabold px-3.5 py-2 rounded-xl shadow-md shadow-red-600/20 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer">
               <Play size={13} className={simulating ? 'animate-spin' : ''} />
               {simulating ? 'Simulating...' : '🚨 Test SOS Alert'}
             </button>
 
             {/* Socket status indicator */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
-              <Radio size={14} className={socketConnected ? 'text-green-400 animate-pulse' : 'text-slate-500'} />
-              <span className="text-xs text-slate-400 hidden sm:inline">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
+              <Radio size={14} className={socketConnected ? 'text-emerald-600 animate-pulse' : 'text-slate-400'} />
+              <span className="text-xs text-slate-600 font-bold hidden sm:inline">
                 {socketConnected ? 'WebSocket Online' : 'Connecting API...'}
               </span>
             </div>
@@ -465,14 +455,14 @@ export default function DashboardPage() {
             {/* Sound toggle */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors">
-              {soundEnabled ? <Volume2 size={16} className="text-amber-400" /> : <VolumeX size={16} />}
+              className="p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors">
+              {soundEnabled ? <Volume2 size={16} className="text-amber-600" /> : <VolumeX size={16} />}
             </button>
 
             {/* Refresh */}
             <button
               onClick={fetchAll}
-              className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors">
+              className="p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -486,7 +476,7 @@ export default function DashboardPage() {
               label="Active Emergency Alerts"
               value={activeIncidents.length}
               icon={AlertTriangle}
-              color="#ef4444"
+              color="#dc2626"
               pulse="status-pulse-red"
               loading={loading}
             />
@@ -494,21 +484,21 @@ export default function DashboardPage() {
               label="Available ICU Beds"
               value={stats?.available_icu_beds ?? 18}
               icon={Hospital}
-              color="#22c55e"
+              color="#16a34a"
               loading={loading}
             />
             <StatCard
               label="Ambulances Dispatched"
               value={stats?.dispatched_ambulances ?? 6}
               icon={Ambulance}
-              color="#3b82f6"
+              color="#2563eb"
               loading={loading}
             />
             <StatCard
               label="Avg Golden Hour ETA"
               value={stats?.avg_eta_minutes ? `${stats.avg_eta_minutes} min` : '8.2 min'}
               icon={Zap}
-              color="#f59e0b"
+              color="#d97706"
               loading={loading}
             />
           </div>
@@ -518,18 +508,18 @@ export default function DashboardPage() {
             {/* Live Incidents Panel */}
             <div className="lg:col-span-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Activity size={18} className="text-red-400" />
+                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Activity size={18} className="text-red-600" />
                   Live Emergency Feed
                 </h2>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs font-mono font-bold text-slate-500">
                   {incidents.length} Reported Incidents
                 </span>
               </div>
 
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                 {incidents.length === 0 ? (
-                  <div className="glass-card p-8 text-center text-slate-500">
+                  <div className="glass-card p-8 text-center text-slate-500 bg-white border border-slate-200">
                     No active emergency incidents reported right now.
                   </div>
                 ) : (
@@ -546,17 +536,17 @@ export default function DashboardPage() {
 
             {/* Live Map Panel */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="glass-card p-4 h-[600px] flex flex-col">
+              <div className="glass-card p-4 h-[600px] flex flex-col bg-white border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <MapPin size={18} className="text-blue-400" />
-                    <h3 className="text-base font-bold text-white">Live Regional Dispatch Radar</h3>
+                    <MapPin size={18} className="text-blue-600" />
+                    <h3 className="text-base font-extrabold text-slate-900">Live Regional Dispatch Radar</h3>
                   </div>
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold">
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-bold">
                     Realtime PostGIS GIS
                   </span>
                 </div>
-                <div className="flex-1 rounded-xl overflow-hidden border border-slate-800">
+                <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
                   {isMounted && (
                     <LiveMap
                       incidents={incidents}
@@ -570,9 +560,9 @@ export default function DashboardPage() {
 
           {/* Analytics Charts Row */}
           <div className="grid md:grid-cols-12 gap-6">
-            <div className="md:col-span-8 glass-card p-5">
-              <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp size={18} className="text-cyan-400" />
+            <div className="md:col-span-8 glass-card p-5 bg-white border border-slate-200 shadow-sm">
+              <h3 className="text-base font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+                <TrendingUp size={18} className="text-cyan-600" />
                 Hourly Emergency Alert Distribution
               </h3>
               <div className="h-48">
@@ -580,21 +570,21 @@ export default function DashboardPage() {
                   <AreaChart data={hourlyData}>
                     <defs>
                       <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="hour" stroke="#64748b" fontSize={11} />
                     <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip contentStyle={{ background: '#111827', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9' }} />
-                    <Area type="monotone" dataKey="incidents" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorInc)" />
+                    <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a', fontWeight: 600 }} />
+                    <Area type="monotone" dataKey="incidents" stroke="#dc2626" strokeWidth={2} fillOpacity={1} fill="url(#colorInc)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="md:col-span-4 glass-card p-5">
-              <h3 className="text-base font-bold text-white mb-4">Incidents by Category</h3>
+            <div className="md:col-span-4 glass-card p-5 bg-white border border-slate-200 shadow-sm">
+              <h3 className="text-base font-extrabold text-slate-900 mb-4">Incidents by Category</h3>
               <div className="h-48 flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -603,7 +593,7 @@ export default function DashboardPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#111827', border: '1px solid #1e293b', borderRadius: 8 }} />
+                    <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -614,39 +604,39 @@ export default function DashboardPage() {
 
       {/* Incident Detail Modal */}
       {selectedIncident && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-card max-w-xl w-full p-6 space-y-5 border-red-500/30 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="glass-card max-w-xl w-full p-6 space-y-5 bg-white border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{incidentTypeIcon(selectedIncident.type)}</span>
-                  <h3 className="text-lg font-extrabold text-white">
+                  <h3 className="text-lg font-extrabold text-slate-900">
                     {selectedIncident.incident_number || selectedIncident.id}
                   </h3>
                   <span className={severityBadge(selectedIncident.severity)}>
                     {selectedIncident.severity?.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 font-semibold mt-1">
                   Reported at {new Date(selectedIncident.created_at).toLocaleString('en-IN')}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedIncident(null)}
-                className="text-slate-400 hover:text-white p-1">
+                className="text-slate-400 hover:text-slate-900 p-1">
                 <X size={20} />
               </button>
             </div>
 
             {/* Location & Victim Details */}
-            <div className="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Incident Location & Telemetry</p>
-              <p className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <MapPin size={14} className="text-red-400" />
+            <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Incident Location & Telemetry</p>
+              <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <MapPin size={14} className="text-red-600" />
                 {selectedIncident.landmark || selectedIncident.address || `${selectedIncident.latitude}, ${selectedIncident.longitude}`}
               </p>
               {selectedIncident.victim_name && (
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-700 font-medium">
                   <strong>Patient Profile:</strong> {selectedIncident.victim_name}
                 </p>
               )}
@@ -655,43 +645,43 @@ export default function DashboardPage() {
             {/* Vitals Telemetry */}
             {selectedIncident.vitals && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl flex items-center gap-3">
-                  <Heart size={24} className="text-red-400 animate-pulse" />
+                <div className="bg-red-50 border border-red-200 p-3 rounded-xl flex items-center gap-3">
+                  <Heart size={24} className="text-red-600 animate-pulse" />
                   <div>
-                    <p className="text-xs text-slate-400">Heart Rate Vitals</p>
-                    <p className="text-lg font-extrabold text-red-400">{selectedIncident.vitals.bpm} BPM</p>
+                    <p className="text-xs text-slate-500 font-medium">Heart Rate Vitals</p>
+                    <p className="text-lg font-extrabold text-red-700">{selectedIncident.vitals.bpm} BPM</p>
                   </div>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3">
-                  <Activity size={24} className="text-blue-400" />
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center gap-3">
+                  <Activity size={24} className="text-blue-600" />
                   <div>
-                    <p className="text-xs text-slate-400">Blood Oxygen (SpO2)</p>
-                    <p className="text-lg font-extrabold text-blue-400">{selectedIncident.vitals.spO2 || 96}%</p>
+                    <p className="text-xs text-slate-500 font-medium">Blood Oxygen (SpO2)</p>
+                    <p className="text-lg font-extrabold text-blue-700">{selectedIncident.vitals.spO2 || 96}%</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* AFDP Verification Matrix */}
-            <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                 <span>AFDP v2 Anti-Fake Multi-Sensor Score</span>
-                <span className="text-green-400 font-extrabold">
+                <span className="text-emerald-700 font-extrabold">
                   {selectedIncident.afdpResult?.confidenceScore || 95}% VERIFIED
                 </span>
               </p>
               <div className="space-y-1.5 pt-1 text-xs">
-                <div className="flex items-center justify-between text-slate-300">
+                <div className="flex items-center justify-between text-slate-700 font-medium">
                   <span>Layer 1: Smartphone Accelerometer + Gyro</span>
-                  <CheckCircle2 size={14} className="text-green-400" />
+                  <CheckCircle2 size={14} className="text-emerald-600" />
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
+                <div className="flex items-center justify-between text-slate-700 font-medium">
                   <span>Layer 2: Airbag Cabin Pressure Shockwave</span>
-                  <CheckCircle2 size={14} className="text-green-400" />
+                  <CheckCircle2 size={14} className="text-emerald-600" />
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
+                <div className="flex items-center justify-between text-slate-700 font-medium">
                   <span>Layer 3: OBD-II ECU CAN-Bus Airbag Signal</span>
-                  <CheckCircle2 size={14} className="text-green-400" />
+                  <CheckCircle2 size={14} className="text-emerald-600" />
                 </div>
               </div>
             </div>
@@ -703,15 +693,15 @@ export default function DashboardPage() {
                 disabled={selectedIncident.status === 'assigned'}
                 className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
                   selectedIncident.status === 'assigned'
-                    ? 'bg-blue-600/40 text-blue-300 cursor-default'
-                    : 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white shadow-lg shadow-red-500/20'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200 cursor-default'
+                    : 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white shadow-md shadow-red-600/20'
                 }`}>
                 <Ambulance size={16} />
                 {selectedIncident.status === 'assigned' ? 'Ambulance Dispatched' : 'Dispatch Nearest Ambulance'}
               </button>
               <button
                 onClick={() => setSelectedIncident(null)}
-                className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm">
+                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm border border-slate-200">
                 Close
               </button>
             </div>

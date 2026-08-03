@@ -1,14 +1,13 @@
 'use client';
 
 /**
- * SERS Admin — Hospital Management Page
- * List, search, add and update hospitals + live bed counts
+ * SERS Admin — Hospital Management Page (Light Theme)
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Hospital as HospitalIcon, Plus, Search, RefreshCw, Bed, AlertCircle,
-  CheckCircle, XCircle, Edit3, MapPin, Phone, X, Save, ArrowLeft
+  Hospital as HospitalIcon, Plus, Search, RefreshCw,
+  Edit3, MapPin, X, Save, ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -153,7 +152,6 @@ export default function HospitalsPage() {
       setModalOpen(false);
       fetchHospitals();
     } catch {
-      // Local fallback for testing
       if (editing.id) {
         setHospitals(prev => prev.map(h => h.id === editing.id ? { ...h, ...editing } as Hospital : h));
       } else {
@@ -182,14 +180,6 @@ export default function HospitalsPage() {
 
   const toggleNetwork = async (h: Hospital) => {
     setHospitals(prev => prev.map(item => item.id === h.id ? { ...item, is_on_sers_network: !item.is_on_sers_network } : item));
-    if (!h.is_demo) {
-      try {
-        await apiFetch(`/api/hospitals/${h.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ is_on_sers_network: !h.is_on_sers_network }),
-        });
-      } catch {}
-    }
   };
 
   const filtered = hospitals.filter(h =>
@@ -201,31 +191,31 @@ export default function HospitalsPage() {
     total > 0 ? Math.round((avail / total) * 100) : 0;
 
   const bedColor = (pct: number) =>
-    pct > 50 ? '#22c55e' : pct > 20 ? '#f97316' : '#ef4444';
+    pct > 50 ? '#16a34a' : pct > 20 ? '#ea580c' : '#dc2626';
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-slate-100 p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors">
+            <Link href="/" className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs transition-colors">
               <ArrowLeft size={18} />
             </Link>
-            <div className="w-11 h-11 rounded-xl bg-green-500/20 border border-green-500/40 flex items-center justify-center">
-              <HospitalIcon size={22} className="text-green-400" />
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+              <HospitalIcon size={22} className="text-emerald-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-white">Hospital ICU & ER Bed Manager</h1>
-              <p className="text-xs text-slate-400">{hospitals.length} partner hospitals registered on SERS Network</p>
+              <h1 className="text-2xl font-extrabold text-slate-900">Hospital ICU & ER Bed Manager</h1>
+              <p className="text-xs text-slate-500 font-semibold">{hospitals.length} partner hospitals registered on SERS Network</p>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={fetchHospitals} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer">
+            <button onClick={fetchHospitals} className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
-            <button onClick={openAdd} className="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-green-600/20 transition-all cursor-pointer">
+            <button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
               <Plus size={15} /> Add Hospital
             </button>
           </div>
@@ -234,78 +224,78 @@ export default function HospitalsPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Hospitals', value: hospitals.length, color: '#3b82f6' },
-            { label: 'On SERS Network', value: hospitals.filter(h => h.is_on_sers_network).length, color: '#22c55e' },
-            { label: 'Total ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_total || 0), 0), color: '#f97316' },
-            { label: 'Available ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_available || 0), 0), color: '#06b6d4' },
+            { label: 'Total Hospitals', value: hospitals.length, color: '#2563eb' },
+            { label: 'On SERS Network', value: hospitals.filter(h => h.is_on_sers_network).length, color: '#16a34a' },
+            { label: 'Total ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_total || 0), 0), color: '#ea580c' },
+            { label: 'Available ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_available || 0), 0), color: '#0891b2' },
           ].map(s => (
-            <div key={s.label} className="glass-card p-4 rounded-xl border border-slate-800">
-              <p className="text-xs font-medium text-slate-400 mb-1">{s.label}</p>
-              <p className="text-2xl font-extrabold" style={{ color: s.color }}>{s.value}</p>
+            <div key={s.label} className="glass-card p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{s.label}</p>
+              <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search hospitals by name, trauma specialty, or location..."
-            className="w-full bg-slate-900/90 border border-slate-800 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-200 focus:outline-none focus:border-green-500/50"
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs"
           />
         </div>
 
         {/* Hospital List */}
         {loading ? (
-          <div className="text-center py-16 text-slate-500">Loading live hospital telemetry...</div>
+          <div className="text-center py-16 text-slate-500 font-semibold">Loading live hospital telemetry...</div>
         ) : (
           <div className="space-y-4">
             {filtered.map(h => {
               const icuPct = bedPct(h.icu_beds_available, h.icu_beds_total);
               const erPct  = bedPct(h.er_beds_available, h.er_beds_total);
               return (
-                <div key={h.id} className="glass-card p-5 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition-all">
+                <div key={h.id} className="glass-card p-5 rounded-2xl bg-white border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-slate-300 transition-all">
                   <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-bold text-base text-white">{h.name}</h3>
-                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      <h3 className="font-extrabold text-base text-slate-900">{h.name}</h3>
+                      <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                         h.is_on_sers_network
-                          ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                          : 'bg-red-500/20 text-red-400 border-red-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
                       }`}>
                         {h.is_on_sers_network ? '● SERS CONNECTED' : '○ OFF-NETWORK'}
                       </span>
                       {h.is_demo && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                           PRE-CONFIGURED DEMO NETWORK
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-400 flex items-center gap-1.5 truncate">
-                      <MapPin size={13} className="text-slate-500 shrink-0" />
+                    <p className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 truncate">
+                      <MapPin size={13} className="text-slate-400 shrink-0" />
                       {h.address} · 📞 {h.phone}
                     </p>
 
                     {/* Bed Gauges */}
                     <div className="flex items-center gap-6 pt-1 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-medium">ICU Beds:</span>
-                        <span className="text-xs font-bold" style={{ color: bedColor(icuPct) }}>
+                        <span className="text-xs text-slate-500 font-bold">ICU Beds:</span>
+                        <span className="text-xs font-black" style={{ color: bedColor(icuPct) }}>
                           {h.icu_beds_available} / {h.icu_beds_total} ({icuPct}% free)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-medium">ER Beds:</span>
-                        <span className="text-xs font-bold" style={{ color: bedColor(erPct) }}>
+                        <span className="text-xs text-slate-500 font-bold">ER Beds:</span>
+                        <span className="text-xs font-black" style={{ color: bedColor(erPct) }}>
                           {h.er_beds_available} / {h.er_beds_total} ({erPct}% free)
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {h.specialties?.map(s => (
-                          <span key={s} className="text-[10px] font-medium bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
+                          <span key={s} className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
                             {s}
                           </span>
                         ))}
@@ -317,16 +307,16 @@ export default function HospitalsPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     <button
                       onClick={() => toggleNetwork(h)}
-                      className={`text-xs font-semibold px-3 py-2 rounded-xl border transition-colors cursor-pointer ${
+                      className={`text-xs font-extrabold px-3.5 py-2 rounded-xl border transition-colors cursor-pointer ${
                         h.is_on_sers_network
-                          ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                          : 'bg-green-500/20 border-green-500/40 text-green-400 hover:bg-green-500/30'
+                          ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
                       }`}>
                       {h.is_on_sers_network ? 'Disconnect' : 'Connect to SERS'}
                     </button>
                     <button
                       onClick={() => openEdit(h)}
-                      className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
+                      className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-extrabold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
                       <Edit3 size={13} /> Edit
                     </button>
                   </div>
@@ -339,47 +329,47 @@ export default function HospitalsPage() {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card max-w-lg w-full p-6 space-y-4 border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="glass-card max-w-lg w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{editing.id ? 'Edit Hospital Telemetry' : 'Add Hospital to SERS'}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+              <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Edit Hospital Telemetry' : 'Add Hospital to SERS'}</h2>
+              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={18} /></button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-slate-400 font-semibold mb-1 block">Hospital Name</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">Hospital Name</label>
                 <input
                   value={editing.name || ''}
                   onChange={e => setEditing(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-semibold mb-1 block">Address</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">Address</label>
                 <input
                   value={editing.address || ''}
                   onChange={e => setEditing(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 font-semibold mb-1 block">Available ICU Beds</label>
+                  <label className="text-xs text-slate-500 font-bold mb-1 block">Available ICU Beds</label>
                   <input
                     type="number"
                     value={editing.icu_beds_available || 0}
                     onChange={e => setEditing(prev => ({ ...prev, icu_beds_available: Number(e.target.value) }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 font-semibold mb-1 block">Total ICU Beds</label>
+                  <label className="text-xs text-slate-500 font-bold mb-1 block">Total ICU Beds</label>
                   <input
                     type="number"
                     value={editing.icu_beds_total || 0}
                     onChange={e => setEditing(prev => ({ ...prev, icu_beds_total: Number(e.target.value) }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                   />
                 </div>
               </div>
@@ -388,7 +378,7 @@ export default function HospitalsPage() {
             <button
               onClick={saveHospital}
               disabled={saving}
-              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
               <Save size={16} /> {saving ? 'Saving...' : 'Save Hospital Settings'}
             </button>
           </div>
