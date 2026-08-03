@@ -5,28 +5,28 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #f8fafc;
+  --bg-primary: #f0f7ff;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
   --bg-card-hover: #f8fafc;
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
-  --border-subtle: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border-subtle: #dbeafe;
+  --border-strong: #bfdbfe;
   
   --accent-crimson: #e11d48;
   --accent-rose: #f43f5e;
   --accent-amber: #d97706;
   --accent-emerald: #059669;
   --accent-indigo: #4338ca;
-  --accent-cyan: #0891b2;
+  --accent-blue: #2563eb;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-primary) !important;
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
@@ -44,15 +44,15 @@ html, body {
 
 .glass-card-hover:hover {
   transform: translateY(-2px);
-  border-color: #cbd5e1;
-  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 32px -4px rgba(37, 99, 235, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-track { background: #f0f7ff; }
+::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
 
 /* Status Pulse Animations */
 @keyframes ring-pulse-red {
@@ -91,7 +91,7 @@ html, body {
 
 /* Map Container */
 .leaflet-container {
-  background: #f8fafc !important;
+  background: #f0f7ff !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
@@ -101,7 +101,7 @@ html, body {
   100% { background-position: 200% 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, #eff6ff 25%, #dbeafe 50%, #eff6ff 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }

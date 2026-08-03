@@ -194,7 +194,7 @@ export default function HospitalsPage() {
     pct > 50 ? '#16a34a' : pct > 20 ? '#ea580c' : '#dc2626';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-[#f0f7ff] text-slate-900 p-6 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

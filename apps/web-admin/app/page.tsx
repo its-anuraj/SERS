@@ -434,7 +434,7 @@ export default function DashboardPage() {
   const activeIncidents = incidents.filter(i => i.status !== 'resolved');
 
   return (
-    <div className="min-h-screen bg-slate-50/70 text-slate-900 flex font-sans">
+    <div className="min-h-screen bg-[#f0f7ff] text-slate-900 flex font-sans">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} activeCount={activeIncidents.length} />
 
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">
