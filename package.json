@@ -6,12 +6,10 @@
   "workspaces": [
     "services/api",
     "services/ml",
-    "apps/web-public",
     "apps/web-admin"
   ],
   "scripts": {
     "dev:api": "cd services/api && npm run dev",
-    "dev:web-public": "cd apps/web-public && npm run dev",
     "dev:web-admin": "cd apps/web-admin && npm run dev",
     "dev:ml": "cd services/ml && uvicorn main:app --reload --port 8001",
     "docker:up": "docker-compose up -d",

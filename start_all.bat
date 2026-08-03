@@ -12,32 +12,28 @@ call npm run db:migrate || echo Migration skipped or already applied.
 call npm run db:seed    || echo Seeding skipped or already applied.
 cd ..\..
 
-echo [3/5] Starting API Backend (Port 3000)...
+echo [3/6] Starting API Backend (Port 3000)...
 start cmd /k "title SERS API && cd services\api && npm run dev"
 
 ping 127.0.0.1 -n 3 >nul
 
-echo [4/5] Starting Public Website (Port 3001)...
-start cmd /k "title SERS Website && cd apps\web-public && npm run dev"
+echo [4/6] Starting Hospital Command Dashboard (Port 3002)...
+start cmd /k "title SERS Hospital Dashboard && cd apps\web-admin && npm run dev"
 
-echo [5/6] Starting Admin Dashboard (Port 3002)...
-start cmd /k "title SERS Admin && cd apps\web-admin && npm run dev"
-
-echo [6/7] Starting Python ML Microservice (Port 8001)...
+echo [5/6] Starting Python ML Microservice (Port 8001)...
 start cmd /k "title SERS ML Microservice && cd services\ml && uvicorn main:app --port 8001 --reload"
 
-echo [7/7] Starting Mobile App (Expo)...
+echo [6/6] Starting Mobile App (Expo)...
 start cmd /k "title SERS Mobile App (Expo) && cd apps\mobile && npx expo start"
 
 echo.
 echo ========================================================
-echo   All services started!
+echo   All core SERS services started!
 echo ========================================================
 echo   API Backend       : http://localhost:3000
-echo   Public Website    : http://localhost:3001
-echo   Admin Dashboard   : http://localhost:3002
+echo   Hospital Dashboard: http://localhost:3002
 echo   ML Microservice   : http://localhost:8001
-echo   Mobile App (Expo) : http://localhost:8081 (Press 'w' in Expo terminal for web app)
+echo   Mobile App (Expo) : http://localhost:8081
 echo ========================================================
 echo.
 pause
