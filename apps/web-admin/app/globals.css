@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,100 +8,94 @@
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --accent-red: #dc2626;
-  --accent-orange: #ea580c;
-  --accent-amber: #d97706;
-  --accent-green: #16a34a;
-  --accent-blue: #2563eb;
-  --accent-purple: #9333ea;
-  --accent-cyan: #0891b2;
+  --bg-card-hover: #f8fafc;
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748b;
-  --border: #e2e8f0;
-  --glow-red: 0 4px 14px rgba(220,38,38,0.2);
-  --glow-green: 0 4px 14px rgba(22,163,74,0.2);
-  --glow-blue: 0 4px 14px rgba(37,99,235,0.2);
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  
+  --accent-crimson: #e11d48;
+  --accent-rose: #f43f5e;
+  --accent-amber: #d97706;
+  --accent-emerald: #059669;
+  --accent-indigo: #4338ca;
+  --accent-cyan: #0891b2;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  background: var(--bg-primary);
+  background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* Light Theme Glass Cards */
+/* Custom Premium Card Styling */
 .glass-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Status pulse animations */
-@keyframes pulse-red {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
-}
-@keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
-}
-@keyframes pulse-amber {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(217,119,6,0); }
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
 }
 
-.status-pulse-red { animation: pulse-red 1.5s infinite; }
-.status-pulse-green { animation: pulse-green 2s infinite; }
-.status-pulse-amber { animation: pulse-amber 1.8s infinite; }
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Gradient text */
-.gradient-text-red {
-  background: linear-gradient(135deg, #dc2626, #ea580c);
+/* Status Pulse Animations */
+@keyframes ring-pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
+}
+
+@keyframes ring-pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(5, 150, 105, 0); }
+}
+
+.status-pulse-red { animation: ring-pulse-red 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.status-pulse-green { animation: ring-pulse-green 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* Gradient Text */
+.gradient-text-crimson {
+  background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.gradient-text-blue {
-  background: linear-gradient(135deg, #2563eb, #0891b2);
+
+.gradient-text-indigo {
+  background: linear-gradient(135deg, #4338ca 0%, #3b82f6 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Severity badges for Light Mode */
-.badge-critical { @apply bg-red-50 text-red-700 border border-red-200 rounded-full px-2.5 py-0.5 text-xs font-extrabold; }
-.badge-moderate { @apply bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2.5 py-0.5 text-xs font-extrabold; }
-.badge-minor { @apply bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5 text-xs font-extrabold; }
-.badge-unknown { @apply bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-extrabold; }
+/* Luxury Severity Badges */
+.badge-critical { @apply bg-rose-50 text-rose-700 border border-rose-200/80 rounded-full px-3 py-0.5 text-xs font-black tracking-wide uppercase shadow-sm; }
+.badge-moderate { @apply bg-amber-50 text-amber-800 border border-amber-200/80 rounded-full px-3 py-0.5 text-xs font-black tracking-wide uppercase shadow-sm; }
+.badge-minor { @apply bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full px-3 py-0.5 text-xs font-black tracking-wide uppercase shadow-sm; }
+.badge-unknown { @apply bg-slate-100 text-slate-800 border border-slate-200 rounded-full px-3 py-0.5 text-xs font-black tracking-wide uppercase shadow-sm; }
 
-/* Map container */
+/* Map Container */
 .leaflet-container {
   background: #f8fafc !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
-/* Hover transitions */
-.hover-lift {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-}
-
-/* Loading shimmer for Light Mode */
+/* Micro Shimmer */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
