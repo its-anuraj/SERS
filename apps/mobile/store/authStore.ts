@@ -40,12 +40,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   loadSession: async () => {
+    // Safety fallback timer so UI never hangs indefinitely
+    const timer = setTimeout(() => {
+      if (get().isLoading) set({ isLoading: false });
+    }, 2500);
+
     try {
       const token = await SecureStore.getItemAsync('sers_access_token');
-      if (!token) return set({ isLoading: false });
+      if (!token) {
+        clearTimeout(timer);
+        return set({ isLoading: false });
+      }
       const res = await api.get('/users/profile');
+      clearTimeout(timer);
       set({ user: res.data.data, isAuthenticated: true, isLoading: false });
     } catch {
+      clearTimeout(timer);
       await SecureStore.deleteItemAsync('sers_access_token');
       set({ isLoading: false });
     }

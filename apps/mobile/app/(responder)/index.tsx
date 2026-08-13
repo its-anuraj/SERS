@@ -50,12 +50,14 @@ export default function ResponderDashboard() {
 
   // Fetch open incidents
   const fetchIncidents = useCallback(async () => {
+    const timer = setTimeout(() => setLoading(false), 3000);
     try {
       const res = await api.get('/incidents?status=reported&limit=20');
       setIncidents(res.data.data || []);
     } catch (e) {
       console.warn('Could not fetch incidents', e);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
       setRefreshing(false);
     }

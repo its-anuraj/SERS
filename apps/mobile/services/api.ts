@@ -10,7 +10,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ?
 
 export const api = axios.create({
   baseURL: `${API_BASE}/api`,
-  timeout: 15000,
+  timeout: 5000,
   headers: { 'Content-Type': 'application/json' },
 });
 

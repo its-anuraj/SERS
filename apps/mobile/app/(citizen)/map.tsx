@@ -119,16 +119,22 @@ export default function LiveMapScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        // Default to Bengaluru
-        const defaultLoc = { latitude: 12.9716, longitude: 77.5946 };
-        setUserLocation(defaultLoc);
-        fetchMapData(defaultLoc.latitude, defaultLoc.longitude);
-        return;
+      const defaultLoc = { latitude: 12.9716, longitude: 77.5946 };
+      let coords = defaultLoc;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Promise.race([
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+          if (loc && 'coords' in loc) {
+            coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          }
+        }
+      } catch (e) {
+        console.warn('Map location fetch timed out:', e);
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
       setUserLocation(coords);
       fetchMapData(coords.latitude, coords.longitude);
     })();

@@ -85,15 +85,23 @@ export default function HospitalsScreen() {
   // Get location + fetch
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-        setLocation(coords);
-        fetchHospitals(coords);
-      } else {
-        fetchHospitals();
+      let coords: { lat: number; lng: number } | null = null;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Promise.race([
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+          if (loc && 'coords' in loc) {
+            coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            setLocation(coords);
+          }
+        }
+      } catch (e) {
+        console.warn('Location fetch skipped/timed out:', e);
       }
+      fetchHospitals(coords || undefined);
     })();
   }, []);
 
