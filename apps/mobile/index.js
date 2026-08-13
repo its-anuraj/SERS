@@ -1,7 +1,7 @@
 /**
  * SERS Mobile Entry Point
- * Imports polyfills FIRST before expo-router/entry initializes modules
+ * CommonJS require ensures polyfills run synchronously BEFORE expo-router loads modules
  */
 
-import './polyfills';
-import 'expo-router/entry';
+require('./polyfills');
+require('expo-router/entry');
