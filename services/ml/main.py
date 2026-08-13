@@ -16,7 +16,13 @@ app = FastAPI(
     title="SERS ML Service",
     description="AI/ML microservice for Smart Emergency Response System",
     version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
 )
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "SERS ML Microservice", "version": "1.0.0"}
 
 app.add_middleware(
     CORSMiddleware,
