@@ -105,6 +105,14 @@ router.put('/location', authenticate, [
     } catch (error) { next(error); }
 });
 
+// POST /api/users/attendance/clock-in — Stub for responder attendance
+router.post('/attendance/clock-in', authenticate, async (req, res, next) => {
+    try {
+        // In a real app, this would write to an attendance table or update a duty_status column on the user
+        res.json({ success: true, message: 'Attendance marked for duty.' });
+    } catch (error) { next(error); }
+});
+
 // GET /api/users/:id/medical-profile — For responders/hospitals viewing victim profile
 router.get('/:id/medical-profile', authenticate, async (req, res, next) => {
     try {

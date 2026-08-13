@@ -6,8 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const envWsUrl = typeof process !== 'undefined' && process.env ? (process.env as any)['EXPO_PUBLIC_WS_URL'] : undefined;
-const WS_URL = envWsUrl || (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
+const WS_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
 let socket: Socket | null = null;
 

@@ -10,13 +10,15 @@ import {
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const { width } = Dimensions.get('window');
-
 export default function HomeScreen() {
   const { user } = useAuthStore();
+  const { appEnabled, emergencyContacts } = useSettingsStore();
   const [sosActive, setSosActive] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [activeIncident, setActiveIncident] = useState<any>(null);
@@ -46,7 +48,10 @@ export default function HomeScreen() {
   }, []);
 
   const handleSOS = async () => {
-    if (sosActive) return;
+    if (sosActive || !appEnabled) {
+      if (!appEnabled) Alert.alert('App Disabled', 'Please enable SERS in Settings to use SOS.');
+      return;
+    }
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Vibration.vibrate([0, 200, 100, 200]);
@@ -57,12 +62,17 @@ export default function HomeScreen() {
     }
 
     setSosActive(true);
+    
+    // Auto-dial 112
+    Linking.openURL('tel:112').catch(() => console.log('Dialer error'));
+
     try {
       const res = await api.post('/incidents/sos', {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         type: 'accident',
         description: 'SOS triggered from citizen app',
+        notifyContacts: emergencyContacts.map(c => c.phone)
       });
 
       const { incidentId } = res.data.data;
@@ -81,7 +91,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]} 👋</Text>
           <Text style={styles.subtitle}>Stay safe. Help is always nearby.</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.avatar}>
+        <TouchableOpacity onPress={() => router.push('/(citizen)/settings')} style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0) || '?'}</Text>
         </TouchableOpacity>
       </View>

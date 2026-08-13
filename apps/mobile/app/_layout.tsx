@@ -33,9 +33,15 @@ import { useEffect, useState, useRef } from 'react';
 import { Stack, router } from 'expo-router';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
+import * as Linking from 'expo-linking';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { startCrashDetection } from '../services/crashDetection';
-import { connectSocket } from '../services/socket';
+import { startVoiceDetection, stopVoiceDetection } from '../services/voiceDetection';
+import { startSimulatedSmartwatch, stopSmartwatch, onCardiacEmergencyTrigger } from '../services/smartwatchService';
+import { connectSocket, getSocket } from '../services/socket';
+import { api } from '../services/api';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -46,12 +52,14 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const { loadSession, isLoading, isAuthenticated, user } = useAuthStore();
+  const { appEnabled, loadSettings } = useSettingsStore();
   const [crashWarning, setCrashWarning] = useState(false);
   const [countdown, setCountdown] = useState(10);
   const crashCancelRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadSession();
+    loadSettings();
   }, []);
 
   useEffect(() => {
@@ -63,19 +71,42 @@ export default function RootLayout() {
     } else {
       router.replace('/(citizen)');
     }
+  }, [isAuthenticated, user]);
 
-    // Start crash detection for all users
-    const stopCrash = startCrashDetection((probability) => {
-      handleCrashDetected(probability);
-    });
+  // Manage Background Services based on appEnabled
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-    // Connect socket
-    connectSocket();
+    let stopCrash: (() => void) | undefined;
+    let stopVoice: (() => void) | undefined;
+    let removeCardiacListener: (() => void) | undefined;
 
-    return () => { stopCrash(); };
-  }, [isAuthenticated]);
+    if (appEnabled) {
+      // Start sensors
+      stopCrash = startCrashDetection((probability) => handleCrashDetected(probability, 'crash'));
+      stopVoice = startVoiceDetection(() => handleCrashDetected(1, 'voice'));
+      startSimulatedSmartwatch();
+      removeCardiacListener = onCardiacEmergencyTrigger(() => handleCrashDetected(1, 'cardiac'));
 
-  const handleCrashDetected = (probability: number) => {
+      // Connect socket
+      connectSocket();
+    } else {
+      // Stop sensors & socket
+      stopSmartwatch();
+      stopVoiceDetection();
+      const socket = getSocket();
+      if (socket) socket.disconnect();
+    }
+
+    return () => {
+      if (stopCrash) stopCrash();
+      if (stopVoice) stopVoice();
+      if (removeCardiacListener) removeCardiacListener();
+      stopSmartwatch();
+    };
+  }, [isAuthenticated, appEnabled]);
+
+  const handleCrashDetected = (probability: number, triggerSource: 'crash' | 'voice' | 'cardiac' = 'crash') => {
     setCrashWarning(true);
     let count = 10;
     setCountdown(count);
@@ -86,7 +117,7 @@ export default function RootLayout() {
       if (count <= 0) {
         clearInterval(timer);
         setCrashWarning(false);
-        triggerSOSFromCrash();
+        triggerSOSFromCrash(triggerSource);
       }
     }, 1000);
 
@@ -98,9 +129,38 @@ export default function RootLayout() {
     setCrashWarning(false);
   };
 
-  const triggerSOSFromCrash = async () => {
-    // Navigate to SOS active screen
-    router.push('/sos-active?source=crash_detection');
+  const triggerSOSFromCrash = async (source: 'crash' | 'voice' | 'cardiac') => {
+    // 1. Alert emergency contacts & auto-dial
+    const contacts = useSettingsStore.getState().emergencyContacts;
+    Linking.openURL('tel:112').catch(() => console.log('Dialer error'));
+    
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      let coords = null;
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      }
+
+      if (coords) {
+        // Auto-dispatch API handles finding beds & alerting hospitals directly
+        const res = await api.post('/incidents/auto-dispatch', {
+          latitude: coords.lat,
+          longitude: coords.lng,
+          type: source === 'cardiac' ? 'cardiac' : 'accident',
+          description: `Automatic SOS triggered from ${source} detection.`,
+          notifyContacts: contacts.map(c => c.phone)
+        });
+        
+        const { incidentId } = res.data.data;
+        router.push(`/sos-active?incidentId=${incidentId}&source=${source}_detection`);
+      } else {
+        router.push(`/sos-active?source=${source}_detection_no_location`);
+      }
+    } catch (e) {
+      console.error('Auto dispatch failed', e);
+      router.push(`/sos-active?source=${source}_detection_fallback`);
+    }
   };
 
   if (isLoading) {
@@ -130,9 +190,9 @@ export default function RootLayout() {
         <View style={styles.crashOverlay}>
           <View style={styles.crashCard}>
             <Text style={styles.crashEmoji}>🚨</Text>
-            <Text style={styles.crashTitle}>Accident Detected</Text>
+            <Text style={styles.crashTitle}>Emergency Detected</Text>
             <Text style={styles.crashDesc}>
-              AI has detected a possible crash. Emergency help will be dispatched in:
+              AI has detected a possible emergency. Help will be dispatched in:
             </Text>
             <Text style={styles.crashCountdown}>{countdown}</Text>
             <Text style={styles.crashSub}>seconds</Text>

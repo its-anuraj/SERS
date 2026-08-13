@@ -137,6 +137,18 @@ export default function LiveMapScreen() {
       }
       setUserLocation(coords);
       fetchMapData(coords.latitude, coords.longitude);
+      
+      // Snap immediately once found
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }, 300);
+        }
+      }, 500);
     })();
   }, []);
 

@@ -31,6 +31,43 @@ router.post('/sms-gateway', handleSMSGatewaySOS);
 // POST /api/incidents/:id/cancel — False alarm cancellation
 router.post('/:id/cancel', authenticate, cancelSOS);
 
+// POST /api/incidents/auto-dispatch — Auto dispatch from crash/voice/watch
+router.post('/auto-dispatch', authenticate, async (req, res, next) => {
+    try {
+        const { query: dbQuery } = require('../config/database');
+        const { getSocketIO } = require('../websocket/socketManager');
+        const { latitude, longitude, type, description, notifyContacts } = req.body;
+        
+        // 1. Insert into DB
+        const result = await dbQuery(
+            `INSERT INTO incidents (
+                type, severity, status, latitude, longitude,
+                address, description, reporter_id, is_anonymous
+            ) VALUES ($1, $2, 'reported', $3, $4, 'Auto-detected Location', $5, $6, FALSE)
+            RETURNING *`,
+            [type || 'accident', 'critical', latitude, longitude, description, req.user.id]
+        );
+        
+        const incident = result.rows[0];
+
+        // 2. Alert Responders (Hospitals & Drivers)
+        const io = getSocketIO();
+        if (io) {
+            io.to('responders').emit('incident:new', {
+                ...incident,
+                caller_name: req.user.name || 'Citizen',
+                caller_phone: req.user.phone || 'Unknown'
+            });
+        }
+        
+        // 3. (Optional mock) Notify emergencyContacts if any were passed
+        if (notifyContacts && notifyContacts.length > 0) {
+            console.log(`[Auto-Dispatch] Simulating SMS to contacts: ${notifyContacts.join(', ')}`);
+        }
+
+        res.status(201).json({ success: true, data: { incidentId: incident.id } });
+    } catch (error) { next(error); }
+});
 
 // GET /api/incidents
 router.get('/', authenticate, listIncidents);

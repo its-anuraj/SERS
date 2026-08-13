@@ -6,8 +6,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const envApiUrl = typeof process !== 'undefined' && process.env ? (process.env as any)['EXPO_PUBLIC_API_URL'] : undefined;
-const API_BASE = envApiUrl || (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
+const API_BASE = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
 export const api = axios.create({
   baseURL: `${API_BASE}/api`,

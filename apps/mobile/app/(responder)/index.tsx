@@ -6,10 +6,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  Alert, ActivityIndicator, RefreshControl, Linking,
+  Alert, ActivityIndicator, RefreshControl, Linking, Modal, Vibration
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { api } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socket';
 
@@ -42,14 +43,37 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ResponderDashboard() {
   const { user, logout } = useAuthStore();
+  const { dutyStatus, setDutyStatus } = useSettingsStore();
   const [incidents, setIncidents]     = useState<Incident[]>([]);
   const [myIncident, setMyIncident]   = useState<Incident | null>(null);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [status, setStatus]           = useState<'available' | 'busy'>('available');
+  const [incomingAlert, setIncomingAlert] = useState<Incident | null>(null);
+
+  const handleDutyToggle = async () => {
+    const newStatus = dutyStatus === 'on_duty' ? 'on_leave' : 'on_duty';
+    await setDutyStatus(newStatus);
+    
+    if (newStatus === 'on_duty') {
+      try {
+        await api.post('/users/attendance/clock-in');
+        Alert.alert('On Duty', 'Attendance marked. You will now receive emergency alerts.');
+        fetchIncidents();
+      } catch (e) {
+        console.log('Attendance clock-in failed', e);
+      }
+    } else {
+      setIncidents([]); // Clear list when off duty
+    }
+  };
 
   // Fetch open incidents
   const fetchIncidents = useCallback(async () => {
+    if (dutyStatus !== 'on_duty') {
+      setLoading(false);
+      return;
+    }
     const timer = setTimeout(() => setLoading(false), 3000);
     try {
       const res = await api.get('/incidents?status=reported&limit=20');
@@ -80,7 +104,11 @@ export default function ResponderDashboard() {
     // Real-time updates via socket
     const socket = connectSocket();
     socket.on('incident:new', (incident: Incident) => {
-      setIncidents(prev => [incident, ...prev]);
+      if (useSettingsStore.getState().dutyStatus === 'on_duty' && status === 'available') {
+        setIncidents(prev => [incident, ...prev]);
+        setIncomingAlert(incident);
+        Vibration.vibrate([500, 500, 500, 500], true); // Loop vibrate
+      }
     });
     socket.on('incident:updated', fetchMyIncident);
 
@@ -104,6 +132,25 @@ export default function ResponderDashboard() {
     }, 10000);
     return () => clearInterval(interval);
   }, [status]);
+
+  const acceptIncidentFromAlert = async (incident: Incident) => {
+    Vibration.cancel();
+    setIncomingAlert(null);
+    try {
+      await api.post(`/incidents/${incident.id}/assign`);
+      setMyIncident(incident);
+      setStatus('busy');
+      setIncidents(prev => prev.filter(i => i.id !== incident.id));
+      openNavigation(incident.latitude, incident.longitude);
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message || 'Could not accept incident.');
+    }
+  };
+
+  const rejectIncidentFromAlert = () => {
+    Vibration.cancel();
+    setIncomingAlert(null);
+  };
 
   const acceptIncident = async (incident: Incident) => {
     Alert.alert(
@@ -192,9 +239,11 @@ export default function ResponderDashboard() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]} 🚑</Text>
-          <View style={[styles.statusDot, { backgroundColor: status === 'available' ? '#22c55e' : '#f97316' }]}>
-            <Text style={styles.statusText}>{status === 'available' ? '● Available' : '● On Duty'}</Text>
-          </View>
+          <TouchableOpacity onPress={handleDutyToggle} style={[styles.statusDot, { backgroundColor: dutyStatus === 'on_duty' ? (status === 'available' ? '#22c55e' : '#f97316') : '#64748b' }]}>
+            <Text style={styles.statusText}>
+              {dutyStatus === 'on_leave' ? '⏸️ On Leave (Tap to Start Duty)' : (status === 'available' ? '● Available' : '● Busy')}
+            </Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -228,7 +277,12 @@ export default function ResponderDashboard() {
       )}
 
       {/* Incoming Incidents */}
-      {status === 'available' && (
+      {dutyStatus === 'on_leave' ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#64748b', fontSize: 16 }}>You are currently on leave.</Text>
+          <Text style={{ color: '#64748b', fontSize: 14, marginTop: 8 }}>Tap the status indicator above to start duty.</Text>
+        </View>
+      ) : status === 'available' && (
         <>
           <Text style={styles.sectionTitle}>
             {loading ? 'Loading...' : `Incoming Requests (${incidents.length})`}
@@ -259,6 +313,36 @@ export default function ResponderDashboard() {
           )}
         </>
       )}
+
+      {/* Full Screen Alert Modal */}
+      <Modal visible={!!incomingAlert} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalWarning}>🚨 DISPATCH ALERT</Text>
+            <Text style={styles.modalType}>{TYPE_ICON[incomingAlert?.incident_type || 'other']} {incomingAlert?.incident_type?.toUpperCase()}</Text>
+            
+            <View style={styles.modalDetails}>
+              <Text style={styles.modalDetailText}>📍 {incomingAlert?.address || 'Location provided via GPS'}</Text>
+              <Text style={styles.modalDetailText}>👤 {incomingAlert?.caller_name || 'Citizen'}</Text>
+              <Text style={styles.modalDetailText}>📞 {incomingAlert?.caller_phone || 'Unknown'}</Text>
+              {/* Stub for Medical Profile Details requested by user */}
+              <View style={styles.medicalProfileStub}>
+                <Text style={styles.medicalProfileTitle}>Medical Profile (If available):</Text>
+                <Text style={styles.medicalProfileText}>Blood Type: O+ | Allergies: Penicillin</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalRejectBtn} onPress={rejectIncidentFromAlert}>
+                <Text style={styles.modalRejectText}>Reject</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalAcceptBtn} onPress={() => incomingAlert && acceptIncidentFromAlert(incomingAlert)}>
+                <Text style={styles.modalAcceptText}>ACCEPT & NAVIGATE</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -303,4 +387,19 @@ const styles = StyleSheet.create({
   emptyIcon:    { fontSize: 56, marginBottom: 12 },
   emptyText:    { color: '#f1f5f9', fontWeight: '700', fontSize: 18 },
   emptySubtext: { color: '#64748b', fontSize: 14, marginTop: 4 },
+
+  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#111827', borderRadius: 20, padding: 24, borderWidth: 2, borderColor: '#ef4444' },
+  modalWarning: { color: '#ef4444', fontWeight: '900', fontSize: 24, textAlign: 'center', marginBottom: 8 },
+  modalType: { color: '#f1f5f9', fontWeight: '800', fontSize: 20, textAlign: 'center', marginBottom: 20 },
+  modalDetails: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 20 },
+  modalDetailText: { color: '#f1f5f9', fontSize: 14, marginBottom: 8 },
+  medicalProfileStub: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#334155' },
+  medicalProfileTitle: { color: '#3b82f6', fontWeight: '700', fontSize: 13, marginBottom: 4 },
+  medicalProfileText: { color: '#94a3b8', fontSize: 13 },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalRejectBtn: { flex: 1, backgroundColor: '#1e293b', padding: 16, borderRadius: 12, alignItems: 'center' },
+  modalRejectText: { color: '#94a3b8', fontWeight: '700' },
+  modalAcceptBtn: { flex: 2, backgroundColor: '#ef4444', padding: 16, borderRadius: 12, alignItems: 'center' },
+  modalAcceptText: { color: '#fff', fontWeight: '900' }
 });
