@@ -6,9 +6,12 @@
   "workspaces": [
     "services/api",
     "services/ml",
-    "apps/web-admin"
+    "apps/web-admin",
+    "apps/mobile"
   ],
   "scripts": {
+    "dev": "cd apps/web-admin && npm run dev",
+    "dev:mobile": "cd apps/mobile && npx expo start",
     "dev:api": "cd services/api && npm run dev",
     "dev:web-admin": "cd apps/web-admin && npm run dev",
     "dev:ml": "cd services/ml && uvicorn main:app --reload --port 8001",
