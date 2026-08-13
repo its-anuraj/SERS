@@ -122,13 +122,13 @@ export default function AuthScreen() {
                 <View style={styles.demoChips}>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('9876543210'); setPassword('password123'); }}
+                    onPress={() => { setPhone('+919876500001'); setPassword('Test@1234'); }}
                   >
                     <Text style={styles.demoChipText}>👤 Citizen</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('9876543211'); setPassword('password123'); }}
+                    onPress={() => { setPhone('+919876500003'); setPassword('Test@1234'); }}
                   >
                     <Text style={styles.demoChipText}>🚑 Responder</Text>
                   </TouchableOpacity>
