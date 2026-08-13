@@ -96,7 +96,7 @@ INSERT INTO hospitals (
 -- Pre-computed hash for demo purposes
 DO $$
 DECLARE
-    citizen_hash TEXT := '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMqJqhcanFp8.6ZB5F0zS8W5Rq';
+    citizen_hash TEXT := '$2b$12$2YmMgcPQ7fGcP9CZrlgb3esLesOBbyHZeXDnePjIHpXu3393BD0Uy';
 BEGIN
 
 INSERT INTO users (id, name, phone, email, password_hash, role, is_active, is_verified, phone_verified_at, preferred_language)
