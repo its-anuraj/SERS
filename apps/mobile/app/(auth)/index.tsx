@@ -115,13 +115,32 @@ export default function AuthScreen() {
                   : <Text style={styles.btnText}>Login →</Text>
                 }
               </TouchableOpacity>
+
+              {/* Demo Credentials Helper */}
+              <View style={styles.demoHelper}>
+                <Text style={styles.demoHelperText}>Demo Accounts</Text>
+                <View style={styles.demoChips}>
+                  <TouchableOpacity
+                    style={styles.demoChip}
+                    onPress={() => { setPhone('9876543210'); setPassword('password123'); }}
+                  >
+                    <Text style={styles.demoChipText}>👤 Citizen</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.demoChip}
+                    onPress={() => { setPhone('9876543211'); setPassword('password123'); }}
+                  >
+                    <Text style={styles.demoChipText}>🚑 Responder</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </>
           ) : (
             <>
               <Text style={styles.label}>Full Name</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Anuraj Singh"
+                placeholder="John Doe"
                 placeholderTextColor="#475569"
                 value={name}
                 onChangeText={setName}
@@ -227,4 +246,9 @@ const styles = StyleSheet.create({
   bgChipActive:   { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: '#ef4444' },
   bgText:         { color: '#94a3b8', fontWeight: '600', fontSize: 13 },
   bgTextActive:   { color: '#ef4444' },
+  demoHelper:     { marginTop: 32, alignItems: 'center' },
+  demoHelperText: { color: '#64748b', fontSize: 13, marginBottom: 12, fontWeight: '600', textTransform: 'uppercase' },
+  demoChips:      { flexDirection: 'row', gap: 12 },
+  demoChip:       { backgroundColor: '#1e293b', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: '#334155' },
+  demoChipText:   { color: '#94a3b8', fontWeight: '600', fontSize: 13 },
 });
