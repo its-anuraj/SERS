@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Animated, Vibration, Alert
+  Dimensions, Animated, Vibration, Alert, Switch
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -18,7 +18,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const { user } = useAuthStore();
-  const { appEnabled, emergencyContacts } = useSettingsStore();
+  const { appEnabled, toggleAppEnabled, emergencyContacts } = useSettingsStore();
   const [sosActive, setSosActive] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [activeIncident, setActiveIncident] = useState<any>(null);
@@ -107,6 +107,20 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {/* Master Switch */}
+        <View style={styles.masterSwitchContainer}>
+          <View>
+            <Text style={styles.masterSwitchTitle}>SERS Protection</Text>
+            <Text style={styles.masterSwitchSub}>{appEnabled ? 'Sensors Active' : 'Sensors Disabled'}</Text>
+          </View>
+          <Switch
+            value={appEnabled}
+            onValueChange={toggleAppEnabled}
+            trackColor={{ false: '#334155', true: '#ef4444' }}
+            thumbColor="#fff"
+          />
+        </View>
+
         {/* SOS Button — the hero element */}
         <View style={styles.sosContainer}>
           <Text style={styles.sosLabel}>EMERGENCY SOS</Text>
@@ -134,18 +148,18 @@ export default function HomeScreen() {
         {/* Quick actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '🏥', label: 'Find Hospital', route: '/hospitals', color: '#3b82f6' },
+            { icon: '🏥', label: 'Find Hospital', route: '/(citizen)/hospitals', color: '#3b82f6' },
             { icon: '🚑', label: 'Track Ambulance', route: '/track', color: '#22c55e' },
             { icon: '👤', label: 'Medical Profile', route: '/medical-profile', color: '#a855f7' },
-            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/contacts', color: '#f59e0b' },
-            { icon: '🗺️', label: 'Live Map', route: '/map', color: '#06b6d4' },
+            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/settings', color: '#f59e0b' },
+            { icon: '🗺️', label: 'Live Map', route: '/(citizen)/map', color: '#06b6d4' },
             { icon: '📋', label: 'My Incidents', route: '/history', color: '#ec4899' },
           ].map((action) => (
             <TouchableOpacity
               key={action.label}
               style={styles.quickActionCard}
               onPress={() => {
-                if (['/map', '/hospitals'].includes(action.route)) {
+                if (['/(citizen)/map', '/(citizen)/hospitals', '/(citizen)/settings'].includes(action.route)) {
                   router.push(action.route as any);
                 } else {
                   Alert.alert('Coming Soon', 'This feature is currently in development.');
@@ -217,8 +231,16 @@ const styles = StyleSheet.create({
   sosEmoji: { fontSize: 40, marginBottom: 4 },
   sosButtonText: { fontSize: 28, fontWeight: '900', color: '#fff' },
   sosButtonSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  sosNote: { marginTop: 16, fontSize: 13, color: '#475569', textAlign: 'center' },
-  voiceKeyword: { color: '#3b82f6', fontWeight: '700' },
+  sosNote: { color: '#64748b', fontSize: 13, marginTop: 24, textAlign: 'center' },
+  voiceKeyword: { color: '#3b82f6', fontWeight: '800' },
+
+  masterSwitchContainer: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#111827', marginHorizontal: 20, marginTop: 10, marginBottom: 15,
+    padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#1e293b'
+  },
+  masterSwitchTitle: { color: '#f1f5f9', fontWeight: '700', fontSize: 16 },
+  masterSwitchSub: { color: '#94a3b8', fontSize: 12, marginTop: 2 },
 
   quickActions: {
     flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12, marginBottom: 20,

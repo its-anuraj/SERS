@@ -63,7 +63,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (isLoading) return; // Wait for session load
+    
+    if (!isAuthenticated || !user) {
+      router.replace('/(auth)');
+      return;
+    }
 
     // Role-based redirect
     if (user.role === 'responder') {
@@ -71,7 +76,7 @@ export default function RootLayout() {
     } else {
       router.replace('/(citizen)');
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, isLoading]);
 
   // Manage Background Services based on appEnabled
   useEffect(() => {
