@@ -25,6 +25,7 @@ export default function AuthScreen() {
   const [regPhone, setRegPhone] = useState('');
   const [regPass, setRegPass]   = useState('');
   const [role, setRole]         = useState<'citizen' | 'responder'>('citizen');
+  const [bloodGroup, setBloodGroup] = useState('');
 
   const handleLogin = async () => {
     if (!phone.trim() || !password.trim()) {
@@ -49,7 +50,7 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
-      await register({ name: name.trim(), phone: regPhone.trim(), password: regPass, role });
+      await register({ name: name.trim(), phone: regPhone.trim(), password: regPass, role, bloodGroup: role === 'citizen' ? bloodGroup : undefined });
     } catch (err: any) {
       Alert.alert('Registration Failed', err?.response?.data?.message || 'Something went wrong.');
     } finally {
@@ -144,6 +145,23 @@ export default function AuthScreen() {
                 onChangeText={setRegPass}
               />
 
+              {role === 'citizen' && (
+                <>
+                  <Text style={styles.label}>Blood Group (Optional)</Text>
+                  <View style={styles.bloodGroupContainer}>
+                    {['A+', 'B+', 'O+', 'AB+', 'A-', 'B-', 'O-', 'AB-'].map(bg => (
+                      <TouchableOpacity
+                        key={bg}
+                        style={[styles.bgChip, bloodGroup === bg && styles.bgChipActive]}
+                        onPress={() => setBloodGroup(bg === bloodGroup ? '' : bg)}
+                      >
+                        <Text style={[styles.bgText, bloodGroup === bg && styles.bgTextActive]}>{bg}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
               <Text style={styles.label}>I am a...</Text>
               <View style={styles.rolePicker}>
                 <TouchableOpacity
@@ -204,4 +222,9 @@ const styles = StyleSheet.create({
   btn:            { marginTop: 24, backgroundColor: '#ef4444', borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#ef4444', shadowOpacity: 0.4, shadowRadius: 12 },
   btnText:        { color: '#fff', fontWeight: '900', fontSize: 16 },
   footer:         { color: '#334155', fontSize: 12, textAlign: 'center', marginTop: 24 },
+  bloodGroupContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  bgChip:         { backgroundColor: '#1e293b', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#334155' },
+  bgChipActive:   { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: '#ef4444' },
+  bgText:         { color: '#94a3b8', fontWeight: '600', fontSize: 13 },
+  bgTextActive:   { color: '#ef4444' },
 });

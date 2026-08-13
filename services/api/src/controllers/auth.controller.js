@@ -34,7 +34,7 @@ const generateTokens = (userId, role) => {
  */
 const register = async (req, res, next) => {
     try {
-        const { name, phone, email, password, role = 'citizen', preferredLanguage = 'en' } = req.body;
+        const { name, phone, email, password, role = 'citizen', preferredLanguage = 'en', bloodGroup } = req.body;
 
         // Check if phone already exists
         const existingUser = await query(
@@ -59,10 +59,10 @@ const register = async (req, res, next) => {
             );
             const newUser = userResult.rows[0];
 
-            // Create empty medical profile
+            // Create medical profile
             await client.query(
-                `INSERT INTO medical_profiles (user_id) VALUES ($1)`,
-                [newUser.id]
+                `INSERT INTO medical_profiles (user_id, blood_group) VALUES ($1, $2)`,
+                [newUser.id, bloodGroup || null]
             );
 
             const tokens = generateTokens(newUser.id, newUser.role);

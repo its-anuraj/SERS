@@ -32,6 +32,7 @@ interface RegisterData {
   password: string;
   role?: string;
   email?: string;
+  bloodGroup?: string;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
