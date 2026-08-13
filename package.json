@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "cd apps/web-admin && npm run dev",
     "dev:mobile": "cd apps/mobile && npx expo start",
+    "dev:mobile:tunnel": "cd apps/mobile && npx expo start --tunnel",
     "dev:api": "cd services/api && npm run dev",
     "dev:web-admin": "cd apps/web-admin && npm run dev",
     "dev:ml": "cd services/ml && uvicorn main:app --reload --port 8001",
