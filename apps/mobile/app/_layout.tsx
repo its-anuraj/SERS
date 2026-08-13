@@ -116,10 +116,13 @@ export default function RootLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(citizen)" />
-        <Stack.Screen name="(responder)" />
-        <Stack.Screen name="sos-active" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="(auth)/index" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/index" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/hospitals" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/map" options={{ headerShown: false }} />
+        <Stack.Screen name="(responder)/index" options={{ headerShown: false }} />
+        <Stack.Screen name="(responder)/scene-camera" options={{ headerShown: false }} />
+        <Stack.Screen name="sos-active" options={{ presentation: 'fullScreenModal', headerShown: false }} />
       </Stack>
 
       {/* Crash detection overlay */}

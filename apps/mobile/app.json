@@ -3,6 +3,7 @@
     "name": "SERS",
     "slug": "sers-emergency",
     "version": "1.0.0",
+    "scheme": "sers",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
