@@ -55,7 +55,7 @@ export default function RootLayout() {
   const { appEnabled, loadSettings } = useSettingsStore();
   const [crashWarning, setCrashWarning] = useState(false);
   const [countdown, setCountdown] = useState(10);
-  const crashCancelRef = useRef<NodeJS.Timeout | null>(null);
+  const crashCancelRef = useRef<any | null>(null);
 
   useEffect(() => {
     loadSession();
