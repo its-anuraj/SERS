@@ -91,7 +91,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]} 👋</Text>
           <Text style={styles.subtitle}>Stay safe. Help is always nearby.</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/(citizen)/settings')} style={styles.avatar}>
+        <TouchableOpacity onPress={() => router.push('/(citizen)/settings' as any)} style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0) || '?'}</Text>
         </TouchableOpacity>
       </View>

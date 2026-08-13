@@ -7,7 +7,7 @@
 
 const KEYWORDS = ['help', 'emergency', 'bachao', 'maddat kro'];
 let isListening = false;
-let detectionInterval: NodeJS.Timeout | null = null;
+let detectionInterval: any = null;
 let keywordMatchCount = 0;
 
 export const startVoiceDetection = (onTrigger: () => void) => {

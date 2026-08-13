@@ -111,7 +111,7 @@ export default function RootLayout() {
     let count = 10;
     setCountdown(count);
 
-    const timer = setInterval(() => {
+    const timer: any = setInterval(() => {
       count--;
       setCountdown(count);
       if (count <= 0) {
@@ -204,7 +204,7 @@ export default function RootLayout() {
               </View>
               <View
                 style={styles.sendNowButton}
-                onTouchEnd={triggerSOSFromCrash}>
+                onTouchEnd={() => triggerSOSFromCrash('crash')}>
                 <Text style={styles.sendNowText}>Send Help NOW</Text>
               </View>
             </View>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   splashSub: { fontSize: 16, color: '#94a3b8' },
 
   crashOverlay: {
-    position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)',
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)',
     alignItems: 'center', justifyContent: 'center', zIndex: 9999,
   },
   crashCard: {
