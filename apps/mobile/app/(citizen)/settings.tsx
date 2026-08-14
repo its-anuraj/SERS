@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView
+  TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSettingsStore, EmergencyContact } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
+
+const RELATIONSHIP_OPTIONS = [
+  { label: 'Parent (Mata/Pita)', icon: '👨‍👩‍👧', value: 'Parent' },
+  { label: 'Spouse (Pati/Patni)', icon: '💍', value: 'Spouse' },
+  { label: 'Sibling (Bhai/Behen)', icon: '👫', value: 'Sibling' },
+  { label: 'Child (Beta/Beti)', icon: '👶', value: 'Child' },
+  { label: 'Friend (Dost)', icon: '🤝', value: 'Friend' },
+  { label: 'Doctor', icon: '🩺', value: 'Doctor' },
+  { label: 'Guardian', icon: '🛡️', value: 'Guardian' },
+  { label: 'Other Relative', icon: '👥', value: 'Other' },
+];
 
 export default function CitizenSettingsScreen() {
   const { user, logout } = useAuthStore();
@@ -13,6 +24,7 @@ export default function CitizenSettingsScreen() {
 
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [relationship, setRelationship] = useState('Parent');
 
   const handleAddContact = () => {
     if (!newName.trim() || !newPhone.trim()) {
@@ -23,10 +35,18 @@ export default function CitizenSettingsScreen() {
       id: Date.now().toString(),
       name: newName.trim(),
       phone: newPhone.trim(),
+      relationship: relationship || 'Emergency Contact',
     };
     addEmergencyContact(newContact);
     setNewName('');
     setNewPhone('');
+    setRelationship('Parent');
+    Alert.alert('Contact Added', `${newName.trim()} (${relationship}) added to emergency alert list.`);
+  };
+
+  const getRelationshipIcon = (rel?: string) => {
+    const match = RELATIONSHIP_OPTIONS.find(r => r.value === rel);
+    return match ? `${match.icon} ${match.value}` : rel || 'Emergency Contact';
   };
 
   return (
@@ -54,38 +74,70 @@ export default function CitizenSettingsScreen() {
 
         {/* Emergency Contacts Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👨‍👩‍👧 Emergency Contacts</Text>
+          <Text style={styles.sectionTitle}>👨‍👩‍👧 Emergency Contacts & Relationship</Text>
           <Text style={styles.sectionSub}>
-            These contacts will automatically receive an SMS alert and your live GPS location whenever you trigger an SOS.
+            Whenever you trigger an SOS, these contacts instantly receive an SMS alert with your live GPS location and relationship details.
           </Text>
 
           <View style={styles.addContactForm}>
+            <Text style={styles.inputLabel}>Contact Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="Contact Name (e.g. Mom, Brother, Doctor)"
+              placeholder="e.g. Ramesh Kumar, Sunita Devi, Dr. Sharma"
               placeholderTextColor="#64748b"
               value={newName}
               onChangeText={setNewName}
             />
+
+            <Text style={styles.inputLabel}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              placeholder="Phone Number (e.g. +91 98765 43210)"
+              placeholder="e.g. +91 98765 43210"
               placeholderTextColor="#64748b"
               keyboardType="phone-pad"
               value={newPhone}
               onChangeText={setNewPhone}
             />
+
+            {/* Relationship Chips */}
+            <Text style={styles.inputLabel}>Relationship (Rishta)</Text>
+            <View style={styles.chipContainer}>
+              {RELATIONSHIP_OPTIONS.map((item) => (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[
+                    styles.chip,
+                    relationship === item.value && styles.activeChip,
+                  ]}
+                  onPress={() => setRelationship(item.value)}
+                >
+                  <Text style={[styles.chipText, relationship === item.value && styles.activeChipText]}>
+                    {item.icon} {item.value}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity style={styles.addBtn} onPress={handleAddContact}>
-              <Text style={styles.addBtnText}>+ Add Emergency Contact</Text>
+              <Text style={styles.addBtnText}>+ Add Emergency Contact ({relationship})</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.listHeader}>
+              Saved Emergency Contacts ({emergencyContacts?.length || 0})
+            </Text>
+
             {emergencyContacts && emergencyContacts.length > 0 ? (
               emergencyContacts.map((item) => (
                 <View key={item.id} style={styles.contactItem}>
-                  <View>
-                    <Text style={styles.contactName}>{item.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.contactName}>{item.name}</Text>
+                      <View style={styles.badgeContainer}>
+                        <Text style={styles.relationshipBadge}>{getRelationshipIcon(item.relationship)}</Text>
+                      </View>
+                    </View>
                     <Text style={styles.contactPhone}>📞 {item.phone}</Text>
                   </View>
                   <TouchableOpacity onPress={() => removeEmergencyContact(item.id)} style={styles.removeBtn}>
@@ -142,10 +194,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e293b'
   },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#f1f5f9', marginBottom: 4 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#f1f5f9', marginBottom: 4 },
   sectionSub: { fontSize: 13, color: '#94a3b8', marginBottom: 16, lineHeight: 18 },
   
-  addContactForm: { gap: 10 },
+  addContactForm: { gap: 8 },
+  inputLabel: { fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 4 },
   input: {
     backgroundColor: '#1e293b',
     borderRadius: 12,
@@ -155,14 +208,50 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     fontSize: 14,
   },
+
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 4,
+  },
+  chip: {
+    backgroundColor: '#1e293b',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  activeChip: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: '#ef4444',
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
+  activeChipText: {
+    color: '#ef4444',
+    fontWeight: '800',
+  },
+
   addBtn: {
     backgroundColor: '#3b82f6',
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
-    marginTop: 4
+    marginTop: 10
   },
   addBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+
+  listHeader: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#f1f5f9',
+    marginBottom: 10,
+  },
 
   contactItem: {
     flexDirection: 'row',
@@ -175,9 +264,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   contactName: { color: '#f1f5f9', fontWeight: '700', fontSize: 15 },
-  contactPhone: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
-  removeBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 8 },
+  badgeContainer: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  relationshipBadge: {
+    color: '#60a5fa',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  contactPhone: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
+  removeBtn: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 8 },
   removeBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 12 },
   emptyText: { color: '#64748b', fontStyle: 'italic', textAlign: 'center', marginVertical: 14 },
 
