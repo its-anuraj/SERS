@@ -9,7 +9,6 @@ const { getSocketIO } = require('../websocket/socketManager');
 const logger = require('../config/logger');
 const { findNearestAvailableAmbulance } = require('./ambulance.controller');
 const { findBestHospital } = require('./hospital.controller');
-const { sendPushNotification } = require('../services/notification.service');
 const { sendSMS } = require('../services/sms.service');
 const { calculateCrashConfidence } = require('../services/afdp.service');
 
@@ -688,7 +687,7 @@ const bufferTelemetry = async (req, res, next) => {
  */
 const handleSMSGatewaySOS = async (req, res, next) => {
     try {
-        const { senderPhone, messageText, rawPayload } = req.body;
+        const { senderPhone, messageText, _rawPayload } = req.body;
         logger.info('SMS Gateway SOS Ingested', { senderPhone, messageText });
 
         // Parse payload format: SERS_SOS,<lat>,<lng>,<type>,<accel>

@@ -5,7 +5,6 @@
   "description": "Smart Emergency Response System — AI-powered, ABDM-compliant emergency platform",
   "workspaces": [
     "services/api",
-    "services/ml",
     "apps/web-admin",
     "apps/mobile"
   ],

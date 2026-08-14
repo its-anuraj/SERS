@@ -6,7 +6,6 @@ const { query } = require('../config/database');
 const { setAmbulancePosition, getAmbulancePosition } = require('../config/redis');
 const { ApiError } = require('../middleware/errorHandler');
 const { getSocketIO } = require('../websocket/socketManager');
-const logger = require('../config/logger');
 
 /**
  * Find the nearest available ambulance using PostGIS

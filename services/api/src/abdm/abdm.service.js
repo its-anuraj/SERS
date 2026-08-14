@@ -213,7 +213,7 @@ const fetchEmergencyHealthRecords = async (patientUserId, incidentId) => {
     return { available: !!fhirData, data: fhirData, source: 'abdm' };
 };
 
-const discoverAndFetchRecords = async (abhaId, abhaToken) => {
+const discoverAndFetchRecords = async (abhaId, _abhaToken) => {
     try {
         const fetch = (await import('node-fetch')).default;
         const gatewayToken = await getGatewayToken();

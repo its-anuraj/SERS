@@ -66,7 +66,7 @@ Set-Location apps/web-admin
 npm install
 Set-Location ../..
 
-Set-Location apps/web-public
+Set-Location apps/mobile
 npm install
 Set-Location ../..
 Write-Host "  ✅ Node dependencies installed" -ForegroundColor Green
@@ -90,7 +90,6 @@ Write-Host "Start the services:" -ForegroundColor Cyan
 Write-Host "  API Server:      cd services/api && npm run dev" -ForegroundColor White
 Write-Host "  ML Service:      cd services/ml && uvicorn main:app --reload --port 8001" -ForegroundColor White
 Write-Host "  Admin Portal:    cd apps/web-admin && npm run dev   (http://localhost:3002)" -ForegroundColor White
-Write-Host "  Public Portal:   cd apps/web-public && npm run dev  (http://localhost:3001)" -ForegroundColor White
 Write-Host "  Mobile App:      cd apps/mobile && npx expo start" -ForegroundColor White
 Write-Host ""
 Write-Host "Test accounts (password: Test@1234):" -ForegroundColor Cyan

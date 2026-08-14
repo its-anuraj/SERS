@@ -185,8 +185,10 @@ export default function RootLayout() {
         <Stack.Screen name="(citizen)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/hospitals" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/map" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/settings" options={{ headerShown: false }} />
         <Stack.Screen name="(responder)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(responder)/scene-camera" options={{ headerShown: false }} />
+        <Stack.Screen name="(responder)/settings" options={{ headerShown: false }} />
         <Stack.Screen name="sos-active" options={{ presentation: 'fullScreenModal', headerShown: false }} />
       </Stack>
 

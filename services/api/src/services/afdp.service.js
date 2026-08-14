@@ -19,7 +19,7 @@ const calculateCrashConfidence = (telemetry = {}) => {
         preImpactSpeedKmh = 0,
         postImpactSpeedKmh = 0,         // Layer 6: Post-impact vehicle movement
         speedDropKmh = 0,
-        bluetoothConnected = true,
+        _bluetoothConnected = true,
         audioCrashScore = 0.5,          // Layer 4: Acoustic ML Score
         smartwatchBpm = null,           // Layer 5: Smartwatch Heart Rate (BPM)
         isStationaryPostImpact = true,  // Layer 5: Victim immobility

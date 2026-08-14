@@ -36,7 +36,7 @@ const initSocketIO = (server) => {
             socket.userId = decoded.userId;
             socket.userRole = decoded.role;
             next();
-        } catch (err) {
+        } catch (_err) {
             next(new Error('Invalid authentication token'));
         }
     });

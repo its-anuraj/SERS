@@ -78,7 +78,7 @@ router.put('/emergency-consent', authenticate, [
 });
 
 // GET /api/abdm/gateway-health — Live NHA Gateway Diagnostic & Health Check
-router.get('/gateway-health', async (req, res, next) => {
+router.get('/gateway-health', async (req, res, _next) => {
     try {
         const { getGatewayToken } = require('../abdm/abdm.service');
         const token = await getGatewayToken();

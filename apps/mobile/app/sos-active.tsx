@@ -62,14 +62,13 @@ export default function SosActiveScreen() {
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status !== 'granted') return;
           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-          const res = await api.post('/incidents', {
-            incident_type: 'accident',
-            severity: 'critical',
+          const res = await api.post('/incidents/sos', {
+            type: 'accident',
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
-            source: 'crash_detection',
+            description: 'SOS triggered by auto crash detection',
           });
-          setIncidentId(res.data.data.id);
+          setIncidentId(res.data.data.incidentId);
         } catch (e) {
           console.warn('Failed to auto-create crash incident', e);
         }

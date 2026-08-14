@@ -89,7 +89,7 @@ app.get('/api/health', async (req, res) => {
         let dbStatus = 'healthy';
         try {
             await query('SELECT 1');
-        } catch (e) {
+        } catch (_e) {
             dbStatus = 'degraded';
         }
 
@@ -98,7 +98,7 @@ app.get('/api/health', async (req, res) => {
             const redis = getRedis();
             if (redis) await redis.ping();
             else redisStatus = 'mock_active';
-        } catch (e) {
+        } catch (_e) {
             redisStatus = 'degraded';
         }
 

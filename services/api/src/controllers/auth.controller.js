@@ -4,7 +4,6 @@
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
 const { query, withTransaction } = require('../config/database');
 const { blacklistToken } = require('../config/redis');
 const { ApiError } = require('../middleware/errorHandler');
