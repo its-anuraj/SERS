@@ -18,6 +18,7 @@ import {
   startVoiceDetection, stopVoiceDetection, recordVoiceKeyword,
   onVoiceStateChange
 } from '../../services/voiceDetection';
+import { dispatchOfflineSmsSOS } from '../../services/offlineSmsDispatch';
 
 const { width } = Dimensions.get('window');
 
@@ -298,7 +299,14 @@ export default function HomeScreen() {
       } else {
         router.push('/sos-active' as any);
       }
-    } catch {
+    } catch (err) {
+      console.warn('[SOS] Internet failed or offline. Triggering Cellular GSM SMS fallback...');
+      await dispatchOfflineSmsSOS({
+        latitude: userLoc?.coords?.latitude || 28.4595,
+        longitude: userLoc?.coords?.longitude || 77.0266,
+        type: 'medical',
+        source: 'manual_sos',
+      });
       router.push('/sos-active' as any);
     } finally {
       setSosActive(false);
