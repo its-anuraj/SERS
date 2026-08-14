@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useSettingsStore, EmergencyContact } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 
@@ -25,6 +25,20 @@ export default function CitizenSettingsScreen() {
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [relationship, setRelationship] = useState('Parent');
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out of SERS?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/(auth)' as any);
+        },
+      },
+    ]);
+  };
 
   const handleAddContact = () => {
     if (!newName.trim() || !newPhone.trim()) {
@@ -156,7 +170,7 @@ export default function CitizenSettingsScreen() {
         </View>
 
         {/* Account & Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>🚪 Log Out of SERS</Text>
         </TouchableOpacity>
       </ScrollView>
