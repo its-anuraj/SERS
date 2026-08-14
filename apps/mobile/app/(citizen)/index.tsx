@@ -227,13 +227,13 @@ export default function HomeScreen() {
       setRecentVoiceKeywords(state.recentMatches);
     });
 
-    const stopVoice = startVoiceDetection((data) => {
+    startVoiceDetection((data) => {
       triggerVoiceSOS(data.keyword);
     });
 
     return () => {
       unsub();
-      stopVoice();
+      stopVoiceDetection();
     };
   }, [triggerVoiceSOS]);
 
