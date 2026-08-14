@@ -28,6 +28,7 @@ export interface VoiceDetectionState {
 }
 
 let isListening = false;
+let isPreparing = false;
 let keywordMatches: { word: string; timestamp: number }[] = [];
 let triggerCallback: ((data: { keyword: string; count: number }) => void) | null = null;
 let stateChangeListeners: ((state: VoiceDetectionState) => void)[] = [];
@@ -137,19 +138,30 @@ const initWebSpeech = () => {
  */
 export const startVoiceDetection = async (onTrigger: (data: { keyword: string; count: number }) => void) => {
   triggerCallback = onTrigger;
+
+  if (isListening || isPreparing) return;
   isListening = true;
+  isPreparing = true;
   keywordMatches = [];
 
   console.log('[VoiceDetection] 🎙️ Live Voice Detection Active. Listening for:', EMERGENCY_KEYWORDS.join(', '));
   notifyState();
 
   try {
-    const perm = await Audio.requestPermissionsAsync();
-    if (perm.granted) {
+    // Clean up existing recording if any
+    if (recordingInstance) {
+      try {
+        await recordingInstance.stopAndUnloadAsync();
+      } catch {}
+      recordingInstance = null;
+    }
+
+    const perm = await Audio.requestPermissionsAsync().catch(() => ({ granted: false }));
+    if (perm.granted && isListening) {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
-      });
+      }).catch(() => {});
 
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync({
@@ -159,7 +171,6 @@ export const startVoiceDetection = async (onTrigger: (data: { keyword: string; c
 
       recording.setOnRecordingStatusUpdate((status) => {
         if (status.isRecording && status.metering !== undefined) {
-          // If loud spike in voice audio level detected (e.g. shouting for help)
           const level = Math.max(0, (status.metering + 160) / 160);
           notifyState(level);
         }
@@ -171,11 +182,11 @@ export const startVoiceDetection = async (onTrigger: (data: { keyword: string; c
     }
   } catch (err) {
     console.log('[VoiceDetection] Microphone audio stream note:', err);
+  } finally {
+    isPreparing = false;
   }
 
   initWebSpeech();
-
-  return stopVoiceDetection;
 };
 
 /**
@@ -183,6 +194,7 @@ export const startVoiceDetection = async (onTrigger: (data: { keyword: string; c
  */
 export const stopVoiceDetection = async () => {
   isListening = false;
+  isPreparing = false;
   keywordMatches = [];
 
   if (webSpeechRecognition) {
@@ -191,10 +203,11 @@ export const stopVoiceDetection = async () => {
   }
 
   if (recordingInstance) {
-    try {
-      await recordingInstance.stopAndUnloadAsync();
-    } catch {}
+    const rec = recordingInstance;
     recordingInstance = null;
+    try {
+      await rec.stopAndUnloadAsync();
+    } catch {}
   }
 
   console.log('[VoiceDetection] Voice monitoring stopped.');
