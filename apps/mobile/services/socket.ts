@@ -9,32 +9,44 @@ import { getApiBaseUrl } from './api';
 let socket: Socket | null = null;
 
 /**
- * Synchronously returns (and creates if needed) the socket.
- * Dynamically connects to host machine whether on physical phone or emulator.
+ * Connects to the backend WebSocket gateway.
+ * Dynamically resolves host IP and attaches JWT auth token.
  */
-export const connectSocket = (): Socket => {
+export const connectSocket = (): Socket | null => {
   if (socket?.connected) return socket;
 
   const WS_URL = getApiBaseUrl();
 
-  socket = io(WS_URL, {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 2000,
-  });
+  // Retrieve token before initial connection to prevent auth handshake errors
+  SecureStore.getItemAsync('sers_access_token')
+    .then((token) => {
+      if (!token) {
+        // Not logged in — do not spam connection attempts
+        return;
+      }
 
-  // Attach auth token async after connection
-  SecureStore.getItemAsync('sers_access_token').then((token) => {
-    if (token && socket) {
-      socket.auth = { token };
-      if (!socket.connected) socket.connect();
-    }
-  }).catch(() => {});
+      if (!socket) {
+        socket = io(WS_URL, {
+          auth: { token },
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 3000,
+        });
 
-  socket.on('connect', () => console.log('Socket connected:', socket?.id));
-  socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
-  socket.on('connect_error', (err) => console.warn('Socket error:', err.message));
+        socket.on('connect', () => console.log('Socket connected:', socket?.id));
+        socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
+        socket.on('connect_error', (err) => {
+          if (err.message !== 'Authentication token required') {
+            console.warn('Socket error:', err.message);
+          }
+        });
+      } else {
+        socket.auth = { token };
+        if (!socket.connected) socket.connect();
+      }
+    })
+    .catch(() => {});
 
   return socket;
 };
@@ -42,7 +54,11 @@ export const connectSocket = (): Socket => {
 export const getSocket = (): Socket | null => socket;
 
 export const disconnectSocket = () => {
-  if (socket) { socket.disconnect(); socket = null; }
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
 };
 
 // Convenience emitters

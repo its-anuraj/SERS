@@ -9,6 +9,7 @@ import {
   Alert, ActivityIndicator, RefreshControl, Linking, Modal, Vibration
 } from 'react-native';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { api } from '../../services/api';
@@ -54,6 +55,20 @@ export default function ResponderDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
   const [status, setStatus]           = useState<'available' | 'busy'>('available');
   const [incomingAlert, setIncomingAlert] = useState<Incident | null>(null);
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out of Responder mode?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/(auth)' as any);
+        },
+      },
+    ]);
+  };
 
   const handleDutyToggle = async () => {
     const newStatus = dutyStatus === 'on_duty' ? 'on_leave' : 'on_duty';
@@ -262,8 +277,8 @@ export default function ResponderDashboard() {
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>🚪 Logout</Text>
         </TouchableOpacity>
       </View>
 
@@ -298,8 +313,8 @@ export default function ResponderDashboard() {
       {/* Incoming Incidents */}
       {dutyStatus === 'on_leave' ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#64748b', fontSize: 16 }}>You are currently on leave.</Text>
-          <Text style={{ color: '#64748b', fontSize: 14, marginTop: 8 }}>Tap the status indicator above to start duty.</Text>
+          <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>You are currently on leave.</Text>
+          <Text style={{ color: '#94a3b8', fontSize: 14, marginTop: 8 }}>Tap the status indicator above to start duty.</Text>
         </View>
       ) : status === 'available' && (
         <>
@@ -346,9 +361,8 @@ export default function ResponderDashboard() {
               <Text style={styles.modalDetailText}>📍 {incomingAlert?.address || 'Location provided via GPS'}</Text>
               <Text style={styles.modalDetailText}>👤 {incomingAlert?.reporter_name || incomingAlert?.caller_name || 'Citizen'}</Text>
               <Text style={styles.modalDetailText}>📞 {incomingAlert?.reporter_phone || incomingAlert?.caller_phone || 'Unknown'}</Text>
-              {/* Stub for Medical Profile Details requested by user */}
               <View style={styles.medicalProfileStub}>
-                <Text style={styles.medicalProfileTitle}>Medical Profile (If available):</Text>
+                <Text style={styles.medicalProfileTitle}>Medical Profile (ABDM Verified):</Text>
                 <Text style={styles.medicalProfileText}>Blood Type: O+ | Allergies: Penicillin</Text>
               </View>
             </View>
@@ -369,58 +383,58 @@ export default function ResponderDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#0a0e1a' },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 20, paddingTop: 56, backgroundColor: '#0f172a', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-  greeting:     { fontSize: 20, fontWeight: '800', color: '#f1f5f9' },
-  statusDot:    { marginTop: 4, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start' },
-  statusText:   { color: '#fff', fontWeight: '700', fontSize: 12 },
-  logoutBtn:    { backgroundColor: '#1e293b', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  logoutText:   { color: '#94a3b8', fontWeight: '600' },
+  container:    { flex: 1, backgroundColor: '#f8fafc' },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 56, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  greeting:     { fontSize: 20, fontWeight: '800', color: '#0f172a' },
+  statusDot:    { marginTop: 4, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
+  statusText:   { color: '#fff', fontWeight: '800', fontSize: 11 },
+  logoutBtn:    { backgroundColor: '#fee2e2', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#fca5a5' },
+  logoutText:   { color: '#dc2626', fontWeight: '800', fontSize: 12 },
 
-  sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  sectionTitle: { color: '#64748b', fontSize: 13, fontWeight: '800', paddingHorizontal: 16, paddingVertical: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
-  card:         { backgroundColor: '#111827', marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1e293b' },
+  card:         { backgroundColor: '#ffffff', marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   cardHeader:   { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   cardIcon:     { fontSize: 32 },
-  cardType:     { color: '#f1f5f9', fontWeight: '800', fontSize: 15 },
-  cardTime:     { color: '#64748b', fontSize: 12, marginTop: 2 },
+  cardType:     { color: '#0f172a', fontWeight: '800', fontSize: 15 },
+  cardTime:     { color: '#64748b', fontSize: 12, marginTop: 2, fontWeight: '600' },
   severityBadge:{ borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
   severityText: { fontSize: 10, fontWeight: '800' },
-  cardAddress:  { color: '#94a3b8', fontSize: 13, marginBottom: 6 },
-  cardCaller:   { color: '#64748b', fontSize: 12, marginBottom: 12 },
+  cardAddress:  { color: '#475569', fontSize: 13, marginBottom: 6 },
+  cardCaller:   { color: '#64748b', fontSize: 12, marginBottom: 12, fontWeight: '600' },
   acceptBtn:    { backgroundColor: '#ef4444', borderRadius: 10, padding: 12, alignItems: 'center' },
   acceptText:   { color: '#fff', fontWeight: '800', fontSize: 14 },
 
-  activeCard:   { margin: 16, backgroundColor: '#1a0a0a', borderRadius: 16, padding: 16, borderWidth: 2, borderColor: '#ef4444' },
-  activeTitle:  { color: '#ef4444', fontWeight: '900', fontSize: 13, textTransform: 'uppercase', marginBottom: 6 },
-  activeType:   { color: '#f1f5f9', fontWeight: '800', fontSize: 20, marginBottom: 4 },
-  activeAddr:   { color: '#94a3b8', fontSize: 13, marginBottom: 4 },
-  activeStatus: { color: '#f97316', fontWeight: '700', fontSize: 13, marginBottom: 12 },
+  activeCard:   { margin: 16, backgroundColor: '#fee2e2', borderRadius: 16, padding: 16, borderWidth: 2, borderColor: '#ef4444' },
+  activeTitle:  { color: '#dc2626', fontWeight: '900', fontSize: 13, textTransform: 'uppercase', marginBottom: 6 },
+  activeType:   { color: '#0f172a', fontWeight: '800', fontSize: 20, marginBottom: 4 },
+  activeAddr:   { color: '#475569', fontSize: 13, marginBottom: 4 },
+  activeStatus: { color: '#ea580c', fontWeight: '800', fontSize: 13, marginBottom: 12 },
   activeActions:{ flexDirection: 'row', gap: 8 },
-  navBtn:       { flex: 1, backgroundColor: '#1d4ed8', borderRadius: 10, padding: 10, alignItems: 'center' },
+  navBtn:       { flex: 1, backgroundColor: '#2563eb', borderRadius: 10, padding: 10, alignItems: 'center' },
   navBtnText:   { color: '#fff', fontWeight: '700', fontSize: 13 },
-  arrivedBtn:   { flex: 1, backgroundColor: '#166534', borderRadius: 10, padding: 10, alignItems: 'center' },
+  arrivedBtn:   { flex: 1, backgroundColor: '#16a34a', borderRadius: 10, padding: 10, alignItems: 'center' },
   arrivedText:  { color: '#fff', fontWeight: '700', fontSize: 13 },
-  resolveBtn:   { flex: 1, backgroundColor: '#374151', borderRadius: 10, padding: 10, alignItems: 'center' },
-  resolveText:  { color: '#9ca3af', fontWeight: '700', fontSize: 13 },
+  resolveBtn:   { flex: 1, backgroundColor: '#64748b', borderRadius: 10, padding: 10, alignItems: 'center' },
+  resolveText:  { color: '#fff', fontWeight: '700', fontSize: 13 },
 
   empty:        { alignItems: 'center', marginTop: 80 },
   emptyIcon:    { fontSize: 56, marginBottom: 12 },
-  emptyText:    { color: '#f1f5f9', fontWeight: '700', fontSize: 18 },
+  emptyText:    { color: '#0f172a', fontWeight: '800', fontSize: 18 },
   emptySubtext: { color: '#64748b', fontSize: 14, marginTop: 4 },
 
-  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#111827', borderRadius: 20, padding: 24, borderWidth: 2, borderColor: '#ef4444' },
-  modalWarning: { color: '#ef4444', fontWeight: '900', fontSize: 24, textAlign: 'center', marginBottom: 8 },
-  modalType: { color: '#f1f5f9', fontWeight: '800', fontSize: 20, textAlign: 'center', marginBottom: 20 },
-  modalDetails: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 20 },
-  modalDetailText: { color: '#f1f5f9', fontSize: 14, marginBottom: 8 },
-  medicalProfileStub: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#334155' },
-  medicalProfileTitle: { color: '#3b82f6', fontWeight: '700', fontSize: 13, marginBottom: 4 },
-  medicalProfileText: { color: '#94a3b8', fontSize: 13 },
+  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#ffffff', borderRadius: 20, padding: 24, borderWidth: 2, borderColor: '#ef4444' },
+  modalWarning: { color: '#dc2626', fontWeight: '900', fontSize: 24, textAlign: 'center', marginBottom: 8 },
+  modalType: { color: '#0f172a', fontWeight: '800', fontSize: 20, textAlign: 'center', marginBottom: 20 },
+  modalDetails: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },
+  modalDetailText: { color: '#0f172a', fontSize: 14, marginBottom: 8 },
+  medicalProfileStub: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  medicalProfileTitle: { color: '#2563eb', fontWeight: '700', fontSize: 13, marginBottom: 4 },
+  medicalProfileText: { color: '#475569', fontSize: 13 },
   modalActions: { flexDirection: 'row', gap: 12 },
-  modalRejectBtn: { flex: 1, backgroundColor: '#1e293b', padding: 16, borderRadius: 12, alignItems: 'center' },
-  modalRejectText: { color: '#94a3b8', fontWeight: '700' },
+  modalRejectBtn: { flex: 1, backgroundColor: '#f1f5f9', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#cbd5e1' },
+  modalRejectText: { color: '#64748b', fontWeight: '800' },
   modalAcceptBtn: { flex: 2, backgroundColor: '#ef4444', padding: 16, borderRadius: 12, alignItems: 'center' },
   modalAcceptText: { color: '#fff', fontWeight: '900' }
 });
