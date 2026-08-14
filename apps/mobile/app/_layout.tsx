@@ -110,6 +110,9 @@ export default function RootLayout() {
   }, [isAuthenticated, appEnabled]);
 
   const handleCrashDetected = (probability: number, triggerSource: 'crash' | 'voice' | 'cardiac' = 'crash') => {
+    if (crashCancelRef.current) {
+      clearInterval(crashCancelRef.current);
+    }
     setCrashWarning(true);
     let count = 10;
     setCountdown(count);
@@ -119,6 +122,7 @@ export default function RootLayout() {
       setCountdown(count);
       if (count <= 0) {
         clearInterval(timer);
+        crashCancelRef.current = null;
         setCrashWarning(false);
         triggerSOSFromCrash(triggerSource);
       }
@@ -128,7 +132,10 @@ export default function RootLayout() {
   };
 
   const cancelCrashSOS = () => {
-    if (crashCancelRef.current) clearInterval(crashCancelRef.current);
+    if (crashCancelRef.current) {
+      clearInterval(crashCancelRef.current);
+      crashCancelRef.current = null;
+    }
     setCrashWarning(false);
   };
 
