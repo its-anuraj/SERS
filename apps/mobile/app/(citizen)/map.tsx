@@ -205,12 +205,12 @@ export default function LiveMapScreen() {
             coordinate={{ latitude: hs.latitude, longitude: hs.longitude }}
             onPress={() => setSelectedItem({
               type: 'hotspot',
-              title: `${hs.risk_label.toUpperCase()} Risk Zone`,
-              subtitle: `Accident risk: ${(hs.risk_score * 100).toFixed(0)}% · Radius: ${hs.radius_meters}m`,
-              color: RISK_COLORS[hs.risk_label],
+              title: `${(hs.risk_label || 'warning').toUpperCase()} Risk Zone`,
+              subtitle: `Accident risk: ${((hs.risk_score || 0) * 100).toFixed(0)}% · Radius: ${hs.radius_meters || 500}m`,
+              color: RISK_COLORS[hs.risk_label] || '#f97316',
             })}
           >
-            <View style={[styles.hotspotMarker, { backgroundColor: RISK_COLORS[hs.risk_label] + '30', borderColor: RISK_COLORS[hs.risk_label] }]}>
+            <View style={[styles.hotspotMarker, { backgroundColor: (RISK_COLORS[hs.risk_label] || '#f97316') + '30', borderColor: RISK_COLORS[hs.risk_label] || '#f97316' }]}>
               <Text style={{ fontSize: 12 }}>⚠️</Text>
             </View>
           </Marker>
@@ -223,8 +223,8 @@ export default function LiveMapScreen() {
             coordinate={{ latitude: h.latitude, longitude: h.longitude }}
             onPress={() => setSelectedItem({
               type: 'hospital',
-              title: h.name,
-              subtitle: `${h.distanceKm} km away · ER Beds: ${h.erBedsAvailable ?? '—'}`,
+              title: h.name || 'Hospital',
+              subtitle: `${h.distanceKm || '—'} km away · ER Beds: ${h.erBedsAvailable ?? '—'}`,
               color: '#3b82f6',
             })}
           >
@@ -241,8 +241,8 @@ export default function LiveMapScreen() {
             coordinate={{ latitude: inc.latitude, longitude: inc.longitude }}
             onPress={() => setSelectedItem({
               type: 'incident',
-              title: `${inc.type?.toUpperCase()} Incident`,
-              subtitle: `Severity: ${inc.severity} · Status: ${inc.status}`,
+              title: `${(inc.type || 'Emergency').toUpperCase()} Incident`,
+              subtitle: `Severity: ${inc.severity || 'moderate'} · Status: ${inc.status || 'reported'}`,
               color: SEVERITY_COLORS[inc.severity] || '#64748b',
             })}
           >

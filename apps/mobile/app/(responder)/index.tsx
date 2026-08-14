@@ -16,14 +16,18 @@ import { connectSocket, getSocket } from '../../services/socket';
 
 interface Incident {
   id: string;
-  incident_type: string;
-  severity: string;
-  status: string;
-  caller_name: string;
-  caller_phone: string;
+  type?: string;
+  incident_type?: string;
+  severity?: string;
+  status?: string;
+  reporter_name?: string;
+  caller_name?: string;
+  reporter_phone?: string;
+  caller_phone?: string;
   latitude: number;
   longitude: number;
-  address: string;
+  address?: string;
+  landmark?: string;
   created_at: string;
   distance_km?: number;
 }
@@ -85,7 +89,7 @@ export default function ResponderDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [dutyStatus]);
 
   // Fetch my currently assigned incident
   const fetchMyIncident = useCallback(async () => {
@@ -116,7 +120,7 @@ export default function ResponderDashboard() {
       socket.off('incident:new');
       socket.off('incident:updated');
     };
-  }, []);
+  }, [fetchIncidents, fetchMyIncident, status]);
 
   // Send GPS location to backend every 10s when busy
   useEffect(() => {
@@ -141,7 +145,9 @@ export default function ResponderDashboard() {
       setMyIncident(incident);
       setStatus('busy');
       setIncidents(prev => prev.filter(i => i.id !== incident.id));
-      openNavigation(incident.latitude, incident.longitude);
+      if (incident.latitude && incident.longitude) {
+        openNavigation(incident.latitude, incident.longitude);
+      }
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.message || 'Could not accept incident.');
     }
@@ -153,9 +159,10 @@ export default function ResponderDashboard() {
   };
 
   const acceptIncident = async (incident: Incident) => {
+    const incType = incident.type || incident.incident_type || 'other';
     Alert.alert(
       'Accept Incident?',
-      `${TYPE_ICON[incident.incident_type] || '🆘'} ${incident.incident_type.toUpperCase()}\n${incident.address || 'Location: ' + incident.latitude + ', ' + incident.longitude}`,
+      `${TYPE_ICON[incType] || '🆘'} ${incType.toUpperCase()}\n${incident.address || (incident.latitude && incident.longitude ? `Location: ${incident.latitude.toFixed(4)}, ${incident.longitude.toFixed(4)}` : 'Location provided via GPS')}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -167,7 +174,9 @@ export default function ResponderDashboard() {
               setStatus('busy');
               setIncidents(prev => prev.filter(i => i.id !== incident.id));
               // Open Google Maps navigation
-              openNavigation(incident.latitude, incident.longitude);
+              if (incident.latitude && incident.longitude) {
+                openNavigation(incident.latitude, incident.longitude);
+              }
             } catch (err: any) {
               Alert.alert('Error', err?.response?.data?.message || 'Could not accept incident.');
             }
@@ -207,38 +216,46 @@ export default function ResponderDashboard() {
     ]);
   };
 
-  const renderIncident = ({ item }: { item: Incident }) => (
-    <TouchableOpacity style={styles.card} onPress={() => acceptIncident(item)} activeOpacity={0.85}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardIcon}>{TYPE_ICON[item.incident_type] || '🆘'}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardType}>{item.incident_type.toUpperCase()}</Text>
-          <Text style={styles.cardTime}>
-            {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+  const renderIncident = ({ item }: { item: Incident }) => {
+    const incType = item.type || item.incident_type || 'other';
+    const incSev = item.severity || 'unknown';
+    const callerName = item.reporter_name || item.caller_name || 'Citizen';
+    const callerPhone = item.reporter_phone || item.caller_phone || 'Emergency Contact';
+    const sevColor = SEVERITY_COLOR[incSev] || '#64748b';
+
+    return (
+      <TouchableOpacity style={styles.card} onPress={() => acceptIncident(item)} activeOpacity={0.85}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>{TYPE_ICON[incType] || '🆘'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardType}>{incType.toUpperCase()}</Text>
+            <Text style={styles.cardTime}>
+              {item.created_at ? new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+            </Text>
+          </View>
+          <View style={[styles.severityBadge, { backgroundColor: sevColor + '20', borderColor: sevColor }]}>
+            <Text style={[styles.severityText, { color: sevColor }]}>
+              {incSev.toUpperCase()}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.severityBadge, { backgroundColor: SEVERITY_COLOR[item.severity] + '20', borderColor: SEVERITY_COLOR[item.severity] }]}>
-          <Text style={[styles.severityText, { color: SEVERITY_COLOR[item.severity] }]}>
-            {item.severity.toUpperCase()}
-          </Text>
+        <Text style={styles.cardAddress} numberOfLines={2}>
+          📍 {item.address || (item.latitude && item.longitude ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}` : 'Location provided via GPS')}
+        </Text>
+        <Text style={styles.cardCaller}>👤 {callerName}  📞 {callerPhone}</Text>
+        <View style={styles.acceptBtn}>
+          <Text style={styles.acceptText}>Accept & Navigate →</Text>
         </View>
-      </View>
-      <Text style={styles.cardAddress} numberOfLines={2}>
-        📍 {item.address || `${item.latitude?.toFixed(4)}, ${item.longitude?.toFixed(4)}`}
-      </Text>
-      <Text style={styles.cardCaller}>👤 {item.caller_name}  📞 {item.caller_phone}</Text>
-      <View style={styles.acceptBtn}>
-        <Text style={styles.acceptText}>Accept & Navigate →</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0]} 🚑</Text>
+          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Responder'} 🚑</Text>
           <TouchableOpacity onPress={handleDutyToggle} style={[styles.statusDot, { backgroundColor: dutyStatus === 'on_duty' ? (status === 'available' ? '#22c55e' : '#f97316') : '#64748b' }]}>
             <Text style={styles.statusText}>
               {dutyStatus === 'on_leave' ? '⏸️ On Leave (Tap to Start Duty)' : (status === 'available' ? '● Available' : '● Busy')}
@@ -254,13 +271,15 @@ export default function ResponderDashboard() {
       {myIncident && (
         <View style={styles.activeCard}>
           <Text style={styles.activeTitle}>🚨 Active Incident</Text>
-          <Text style={styles.activeType}>{TYPE_ICON[myIncident.incident_type]} {myIncident.incident_type.toUpperCase()}</Text>
+          <Text style={styles.activeType}>
+            {TYPE_ICON[myIncident.type || myIncident.incident_type || 'other']} {(myIncident.type || myIncident.incident_type || 'other').toUpperCase()}
+          </Text>
           <Text style={styles.activeAddr}>📍 {myIncident.address || 'GPS Location'}</Text>
-          <Text style={styles.activeStatus}>Status: {myIncident.status.replace('_', ' ').toUpperCase()}</Text>
+          <Text style={styles.activeStatus}>Status: {(myIncident.status || 'assigned').replace('_', ' ').toUpperCase()}</Text>
           <View style={styles.activeActions}>
             <TouchableOpacity
               style={styles.navBtn}
-              onPress={() => openNavigation(myIncident.latitude, myIncident.longitude)}
+              onPress={() => myIncident.latitude && myIncident.longitude && openNavigation(myIncident.latitude, myIncident.longitude)}
             >
               <Text style={styles.navBtnText}>🗺️ Navigate</Text>
             </TouchableOpacity>
@@ -319,12 +338,14 @@ export default function ResponderDashboard() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalWarning}>🚨 DISPATCH ALERT</Text>
-            <Text style={styles.modalType}>{TYPE_ICON[incomingAlert?.incident_type || 'other']} {incomingAlert?.incident_type?.toUpperCase()}</Text>
+            <Text style={styles.modalType}>
+              {TYPE_ICON[incomingAlert?.type || incomingAlert?.incident_type || 'other']} {(incomingAlert?.type || incomingAlert?.incident_type || 'other').toUpperCase()}
+            </Text>
             
             <View style={styles.modalDetails}>
               <Text style={styles.modalDetailText}>📍 {incomingAlert?.address || 'Location provided via GPS'}</Text>
-              <Text style={styles.modalDetailText}>👤 {incomingAlert?.caller_name || 'Citizen'}</Text>
-              <Text style={styles.modalDetailText}>📞 {incomingAlert?.caller_phone || 'Unknown'}</Text>
+              <Text style={styles.modalDetailText}>👤 {incomingAlert?.reporter_name || incomingAlert?.caller_name || 'Citizen'}</Text>
+              <Text style={styles.modalDetailText}>📞 {incomingAlert?.reporter_phone || incomingAlert?.caller_phone || 'Unknown'}</Text>
               {/* Stub for Medical Profile Details requested by user */}
               <View style={styles.medicalProfileStub}>
                 <Text style={styles.medicalProfileTitle}>Medical Profile (If available):</Text>
