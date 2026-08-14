@@ -244,20 +244,25 @@ export default function HomeScreen() {
         try {
           const storedId = await SecureStore.getItemAsync('sers_active_incident_id');
           if (storedId) {
-            setActiveIncidentId(storedId);
-          }
-          const res = await api.get('/incidents?limit=5');
-          const active = (res.data?.data || []).find((i: any) =>
-            !['resolved', 'cancelled', 'false_alarm'].includes(i.status)
-          );
-          if (active) {
-            setActiveIncidentId(active.id);
-            await SecureStore.setItemAsync('sers_active_incident_id', active.id);
+            try {
+              const res = await api.get(`/incidents/${storedId}`);
+              const status = res.data?.data?.status;
+              if (['resolved', 'cancelled', 'false_alarm'].includes(status)) {
+                setActiveIncidentId(null);
+                await SecureStore.deleteItemAsync('sers_active_incident_id');
+              } else {
+                setActiveIncidentId(storedId);
+              }
+            } catch {
+              setActiveIncidentId(null);
+              await SecureStore.deleteItemAsync('sers_active_incident_id');
+            }
           } else {
             setActiveIncidentId(null);
-            await SecureStore.deleteItemAsync('sers_active_incident_id');
           }
-        } catch {}
+        } catch {
+          setActiveIncidentId(null);
+        }
       })();
     }, [])
   );
