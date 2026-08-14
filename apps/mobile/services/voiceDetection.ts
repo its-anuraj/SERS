@@ -2,6 +2,7 @@
  * Voice Detection Service with Continuous Microphone Listening
  * Listens for emergency distress keywords in real-time:
  * "help", "emergency", "bachao", "maddad karo", "madad", "ambulance", "save me".
+ * 100% Real Audio/Voice Input — Zero manual buttons.
  * If spoken 3 times within 3-8 seconds, automatically triggers instant Voice Emergency SOS.
  */
 
@@ -25,6 +26,7 @@ export interface VoiceDetectionState {
   recentMatches: string[];
   lastMatchTime: number | null;
   audioLevel: number;
+  lastSpokenTranscript: string;
 }
 
 let isListening = false;
@@ -34,6 +36,7 @@ let triggerCallback: ((data: { keyword: string; count: number }) => void) | null
 let stateChangeListeners: ((state: VoiceDetectionState) => void)[] = [];
 let recordingInstance: Audio.Recording | null = null;
 let webSpeechRecognition: any = null;
+let lastSpokenTranscript = '';
 
 export const onVoiceStateChange = (listener: (state: VoiceDetectionState) => void) => {
   stateChangeListeners.push(listener);
@@ -49,18 +52,20 @@ const notifyState = (audioLevel: number = 0) => {
     recentMatches: keywordMatches.map((m) => m.word),
     lastMatchTime: keywordMatches.length > 0 ? keywordMatches[keywordMatches.length - 1].timestamp : null,
     audioLevel,
+    lastSpokenTranscript,
   };
   stateChangeListeners.forEach((l) => l(state));
 };
 
 /**
- * Process spoken transcript in real-time
+ * Process spoken transcript from microphone in real-time
  * Checks if transcript contains emergency keywords within 8 seconds window.
  */
 export const processVoiceTranscript = (transcript: string): boolean => {
   if (!isListening || !transcript) return false;
 
   const normalized = transcript.toLowerCase().trim();
+  lastSpokenTranscript = transcript;
   const now = Date.now();
 
   // Prune matches older than 8 seconds (rapid distress window)
@@ -86,11 +91,12 @@ export const processVoiceTranscript = (transcript: string): boolean => {
     }
   }
 
+  notifyState();
   return false;
 };
 
 /**
- * Manually feed a recognized keyword
+ * Record a recognized keyword
  */
 export const recordVoiceKeyword = (keyword: string) => {
   return processVoiceTranscript(keyword);
@@ -196,6 +202,7 @@ export const stopVoiceDetection = async () => {
   isListening = false;
   isPreparing = false;
   keywordMatches = [];
+  lastSpokenTranscript = '';
 
   if (webSpeechRecognition) {
     try { webSpeechRecognition.stop(); } catch {}
@@ -220,4 +227,5 @@ export const getVoiceDetectionState = (): VoiceDetectionState => ({
   recentMatches: keywordMatches.map((m) => m.word),
   lastMatchTime: keywordMatches.length > 0 ? keywordMatches[keywordMatches.length - 1].timestamp : null,
   audioLevel: 0,
+  lastSpokenTranscript,
 });

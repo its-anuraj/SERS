@@ -36,6 +36,7 @@ export default function HomeScreen() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceMatchCount, setVoiceMatchCount] = useState(0);
   const [recentVoiceKeywords, setRecentVoiceKeywords] = useState<string[]>([]);
+  const [liveTranscript, setLiveTranscript] = useState<string>('');
 
   // Persistent refs to avoid re-render effect cascades
   const locationRef = useRef<Location.LocationObject | null>(null);
@@ -225,6 +226,7 @@ export default function HomeScreen() {
     const unsub = onVoiceStateChange((state) => {
       setVoiceMatchCount(state.matchCount);
       setRecentVoiceKeywords(state.recentMatches);
+      setLiveTranscript(state.lastSpokenTranscript || '');
     });
 
     startVoiceDetection((data) => {
@@ -273,12 +275,9 @@ export default function HomeScreen() {
       return;
     }
 
-    if (sosActive) return;
-
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    Vibration.vibrate([0, 200, 100, 200]);
-
     setSosActive(true);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Vibration.vibrate([0, 500, 200, 500]);
 
     const userLoc = locationRef.current;
     const contacts = emergencyContactsRef.current || [];
@@ -287,12 +286,11 @@ export default function HomeScreen() {
       const res = await api.post('/incidents/sos', {
         latitude: userLoc?.coords?.latitude || 28.4595,
         longitude: userLoc?.coords?.longitude || 77.0266,
-        type: 'accident',
-        description: 'SOS triggered from citizen app',
+        type: 'medical',
         notifyContacts: contacts.map(c => c.phone),
       });
 
-      const incidentId = res.data?.data?.incidentId || res.data?.data?.id;
+      const incidentId = res.data?.data?.id || res.data?.data?.incidentId;
       if (incidentId) {
         setActiveIncidentId(incidentId);
         await SecureStore.setItemAsync('sers_active_incident_id', incidentId);
@@ -319,7 +317,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Arjun'} 👋</Text>
           <Text style={styles.subtitle}>Stay safe. Help is always nearby.</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/(citizen)/settings' as any)} style={styles.avatar}>
+        <TouchableOpacity onPress={() => router.push('/(citizen)/contacts' as any)} style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'A'}</Text>
         </TouchableOpacity>
       </View>
@@ -518,37 +516,35 @@ export default function HomeScreen() {
                 : '🚨 3/3 MATCHED! DISPATCHING EMERGENCY SOS!'}
             </Text>
 
-            {/* Recent matches tags */}
-            {recentVoiceKeywords.length > 0 && (
-              <View style={styles.tagsContainer}>
-                {recentVoiceKeywords.map((w, idx) => (
-                  <View key={idx} style={styles.keywordTag}>
-                    <Text style={styles.keywordTagText}>🗣️ "{w}"</Text>
+            {/* Live Microphone Visualizer */}
+            <View style={styles.liveMicVisualizer}>
+              <Animated.View style={[styles.liveMicPulse, { transform: [{ scale: voicePulseAnim }] }]}>
+                <Text style={{ fontSize: 36 }}>🎙️</Text>
+              </Animated.View>
+              <Text style={styles.liveMicStatus}>
+                Phone Microphone is <Text style={{ color: '#22c55e', fontWeight: '900' }}>LISTENING LIVE</Text>
+              </Text>
+            </View>
+
+            {/* Live Heard Transcript Box */}
+            <View style={styles.transcriptBox}>
+              <Text style={styles.transcriptLabel}>Live Speech Transcript (Real Input):</Text>
+              <Text style={styles.transcriptText}>
+                {liveTranscript ? `🗣️ "${liveTranscript}"` : 'Listening... Speak distress words into your phone microphone.'}
+              </Text>
+            </View>
+
+            {/* Recognized Keywords Reference Grid */}
+            <View style={styles.keywordsGridSection}>
+              <Text style={styles.keywordsSectionLabel}>Recognized Distress Keywords:</Text>
+              <View style={styles.keywordsGrid}>
+                {['"Help"', '"Bachao"', '"Emergency"', '"Madad Karo"', '"Ambulance"', '"Save Me"'].map((kw) => (
+                  <View key={kw} style={styles.kwBadge}>
+                    <Text style={styles.kwBadgeText}>{kw}</Text>
                   </View>
                 ))}
               </View>
-            )}
-
-            {/* Test Voice Keyword Buttons */}
-            <Text style={styles.testKeywordsLabel}>Tap to Test Voice Keywords:</Text>
-            <View style={styles.testButtonsGrid}>
-              {['Help!', 'Bachao!', 'Emergency!', 'Madad Karo!'].map((btnText) => (
-                <TouchableOpacity
-                  key={btnText}
-                  style={styles.testBtn}
-                  onPress={() => handleVoiceTestKeyword(btnText.replace('!', '').toLowerCase())}
-                >
-                  <Text style={styles.testBtnText}>🗣️ "{btnText}"</Text>
-                </TouchableOpacity>
-              ))}
             </View>
-
-            <TouchableOpacity
-              style={styles.emergencyDirectDispatchBtn}
-              onPress={() => triggerVoiceSOS('manual_voice_test')}
-            >
-              <Text style={styles.emergencyDirectDispatchText}>⚡ Direct Voice SOS Dispatch Now</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -717,22 +713,46 @@ const styles = StyleSheet.create({
   },
   progressCircleActive: { backgroundColor: '#ef4444', borderColor: '#f87171' },
   progressCircleText: { color: '#fff', fontWeight: '900', fontSize: 18 },
-  progressLabel: { color: '#f1f5f9', textAlign: 'center', fontWeight: '700', fontSize: 13, marginBottom: 16 },
-  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 16 },
-  keywordTag: {
-    backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: '#ef4444',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  progressLabel: { color: '#f1f5f9', textAlign: 'center', fontWeight: '700', fontSize: 13, marginVertical: 10 },
+  liveMicVisualizer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
   },
-  keywordTagText: { color: '#fca5a5', fontWeight: '700', fontSize: 12 },
-  testKeywordsLabel: { color: '#64748b', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
-  testButtonsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  testBtn: {
-    flex: 1, minWidth: '45%', backgroundColor: '#1e293b', padding: 12,
-    borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#334155',
+  liveMicPulse: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    borderWidth: 2,
+    borderColor: '#22c55e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  testBtnText: { color: '#60a5fa', fontWeight: '700', fontSize: 13 },
-  emergencyDirectDispatchBtn: {
-    backgroundColor: '#dc2626', padding: 16, borderRadius: 14, alignItems: 'center',
+  liveMicStatus: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+
+  transcriptBox: {
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    padding: 14,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  emergencyDirectDispatchText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  transcriptLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
+  transcriptText: { color: '#f1f5f9', fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+
+  keywordsGridSection: { marginTop: 4 },
+  keywordsSectionLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 8 },
+  keywordsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  kwBadge: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  kwBadgeText: { color: '#60a5fa', fontSize: 12, fontWeight: '700' },
 });
