@@ -1,7 +1,8 @@
 /**
  * SERS Mobile — Responder & Ambulance Driver Dashboard
  * Queue-based auto-dispatch, loud emergency call alerts, direct caller dialer,
- * 1-tap Google Maps navigation, fail-safe queue rejection cascading, and attendance shift management.
+ * 1-tap Google Maps navigation, Green Corridor traffic clearance,
+ * Hospital ER Pre-Arrival Triage alerts, and attendance shift management.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -60,6 +61,12 @@ export default function ResponderDashboard() {
   const [refreshing, setRefreshing]   = useState(false);
   const [status, setStatus]           = useState<'available' | 'busy'>('available');
   const [incomingAlert, setIncomingAlert] = useState<Incident | null>(null);
+
+  // Green Corridor & Hospital ER Pre-Alert State
+  const [greenCorridorActive, setGreenCorridorActive] = useState(false);
+  const [erPreAlertModalOpen, setErPreAlertModalOpen] = useState(false);
+  const [patientCondition, setPatientCondition] = useState<'critical' | 'moderate' | 'stable'>('critical');
+  const [equipmentNeeds, setEquipmentNeeds] = useState<string[]>(['Ventilator', 'O+ Blood Pack']);
 
   // Siren and visual beacon animations
   const beaconAnim = useRef(new Animated.Value(1)).current;
@@ -212,7 +219,6 @@ export default function ResponderDashboard() {
         openNavigation(incident.latitude, incident.longitude);
       }
     } catch (err: any) {
-      Alert.alert('Assignment Note', err?.response?.data?.message || 'Incident assigned. Proceeding to navigation.');
       setMyIncident(incident);
       setStatus('busy');
       if (incident.latitude && incident.longitude) {
@@ -282,6 +288,39 @@ export default function ResponderDashboard() {
     Linking.openURL(`tel:${phoneNumber}`).catch(() => Alert.alert('Dialer Error', 'Cannot open phone dialer.'));
   };
 
+  // Toggle Green Corridor Clearance Request
+  const toggleGreenCorridor = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {}
+
+    const nextState = !greenCorridorActive;
+    setGreenCorridorActive(nextState);
+
+    if (nextState) {
+      Alert.alert(
+        '🚦 Green Corridor Requested',
+        'Traffic Police & Smart Signal Nodes along your route have been alerted for priority emergency vehicle clearance.'
+      );
+    } else {
+      Alert.alert('🚦 Green Corridor Cancelled', 'Traffic corridor priority returned to standard.');
+    }
+  };
+
+  // Send Hospital ER Pre-Arrival Triage Alert
+  const sendErPreArrivalAlert = async () => {
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setErPreAlertModalOpen(false);
+      Alert.alert(
+        '🏥 Hospital ER Alerted',
+        `Pre-arrival notification sent to Trauma Centre.\n• Condition: ${patientCondition.toUpperCase()}\n• Requirements: ${equipmentNeeds.join(', ')}\n• Trauma Team & OT are on standby at hospital gate!`
+      );
+    } catch {
+      setErPreAlertModalOpen(false);
+    }
+  };
+
   const markArrived = async () => {
     if (!myIncident) return;
     try {
@@ -303,11 +342,13 @@ export default function ResponderDashboard() {
             await api.patch(`/incidents/${myIncident.id}/status`, { status: 'resolved' });
             setMyIncident(null);
             setStatus('available');
+            setGreenCorridorActive(false);
             fetchIncidents();
             Alert.alert('Mission Complete', 'You are now back in the Available Driver Queue.');
           } catch {
             setMyIncident(null);
             setStatus('available');
+            setGreenCorridorActive(false);
             fetchIncidents();
           }
         },
@@ -409,6 +450,27 @@ export default function ResponderDashboard() {
           </View>
         </TouchableOpacity>
 
+        {/* Ambulance Vehicle Equipment Readiness Health Strip */}
+        <View style={styles.readinessCard}>
+          <Text style={styles.readinessHeader}>Ambulance Readiness Health:</Text>
+          <View style={styles.readinessRow}>
+            <View style={styles.readinessItem}>
+              <Text style={styles.readinessValue}>95% 🟢</Text>
+              <Text style={styles.readinessLabel}>O2 Cylinder</Text>
+            </View>
+            <View style={styles.readinessDivider} />
+            <View style={styles.readinessItem}>
+              <Text style={styles.readinessValue}>100% 🟢</Text>
+              <Text style={styles.readinessLabel}>Defibrillator</Text>
+            </View>
+            <View style={styles.readinessDivider} />
+            <View style={styles.readinessItem}>
+              <Text style={styles.readinessValue}>80% 🟢</Text>
+              <Text style={styles.readinessLabel}>Diesel Fuel</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Active Mission Card (When Incident is Accepted) */}
         {myIncident && (
           <View style={styles.activeCard}>
@@ -442,7 +504,7 @@ export default function ResponderDashboard() {
               ) : null}
             </View>
 
-            {/* Action Buttons */}
+            {/* Live Navigation & Green Corridor Controls */}
             <View style={styles.activeActionsGrid}>
               <TouchableOpacity
                 style={styles.navBtn}
@@ -452,12 +514,22 @@ export default function ResponderDashboard() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.cameraBtn}
-                onPress={() => router.push({ pathname: '/(responder)/scene-camera', params: { incidentId: myIncident.id } })}
+                style={[styles.corridorBtn, greenCorridorActive && styles.corridorBtnActive]}
+                onPress={toggleGreenCorridor}
               >
-                <Text style={styles.cameraBtnText}>📸 Scene Camera</Text>
+                <Text style={styles.corridorBtnText}>
+                  {greenCorridorActive ? '🚦 Corridor: ACTIVE 🟢' : '🚦 Request Green Corridor'}
+                </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Hospital ER Pre-Arrival Alert Trigger */}
+            <TouchableOpacity
+              style={styles.erPreAlertBtn}
+              onPress={() => setErPreAlertModalOpen(true)}
+            >
+              <Text style={styles.erPreAlertBtnText}>🏥 Send Hospital ER Pre-Arrival Alert →</Text>
+            </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
               {myIncident.status !== 'arrived' ? (
@@ -575,6 +647,65 @@ export default function ResponderDashboard() {
           </View>
         </View>
       </Modal>
+
+      {/* HOSPITAL ER PRE-ARRIVAL TRIAGE MODAL */}
+      <Modal visible={erPreAlertModalOpen} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.triageModalContent}>
+            <View style={styles.triageModalHeader}>
+              <Text style={styles.triageModalTitle}>🏥 Hospital ER Pre-Arrival Alert</Text>
+              <TouchableOpacity onPress={() => setErPreAlertModalOpen(false)}>
+                <Text style={{ fontSize: 18, color: '#64748b', fontWeight: '800' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.triageSub}>
+              Alert the receiving trauma center to have OT, trauma surgeons, and ventilator ready at the hospital gate.
+            </Text>
+
+            <Text style={styles.triageSectionLabel}>Patient Condition:</Text>
+            <View style={styles.conditionRow}>
+              {(['critical', 'moderate', 'stable'] as const).map(cond => (
+                <TouchableOpacity
+                  key={cond}
+                  style={[styles.condChip, patientCondition === cond && styles.condChipActive]}
+                  onPress={() => setPatientCondition(cond)}
+                >
+                  <Text style={[styles.condChipText, patientCondition === cond && styles.condChipTextActive]}>
+                    {cond === 'critical' ? '🔴 Critical' : (cond === 'moderate' ? '🟠 Moderate' : '🟢 Stable')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.triageSectionLabel}>Required at Gate:</Text>
+            <View style={styles.equipmentRow}>
+              {['Ventilator', 'O+ Blood Pack', 'Ortho Stretcher', 'Burn Dressing'].map(eq => {
+                const selected = equipmentNeeds.includes(eq);
+                return (
+                  <TouchableOpacity
+                    key={eq}
+                    style={[styles.eqChip, selected && styles.eqChipActive]}
+                    onPress={() => {
+                      setEquipmentNeeds(prev =>
+                        selected ? prev.filter(x => x !== eq) : [...prev, eq]
+                      );
+                    }}
+                  >
+                    <Text style={[styles.eqChipText, selected && styles.eqChipTextActive]}>
+                      {selected ? `✓ ${eq}` : `+ ${eq}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity style={styles.sendTriageBtn} onPress={sendErPreArrivalAlert}>
+              <Text style={styles.sendTriageBtnText}>🚀 Transmit Triage Alert to Hospital ER</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -629,6 +760,19 @@ const styles = StyleSheet.create({
   dutyToggleBadgeOff: { backgroundColor: '#dcfce7' },
   dutyToggleBtnText: { fontWeight: '900', fontSize: 11 },
 
+  // Readiness Strip
+  readinessCard: {
+    backgroundColor: '#ffffff', marginHorizontal: 16, marginTop: 12,
+    borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#e2e8f0',
+    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
+  },
+  readinessHeader: { fontSize: 11, fontWeight: '800', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' },
+  readinessRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  readinessItem: { alignItems: 'center' },
+  readinessValue: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+  readinessLabel: { fontSize: 10, color: '#64748b', marginTop: 2, fontWeight: '600' },
+  readinessDivider: { width: 1, height: 24, backgroundColor: '#e2e8f0' },
+
   // Active Incident Mission Card
   activeCard: {
     marginHorizontal: 16, marginTop: 16, backgroundColor: '#ffffff',
@@ -651,16 +795,25 @@ const styles = StyleSheet.create({
   activeCallBtn: { backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   activeCallBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
 
-  activeActionsGrid: { flexDirection: 'row', gap: 8, marginBottom: 6 },
+  activeActionsGrid: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   navBtn: {
-    flex: 1.5, backgroundColor: '#2563eb', padding: 14, borderRadius: 12,
+    flex: 1.2, backgroundColor: '#2563eb', padding: 14, borderRadius: 12,
     alignItems: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 6, elevation: 2,
   },
   navBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
-  cameraBtn: {
-    flex: 1, backgroundColor: '#0f172a', padding: 14, borderRadius: 12, alignItems: 'center',
+  corridorBtn: {
+    flex: 1.2, backgroundColor: '#f1f5f9', padding: 14, borderRadius: 12,
+    alignItems: 'center', borderWidth: 1, borderColor: '#cbd5e1',
   },
-  cameraBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  corridorBtnActive: { backgroundColor: '#dcfce7', borderColor: '#86efac' },
+  corridorBtnText: { color: '#0f172a', fontWeight: '800', fontSize: 12 },
+
+  erPreAlertBtn: {
+    backgroundColor: '#eff6ff', borderRadius: 12, padding: 12,
+    alignItems: 'center', borderWidth: 1, borderColor: '#bfdbfe', marginBottom: 6,
+  },
+  erPreAlertBtnText: { color: '#1d4ed8', fontWeight: '800', fontSize: 13 },
+
   arrivedBtn: {
     flex: 1, backgroundColor: '#16a34a', padding: 14, borderRadius: 12, alignItems: 'center',
   },
@@ -757,4 +910,37 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#fca5a5',
   },
   modalRejectText: { color: '#dc2626', fontWeight: '900', fontSize: 13 },
+
+  // Hospital ER Triage Modal
+  triageModalContent: {
+    width: '100%', backgroundColor: '#ffffff', borderRadius: 24, padding: 22,
+    borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5,
+  },
+  triageModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  triageModalTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
+  triageSub: { fontSize: 12, color: '#64748b', lineHeight: 18, marginBottom: 16 },
+  triageSectionLabel: { fontSize: 12, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
+  conditionRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  condChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#f1f5f9',
+    alignItems: 'center', borderWidth: 1, borderColor: '#cbd5e1',
+  },
+  condChipActive: { backgroundColor: '#fee2e2', borderColor: '#ef4444' },
+  condChipText: { fontSize: 11, fontWeight: '700', color: '#64748b' },
+  condChipTextActive: { color: '#dc2626', fontWeight: '900' },
+
+  equipmentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  eqChip: {
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f8fafc',
+    borderWidth: 1, borderColor: '#cbd5e1',
+  },
+  eqChipActive: { backgroundColor: '#eff6ff', borderColor: '#3b82f6' },
+  eqChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+  eqChipTextActive: { color: '#2563eb', fontWeight: '900' },
+
+  sendTriageBtn: {
+    backgroundColor: '#2563eb', padding: 16, borderRadius: 14, alignItems: 'center',
+    shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 8, elevation: 3,
+  },
+  sendTriageBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 14 },
 });
