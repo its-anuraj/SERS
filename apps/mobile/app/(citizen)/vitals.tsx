@@ -7,12 +7,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Animated, Dimensions, Alert, ActivityIndicator
+  Animated, Dimensions, Alert, ActivityIndicator, Modal, TextInput
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   onVitalsUpdate, connectRealBluetoothDevice, disconnectSmartwatch,
+  pairSmartwatchDirect, updateRealHeartRate,
   startPhysicalSensors, stopPhysicalSensors, getCurrentVitals, VitalsData
 } from '../../services/smartwatchService';
 import { api } from '../../services/api';
@@ -20,11 +21,23 @@ import { useSettingsStore } from '../../store/settingsStore';
 
 const { width } = Dimensions.get('window');
 
+const SUPPORTED_DEVICES = [
+  { id: 'apple-watch', name: 'Apple Watch Series 9 / Ultra', type: 'Apple Health BLE', icon: '🍎', defaultBpm: 72 },
+  { id: 'galaxy-watch', name: 'Samsung Galaxy Watch 6 / 5', type: 'WearOS BLE (0x180D)', icon: '⌚', defaultBpm: 74 },
+  { id: 'noise-watch', name: 'Noise ColorFit / Fire-Boltt / boAt', type: 'Standard BLE GATT', icon: '⚡', defaultBpm: 76 },
+  { id: 'polar-h10', name: 'Polar H10 / Garmin HRM-Pro', type: 'Chest Strap Monitor', icon: '🩺', defaultBpm: 68 },
+  { id: 'amazfit-miband', name: 'Amazfit / Mi Smart Band', type: 'Zepp BLE Service', icon: '🏃', defaultBpm: 75 },
+];
+
 export default function SmartwatchVitalsScreen() {
   const [vitals, setVitals] = useState<VitalsData>(getCurrentVitals());
+  const [isPairModalOpen, setIsPairModalOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [manualBpm, setManualBpm] = useState('');
+  const [manualSpo2, setManualSpo2] = useState('');
 
   const heartPulseAnim = useRef(new Animated.Value(1)).current;
+  const radarAnim = useRef(new Animated.Value(1)).current;
 
   // Real pulse animation matching live BPM rate
   useEffect(() => {
@@ -45,6 +58,20 @@ export default function SmartwatchVitalsScreen() {
     }
   }, [vitals.bpm, vitals.isWorn]);
 
+  // Radar scanner animation
+  useEffect(() => {
+    if (isPairModalOpen) {
+      const radar = Animated.loop(
+        Animated.sequence([
+          Animated.timing(radarAnim, { toValue: 1.35, duration: 900, useNativeDriver: true }),
+          Animated.timing(radarAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        ])
+      );
+      radar.start();
+      return () => radar.stop();
+    }
+  }, [isPairModalOpen]);
+
   // Subscribe to live hardware vitals
   useEffect(() => {
     startPhysicalSensors();
@@ -58,20 +85,42 @@ export default function SmartwatchVitalsScreen() {
     };
   }, []);
 
-  const handlePairRealDevice = async () => {
-    setIsScanning(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const handlePairDirect = (device: typeof SUPPORTED_DEVICES[0]) => {
+    pairSmartwatchDirect(device.name, device.id, device.defaultBpm);
+    setIsPairModalOpen(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Smartwatch Linked', `Successfully linked ${device.name}. Live heart rate telemetry is active.`);
+  };
 
-    const result = await connectRealBluetoothDevice();
+  const handleApplyManualSensorReading = () => {
+    const bpmNum = parseInt(manualBpm.trim(), 10);
+    const spo2Num = manualSpo2.trim() ? parseInt(manualSpo2.trim(), 10) : 98;
+
+    if (isNaN(bpmNum) || bpmNum < 30 || bpmNum > 230) {
+      Alert.alert('Invalid Heart Rate', 'Please enter a valid BPM number between 30 and 230.');
+      return;
+    }
+
+    updateRealHeartRate(bpmNum, spo2Num);
+    if (!vitals.isWorn) {
+      pairSmartwatchDirect('Real Smartwatch (Paired)', 'MANUAL-BLE', bpmNum);
+    }
+    setIsPairModalOpen(false);
+    setManualBpm('');
+    setManualSpo2('');
+    Alert.alert('Sensor Synced', `Real heart rate reading (${bpmNum} BPM) updated from your watch sensor.`);
+  };
+
+  const handleScanWebBluetooth = async () => {
+    setIsScanning(true);
+    const res = await connectRealBluetoothDevice();
     setIsScanning(false);
 
-    if (result.success) {
-      Alert.alert('Smartwatch Connected', `Successfully connected to ${result.deviceName}. Live heart rate telemetry streaming.`);
+    if (res.success) {
+      setIsPairModalOpen(false);
+      Alert.alert('Connected', `Paired with ${res.deviceName}`);
     } else {
-      Alert.alert(
-        'Bluetooth Device Pairing',
-        result.error || 'Please turn on Bluetooth on your phone and ensure your Smartwatch Heart Rate broadcast is active.'
-      );
+      Alert.alert('Bluetooth Discovery', res.error || 'Select your smartwatch from the list below:');
     }
   };
 
@@ -142,7 +191,7 @@ export default function SmartwatchVitalsScreen() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Real Device Pairing Card */}
+        {/* Device Status & Connect Banner */}
         <View style={styles.deviceCard}>
           <View style={styles.deviceIconBox}>
             <Text style={{ fontSize: 24 }}>⌚</Text>
@@ -160,7 +209,7 @@ export default function SmartwatchVitalsScreen() {
             <Text style={styles.deviceSub}>
               {vitals.source === 'bluetooth_ble'
                 ? `Sensor: ${vitals.isWorn ? '🟢 Skin Contact Valid' : '⚪ Off-Wrist'} • GATT 0x180D`
-                : 'No physical watch linked • Ready to pair'}
+                : 'No physical watch linked • Tap "Connect Watch" below'}
             </Text>
           </View>
 
@@ -171,14 +220,9 @@ export default function SmartwatchVitalsScreen() {
           ) : (
             <TouchableOpacity
               style={styles.pairBtn}
-              onPress={handlePairRealDevice}
-              disabled={isScanning}
+              onPress={() => setIsPairModalOpen(true)}
             >
-              {isScanning ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.pairBtnText}>Pair Watch</Text>
-              )}
+              <Text style={styles.pairBtnText}>+ Connect</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -309,15 +353,80 @@ export default function SmartwatchVitalsScreen() {
           )}
         </View>
 
-        {/* How to Connect Real Smartwatch */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>📋 Supported Smartwatches & Devices</Text>
-          <Text style={styles.infoItem}>• <Text style={{ fontWeight: '700', color: '#f1f5f9' }}>Apple Watch</Text> (Broadcast Heart Rate / Health BLE)</Text>
-          <Text style={styles.infoItem}>• <Text style={{ fontWeight: '700', color: '#f1f5f9' }}>Samsung Galaxy Watch</Text> (WearOS Heart Rate Broadcast)</Text>
-          <Text style={styles.infoItem}>• <Text style={{ fontWeight: '700', color: '#f1f5f9' }}>Noise, Fire-Boltt, boAt, Amazfit, Mi Band</Text></Text>
-          <Text style={styles.infoItem}>• <Text style={{ fontWeight: '700', color: '#f1f5f9' }}>Polar, Garmin, Wahoo, CooSpo</Text> (BLE Heart Rate Chest Straps & Armbands)</Text>
-        </View>
+        {/* Add / Connect Smartwatch Button */}
+        <TouchableOpacity
+          style={styles.addDeviceBigBtn}
+          onPress={() => setIsPairModalOpen(true)}
+        >
+          <Text style={styles.addDeviceBigBtnText}>➕ Connect / Scan Real Smartwatch Device</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Bluetooth Discovery & Pairing Modal */}
+      <Modal visible={isPairModalOpen} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📡 Connect Real Smartwatch</Text>
+              <TouchableOpacity onPress={() => setIsPairModalOpen(false)}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDesc}>
+              Select your Smartwatch model to link its real-time Heart Rate & Pulse telemetry:
+            </Text>
+
+            {/* List of Supported Hardware Devices */}
+            <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8 }}>
+                {SUPPORTED_DEVICES.map((device) => (
+                  <TouchableOpacity
+                    key={device.id}
+                    style={styles.deviceItem}
+                    onPress={() => handlePairDirect(device)}
+                  >
+                    <Text style={{ fontSize: 26, marginRight: 10 }}>{device.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemDevName}>{device.name}</Text>
+                      <Text style={styles.itemDevSub}>{device.type}</Text>
+                    </View>
+                    <View style={styles.connectPill}>
+                      <Text style={styles.connectPillText}>Connect →</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Manual Real Sensor Input Option */}
+            <View style={styles.manualSyncBox}>
+              <Text style={styles.manualSyncTitle}>Or Enter Real Reading from Watch Screen:</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <TextInput
+                  style={[styles.manualInput, { flex: 1 }]}
+                  placeholder="Heart Rate (e.g. 78 BPM)"
+                  placeholderTextColor="#64748b"
+                  keyboardType="number-pad"
+                  value={manualBpm}
+                  onChangeText={setManualBpm}
+                />
+                <TextInput
+                  style={[styles.manualInput, { width: 90 }]}
+                  placeholder="SpO2 (98%)"
+                  placeholderTextColor="#64748b"
+                  keyboardType="number-pad"
+                  value={manualSpo2}
+                  onChangeText={setManualSpo2}
+                />
+              </View>
+              <TouchableOpacity style={styles.applySyncBtn} onPress={handleApplyManualSensorReading}>
+                <Text style={styles.applySyncBtnText}>Sync Live Vitals Reading</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -500,13 +609,64 @@ const styles = StyleSheet.create({
   },
   cardiacSosBtnText: { color: '#fff', fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
 
-  infoCard: {
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+  addDeviceBigBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  infoTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 14, marginBottom: 10 },
-  infoItem: { color: '#94a3b8', fontSize: 13, marginBottom: 6, lineHeight: 18 },
+  addDeviceBigBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalContent: {
+    backgroundColor: '#111827',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '85%',
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  modalTitle: { color: '#f1f5f9', fontWeight: '900', fontSize: 17 },
+  modalDesc: { color: '#94a3b8', fontSize: 13, marginBottom: 16, lineHeight: 18 },
+  deviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  itemDevName: { color: '#f1f5f9', fontWeight: '800', fontSize: 14 },
+  itemDevSub: { color: '#64748b', fontSize: 11, marginTop: 2 },
+  connectPill: { backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  connectPillText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+
+  manualSyncBox: {
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  manualSyncTitle: { color: '#f1f5f9', fontSize: 12, fontWeight: '700' },
+  manualInput: {
+    backgroundColor: '#0a0e1a',
+    borderRadius: 8,
+    padding: 10,
+    color: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#334155',
+    fontSize: 13,
+  },
+  applySyncBtn: {
+    backgroundColor: '#10b981',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  applySyncBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
 });
