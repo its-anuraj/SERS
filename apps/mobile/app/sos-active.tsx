@@ -96,7 +96,7 @@ export default function SosActiveScreen() {
         text: 'Yes, Cancel', style: 'destructive',
         onPress: async () => {
           if (incidentId) {
-            await api.patch(`/incidents/${incidentId}/status`, { status: 'cancelled' }).catch(() => {});
+            await api.post(`/incidents/${incidentId}/cancel`, { reason: 'Cancelled by citizen' }).catch(() => {});
           }
           router.back();
         },
