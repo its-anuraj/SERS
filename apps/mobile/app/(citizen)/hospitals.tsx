@@ -1,6 +1,5 @@
 /**
  * Citizen — Hospitals & ICU Beds Screen (Coming Soon)
- * Real-time ABDM & National Health Authority Hospital Bed Integration
  */
 
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
@@ -34,41 +33,6 @@ export default function HospitalsScreen() {
           </Text>
         </View>
 
-        {/* Feature Roadmap List */}
-        <View style={styles.featuresCard}>
-          <Text style={styles.featuresHeader}>Upcoming Capabilities:</Text>
-
-          <View style={styles.featureItem}>
-            <View style={styles.featureCheck}>
-              <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 14 }}>✓</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.featureTitle}>Real-Time ICU & ER Bed Counters</Text>
-              <Text style={styles.featureDesc}>Live vacancy tracking for ventilators, oxygen, and emergency trauma beds.</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={styles.featureCheck}>
-              <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 14 }}>✓</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.featureTitle}>1-Tap Bed Pre-Reservation</Text>
-              <Text style={styles.featureDesc}>Direct reservation while ambulance is en-route with automatic ABDM medical history sync.</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={styles.featureCheck}>
-              <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 14 }}>✓</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.featureTitle}>Specialty Trauma Center Matching</Text>
-              <Text style={styles.featureDesc}>AI routes severe cardiac, stroke, and road accidents to hospitals equipped with matching doctors.</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Action Button */}
         <TouchableOpacity style={styles.returnBtn} onPress={() => router.back()}>
           <Text style={styles.returnBtnText}>← Return to Home</Text>
@@ -80,12 +44,12 @@ export default function HospitalsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  scroll: { padding: 20, paddingBottom: 40, alignItems: 'center' },
+  scroll: { padding: 20, paddingTop: 40, alignItems: 'center' },
 
   heroCard: {
     backgroundColor: '#ffffff',
     borderRadius: 24,
-    padding: 24,
+    padding: 28,
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
@@ -94,7 +58,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   iconCircle: {
     width: 88,
@@ -119,33 +83,6 @@ const styles = StyleSheet.create({
   badgeText: { color: '#dc2626', fontWeight: '900', fontSize: 11, letterSpacing: 0.5 },
   title: { fontSize: 22, fontWeight: '900', color: '#0f172a', textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20 },
-
-  featuresCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 20,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-    marginBottom: 24,
-  },
-  featuresHeader: { fontSize: 14, fontWeight: '800', color: '#0f172a', marginBottom: 14 },
-  featureItem: { flexDirection: 'row', gap: 12, marginBottom: 16, alignItems: 'flex-start' },
-  featureCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#dcfce7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  featureTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  featureDesc: { fontSize: 12, color: '#64748b', lineHeight: 17 },
 
   returnBtn: {
     backgroundColor: '#2563eb',
