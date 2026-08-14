@@ -149,6 +149,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/index" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/vitals" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/hospitals" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/map" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/settings" options={{ headerShown: false }} />

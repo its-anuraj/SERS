@@ -423,23 +423,18 @@ export default function HomeScreen() {
         {/* Quick actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '🏥', label: 'Find Hospital', route: '/(citizen)/hospitals', color: '#3b82f6' },
+            { icon: '⌚', label: 'Smartwatch Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
+            { icon: '🏥', label: 'Find Hospital & Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
             { icon: '🚑', label: 'Track Ambulance', route: '/(citizen)/map', color: '#22c55e' },
-            { icon: '👤', label: 'Medical Profile', route: '/(citizen)/settings', color: '#a855f7' },
             { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/settings', color: '#f59e0b' },
-            { icon: '🗺️', label: 'Live Map', route: '/(citizen)/map', color: '#06b6d4' },
-            { icon: '📋', label: 'Settings', route: '/(citizen)/settings', color: '#ec4899' },
+            { icon: '🩺', label: 'ABDM Health Profile', route: '/(citizen)/settings', color: '#a855f7' },
+            { icon: '🗺️', label: 'Live GPS Map', route: '/(citizen)/map', color: '#06b6d4' },
           ].map((action) => (
             <TouchableOpacity
               key={action.label}
               style={styles.quickActionCard}
               onPress={() => {
-                if (['/(citizen)/map', '/(citizen)/hospitals', '/(citizen)/settings'].includes(action.route)) {
-                  router.push(action.route as any);
-                } else {
-                  Alert.alert('Settings', 'Opening citizen settings.');
-                  router.push('/(citizen)/settings' as any);
-                }
+                router.push(action.route as any);
               }}>
               <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}20`, borderColor: `${action.color}40` }]}>
                 <Text style={{ fontSize: 24 }}>{action.icon}</Text>
