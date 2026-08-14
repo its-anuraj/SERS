@@ -150,6 +150,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/vitals" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/contacts" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)/abdm" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/hospitals" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/map" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/settings" options={{ headerShown: false }} />

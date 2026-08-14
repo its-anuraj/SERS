@@ -11,6 +11,7 @@ const {
     triggerSOS, listIncidents, getIncident, updateStatus, getTimeline, assignIncident,
     acceptIncident, rejectIncident, bufferTelemetry, handleSMSGatewaySOS, cancelSOS
 } = require('../controllers/incident.controller');
+const { sendSMS } = require('../services/sms.service');
 
 // POST /api/incidents/sos — SOS trigger (citizen + responder)
 router.post('/sos', authenticate, [
@@ -128,9 +129,18 @@ router.post('/auto-dispatch', authenticate, async (req, res, next) => {
             io.emit('hospital:incoming-trauma', broadcastPayload);
         }
 
-        // 6. Notify emergency contacts
+        // 6. Notify emergency contacts with live GPS link
         if (notifyContacts && notifyContacts.length > 0) {
-            console.log(`[Voice SOS Alert] Dispatched SMS to emergency contacts: ${notifyContacts.join(', ')}`);
+            const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+            const alertMsg = `🚨 SERS EMERGENCY ALERT: ${patientName} (${patientPhone}) has triggered an Emergency SOS! Incident Location: ${incident.address || 'Live GPS Pinpoint'}. Live Map: ${mapsLink}. Emergency medical assistance has been dispatched.`;
+
+            for (const contact of notifyContacts) {
+                const phone = typeof contact === 'string' ? contact : contact.phone;
+                if (phone) {
+                    sendSMS(phone, alertMsg).catch(() => {});
+                }
+            }
+            console.log(`[Emergency Alert] Dispatched location SMS to ${notifyContacts.length} emergency contacts.`);
         }
 
         res.status(201).json({

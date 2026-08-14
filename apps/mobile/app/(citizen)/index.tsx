@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
-  const { emergencyContacts } = useSettingsStore();
+  const { emergencyContacts, appEnabled, toggleAppEnabled } = useSettingsStore();
   const [sosActive, setSosActive] = useState(false);
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -370,6 +370,30 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* SERS Active Protection Toggle Switch Card */}
+        <View style={styles.protectionCard}>
+          <View style={styles.protectionInfo}>
+            <Text style={styles.protectionTitle}>
+              {appEnabled ? '🛡️ SERS Active Protection: ON' : '⚪ SERS Protection: PAUSED'}
+            </Text>
+            <Text style={styles.protectionSub}>
+              {appEnabled
+                ? 'Crash sensors, Voice SOS & Smartwatch guard are active'
+                : 'Emergency sensors are temporarily paused'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.switchTrack, appEnabled ? styles.switchTrackOn : styles.switchTrackOff]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              toggleAppEnabled(!appEnabled);
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.switchThumb, appEnabled ? styles.switchThumbOn : styles.switchThumbOff]} />
+          </TouchableOpacity>
+        </View>
+
         {/* SOS Button — the hero element */}
         <View style={styles.sosContainer}>
           <Text style={styles.sosLabel}>EMERGENCY SOS</Text>
@@ -423,11 +447,11 @@ export default function HomeScreen() {
         {/* Quick actions */}
         <View style={styles.quickActions}>
           {[
+            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/contacts', color: '#f59e0b' },
+            { icon: '🩺', label: 'ABDM Health Profile', route: '/(citizen)/abdm', color: '#a855f7' },
             { icon: '⌚', label: 'Smartwatch Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
             { icon: '🏥', label: 'Find Hospital & Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
             { icon: '🚑', label: 'Track Ambulance', route: '/(citizen)/map', color: '#22c55e' },
-            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/settings', color: '#f59e0b' },
-            { icon: '🩺', label: 'ABDM Health Profile', route: '/(citizen)/settings', color: '#a855f7' },
             { icon: '🗺️', label: 'Live GPS Map', route: '/(citizen)/map', color: '#06b6d4' },
           ].map((action) => (
             <TouchableOpacity
@@ -594,6 +618,26 @@ const styles = StyleSheet.create({
   activeSosBannerSub: { color: '#fca5a5', fontSize: 12 },
   activeSosBannerBtn: { backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   activeSosBannerBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+
+  protectionCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#111827', marginHorizontal: 20, marginBottom: 20, padding: 16,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1e293b',
+  },
+  protectionInfo: { flex: 1, marginRight: 12 },
+  protectionTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 14, marginBottom: 2 },
+  protectionSub: { color: '#94a3b8', fontSize: 11, lineHeight: 15 },
+  switchTrack: {
+    width: 52, height: 30, borderRadius: 15, padding: 3, justifyContent: 'center',
+  },
+  switchTrackOn: { backgroundColor: '#22c55e' },
+  switchTrackOff: { backgroundColor: '#334155' },
+  switchThumb: {
+    width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+  },
+  switchThumbOn: { alignSelf: 'flex-end' },
+  switchThumbOff: { alignSelf: 'flex-start' },
 
   sosContainer: { alignItems: 'center', marginBottom: 28, paddingHorizontal: 20 },
   sosLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', letterSpacing: 2, marginBottom: 4 },
