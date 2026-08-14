@@ -10,6 +10,7 @@ import {
   Alert, ActivityIndicator, RefreshControl, Linking, Modal, Animated, ScrollView
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -99,25 +100,21 @@ export default function ResponderDashboard() {
 
   // Toggle Shift Attendance (On Duty vs Off Duty / On Leave)
   const handleDutyToggle = async () => {
-    const newStatus = dutyStatus === 'on_duty' ? 'on_leave' : 'on_duty';
-    await setDutyStatus(newStatus);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+
+    const nextStatus = dutyStatus === 'on_duty' ? 'on_leave' : 'on_duty';
+    await setDutyStatus(nextStatus);
     
-    if (newStatus === 'on_duty') {
-      try {
-        await api.post('/users/attendance/clock-in');
-        Alert.alert('🟢 Shift Started', 'Attendance marked successfully. You are now placed in the active driver dispatch queue.');
-        fetchIncidents();
-      } catch (e) {
-        Alert.alert('Shift Active', 'You are now ON DUTY and will receive emergency dispatch calls.');
-      }
+    if (nextStatus === 'on_duty') {
+      api.post('/users/attendance/clock-in').catch(() => {});
+      fetchIncidents();
     } else {
-      try {
-        await api.post('/users/attendance/clock-out');
-      } catch {}
+      api.post('/users/attendance/clock-out').catch(() => {});
       await stopEmergencySiren();
       setIncomingAlert(null);
       setIncidents([]); // Clear pending list when off duty
-      Alert.alert('⏸️ Shift Ended', 'You are now OFF DUTY. Emergency alerts are paused.');
     }
   };
 
@@ -381,8 +378,12 @@ export default function ResponderDashboard() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         {/* Attendance & Shift Management Card */}
-        <View style={[styles.dutyCard, isDutyOn ? styles.dutyCardOn : styles.dutyCardOff]}>
-          <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={[styles.dutyCard, isDutyOn ? styles.dutyCardOn : styles.dutyCardOff]}
+          onPress={handleDutyToggle}
+          activeOpacity={0.85}
+        >
+          <View style={{ flex: 1, marginRight: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <View style={[styles.dutyPulseDot, { backgroundColor: isDutyOn ? '#22c55e' : '#94a3b8' }]} />
               <Text style={[styles.dutyTitle, { color: isDutyOn ? '#15803d' : '#475569' }]}>
@@ -391,21 +392,22 @@ export default function ResponderDashboard() {
             </View>
             <Text style={styles.dutyDesc}>
               {isDutyOn
-                ? 'Rank #1 in Hospital Fleet Queue • Ready for loud emergency dispatch'
-                : 'Alerts are muted. Turn on duty to receive emergency dispatches.'}
+                ? 'Rank #1 in Hospital Fleet Queue • Tap to End Shift'
+                : 'Alerts are muted. Tap to Start Duty & confirm attendance.'}
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.dutyToggleBtn, isDutyOn ? styles.dutyToggleBtnOff : styles.dutyToggleBtnOn]}
-            onPress={handleDutyToggle}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.dutyToggleBtnText, { color: isDutyOn ? '#dc2626' : '#ffffff' }]}>
-              {isDutyOn ? 'End Shift' : 'Start Duty'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ alignItems: 'flex-end', gap: 6 }}>
+            <View style={[styles.switchTrack, isDutyOn ? styles.switchTrackOn : styles.switchTrackOff]}>
+              <View style={[styles.switchThumb, isDutyOn ? styles.switchThumbOn : styles.switchThumbOff]} />
+            </View>
+            <View style={[styles.dutyToggleBadge, isDutyOn ? styles.dutyToggleBadgeOn : styles.dutyToggleBadgeOff]}>
+              <Text style={[styles.dutyToggleBtnText, { color: isDutyOn ? '#dc2626' : '#15803d' }]}>
+                {isDutyOn ? 'End Shift ✕' : 'Start Duty ✓'}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* Active Mission Card (When Incident is Accepted) */}
         {myIncident && (
@@ -608,13 +610,24 @@ const styles = StyleSheet.create({
   },
   dutyPulseDot: { width: 10, height: 10, borderRadius: 5 },
   dutyTitle: { fontSize: 14, fontWeight: '900' },
-  dutyDesc: { fontSize: 11, color: '#64748b', lineHeight: 16, marginTop: 2, paddingRight: 8 },
-  dutyToggleBtn: {
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+  dutyDesc: { fontSize: 11, color: '#64748b', lineHeight: 16, marginTop: 2 },
+  switchTrack: {
+    width: 48, height: 26, borderRadius: 14, padding: 3, justifyContent: 'center',
   },
-  dutyToggleBtnOn: { backgroundColor: '#16a34a' },
-  dutyToggleBtnOff: { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' },
-  dutyToggleBtnText: { fontWeight: '900', fontSize: 12 },
+  switchTrackOn: { backgroundColor: '#16a34a' },
+  switchTrackOff: { backgroundColor: '#cbd5e1' },
+  switchThumb: {
+    width: 20, height: 20, borderRadius: 10, backgroundColor: '#ffffff',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 2, elevation: 2,
+  },
+  switchThumbOn: { alignSelf: 'flex-end' },
+  switchThumbOff: { alignSelf: 'flex-start' },
+  dutyToggleBadge: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+  },
+  dutyToggleBadgeOn: { backgroundColor: '#fee2e2' },
+  dutyToggleBadgeOff: { backgroundColor: '#dcfce7' },
+  dutyToggleBtnText: { fontWeight: '900', fontSize: 11 },
 
   // Active Incident Mission Card
   activeCard: {
