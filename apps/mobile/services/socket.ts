@@ -1,25 +1,24 @@
 /**
- * Socket.io Service for React Native
+ * Socket.io Service for React Native with dynamic host resolution
  */
 
 import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-
-const WS_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+import { getApiBaseUrl } from './api';
 
 let socket: Socket | null = null;
 
 /**
  * Synchronously returns (and creates if needed) the socket.
- * Token is attached via auth option; SecureStore is read async in background
- * and socket reconnects with the token once available.
+ * Dynamically connects to host machine whether on physical phone or emulator.
  */
 export const connectSocket = (): Socket => {
   if (socket?.connected) return socket;
 
+  const WS_URL = getApiBaseUrl();
+
   socket = io(WS_URL, {
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000,

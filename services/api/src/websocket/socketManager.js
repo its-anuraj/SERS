@@ -19,7 +19,9 @@ let io;
 const initSocketIO = (server) => {
     io = new Server(server, {
         cors: {
-            origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3002', 'http://localhost:8081'],
+            origin: process.env.NODE_ENV === 'production' && process.env.ALLOWED_ORIGINS
+                ? process.env.ALLOWED_ORIGINS.split(',')
+                : '*',
             credentials: true,
         },
         pingTimeout: 60000,

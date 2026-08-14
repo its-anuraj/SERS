@@ -1,16 +1,46 @@
 /**
- * API Client — Axios instance with JWT auto-attach
+ * API Client — Axios instance with JWT auto-attach and dynamic host resolution
  */
 
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const API_BASE = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+/**
+ * Dynamically resolves the API host URL.
+ * Automatically adapts between physical phones (over Wi-Fi LAN), Android Emulator (10.0.2.2), and Web/Simulator (localhost).
+ */
+export const getApiBaseUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // Auto-detect host IP from Expo Metro bundler URI (works seamlessly on physical phones & emulators)
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any)?.manifest?.debuggerHost ||
+    (Constants as any)?.manifest2?.extra?.expoClient?.hostUri;
+
+  if (hostUri) {
+    const hostIp = hostUri.split(':')[0];
+    if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
+      return `http://${hostIp}:3000`;
+    }
+  }
+
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000';
+  }
+
+  return 'http://localhost:3000';
+};
+
+const API_BASE = getApiBaseUrl();
 
 export const api = axios.create({
   baseURL: `${API_BASE}/api`,
-  timeout: 5000,
+  timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -30,7 +60,7 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const refreshToken = await SecureStore.getItemAsync('sers_refresh_token');
-        const res = await axios.post(`${API_BASE}/api/auth/refresh`, { refreshToken });
+        const res = await axios.post(`${getApiBaseUrl()}/api/auth/refresh`, { refreshToken });
         const { accessToken } = res.data.data.tokens;
         await SecureStore.setItemAsync('sers_access_token', accessToken);
         original.headers.Authorization = `Bearer ${accessToken}`;
