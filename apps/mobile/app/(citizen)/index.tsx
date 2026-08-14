@@ -445,12 +445,12 @@ export default function HomeScreen() {
         {/* Quick actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/contacts', color: '#f59e0b' },
-            { icon: '🩺', label: 'ABDM Health Profile', route: '/(citizen)/abdm', color: '#a855f7' },
+            { icon: '🚗', label: 'Vehicle & OBD-II', route: '/(citizen)/vehicle', color: '#38bdf8' },
             { icon: '⌚', label: 'Smartwatch Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
-            { icon: '🏥', label: 'Find Hospital & Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
+            { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/contacts', color: '#f59e0b' },
+            { icon: '🩺', label: 'ABDM Profile', route: '/(citizen)/abdm', color: '#a855f7' },
+            { icon: '🏥', label: 'Hospitals & Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
             { icon: '🚑', label: 'Track Ambulance', route: '/(citizen)/map', color: '#22c55e' },
-            { icon: '🗺️', label: 'Live GPS Map', route: '/(citizen)/map', color: '#06b6d4' },
           ].map((action) => (
             <TouchableOpacity
               key={action.label}

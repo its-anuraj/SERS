@@ -60,10 +60,52 @@ router.post('/auto-dispatch', authenticate, async (req, res, next) => {
         const conditions = patientData.conditions?.length ? patientData.conditions : ['Hypertension', 'Previous Appendectomy (2022)'];
         const medications = patientData.medications?.length ? patientData.medications : ['Amlodipine 5mg'];
 
-        // 2. Find nearest hospital with available ICU/ER beds
+        // 2. Deduplication Check: Look for active incident by this user or within 100m in last 5 mins
+        const existingIncidentCheck = await dbQuery(
+            `SELECT * FROM incidents
+             WHERE (reporter_id = $1 OR (
+                 latitude IS NOT NULL AND longitude IS NOT NULL AND
+                 ABS(latitude - $2) < 0.001 AND ABS(longitude - $3) < 0.001
+             ))
+             AND status IN ('reported', 'assigned', 'en_route', 'transporting')
+             AND created_at > NOW() - INTERVAL '5 minutes'
+             ORDER BY created_at DESC LIMIT 1`,
+            [userId, lat, lng]
+        );
+
+        if (existingIncidentCheck.rows.length > 0) {
+            const existing = existingIncidentCheck.rows[0];
+            await dbQuery(
+                `UPDATE incidents
+                 SET description = description || ' | Additional Signal: ' || $1,
+                     updated_at = NOW()
+                 WHERE id = $2`,
+                [description || `Merged signal (${source})`, existing.id]
+            ).catch(() => {});
+
+            await dbQuery(
+                `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
+                 VALUES ($1, 'telemetry_merged', $2, 'citizen', $3)`,
+                [existing.id, userId, `Merged secondary trigger (${source}). Single unified emergency dispatch maintained.`]
+            ).catch(() => {});
+
+            return res.status(200).json({
+                success: true,
+                deduplicated: true,
+                message: 'Alert merged into your existing active emergency. Single unified response active.',
+                data: {
+                    incidentId: existing.id,
+                    incidentNumber: existing.incident_number,
+                    hospital: bestHospital ? { name: bestHospital.name, id: bestHospital.id } : null,
+                    patient: { name: patientName, bloodGroup, allergies, conditions },
+                }
+            });
+        }
+
+        // 3. Find nearest hospital with available ICU/ER beds
         const bestHospital = await findBestHospital(lat, lng, ['Trauma ICU', 'Emergency'], type || 'medical');
 
-        // 3. Insert Incident with assigned hospital and full patient details
+        // 4. Insert Incident with assigned hospital and full patient details
         const incidentResult = await dbQuery(
             `INSERT INTO incidents (
                 type, severity, status, latitude, longitude,
@@ -75,10 +117,10 @@ router.post('/auto-dispatch', authenticate, async (req, res, next) => {
                 type || (source === 'voice' ? 'medical' : 'accident'),
                 lat,
                 lng,
-                description || `Emergency Voice SOS Alert (${source || 'voice_detection'}). Immediate trauma bed needed.`,
+                description || `Emergency Alert (${source || 'multi_sensor'}). Immediate trauma bed needed.`,
                 userId,
                 bestHospital?.id || null,
-                source === 'crash'
+                source === 'crash' || source === 'vehicle_obd'
             ]
         );
         const incident = incidentResult.rows[0];
