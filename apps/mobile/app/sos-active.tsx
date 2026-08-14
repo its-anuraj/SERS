@@ -173,7 +173,7 @@ export default function SosActiveScreen() {
               <View style={[styles.stepDot, isDone && { backgroundColor: info.color }]}>
                 <Text style={styles.stepDotText}>{isDone ? '✓' : ''}</Text>
               </View>
-              <Text style={[styles.stepLabel, isDone && { color: '#f1f5f9' }]}>{info.label}</Text>
+              <Text style={[styles.stepLabel, isDone && { color: '#0f172a', fontWeight: '800' }]}>{info.label}</Text>
             </View>
           );
         })}
