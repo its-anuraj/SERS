@@ -1,8 +1,8 @@
 /**
- * Citizen Home Screen — Giant SOS Button + Live Location & Active Emergency Tracking
+ * Citizen Home Screen — Giant SOS Button + Continuous Live GPS Location & Active Emergency Tracking
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Dimensions, Animated, Vibration, Alert, Switch
@@ -23,8 +23,14 @@ export default function HomeScreen() {
   const [sosActive, setSosActive] = useState(false);
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [addressText, setAddressText] = useState<string>('Detecting your GPS location...');
+  const [addressTitle, setAddressTitle] = useState<string>('Live GPS Detected');
+  const [addressText, setAddressText] = useState<string>('Acquiring high-precision GPS coordinates...');
+  const [coordinatesText, setCoordinatesText] = useState<string>('');
+  const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
+
   const pulseAnim = useState(new Animated.Value(1))[0];
+  const gpsPulseAnim = useRef(new Animated.Value(1)).current;
+  const lastGeocodeTimeRef = useRef<number>(0);
 
   // SOS button pulse animation
   useEffect(() => {
@@ -38,40 +44,98 @@ export default function HomeScreen() {
     return () => pulse.stop();
   }, []);
 
-  // Fetch location & readable address on mount
-  const fetchLocation = useCallback(async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setLocation(loc);
+  // GPS indicator pulse
+  useEffect(() => {
+    const gpsPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(gpsPulseAnim, { toValue: 1.25, duration: 1000, useNativeDriver: true }),
+        Animated.timing(gpsPulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    gpsPulse.start();
+    return () => gpsPulse.stop();
+  }, []);
 
-        try {
-          const geocoded = await Location.reverseGeocodeAsync({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-          });
-          if (geocoded && geocoded.length > 0) {
-            const place = geocoded[0];
-            const parts = [place.name, place.street, place.district || place.subregion, place.city].filter(Boolean);
-            setAddressText(parts.join(', ') || `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
-          } else {
-            setAddressText(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
-          }
-        } catch {
-          setAddressText(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
+  // Update location and reverse geocode readable address
+  const handleLocationUpdate = useCallback(async (loc: Location.LocationObject) => {
+    setLocation(loc);
+    const lat = loc.coords.latitude;
+    const lng = loc.coords.longitude;
+    const coordsStr = `${lat >= 0 ? lat.toFixed(5) + '° N' : Math.abs(lat).toFixed(5) + '° S'}, ${lng >= 0 ? lng.toFixed(5) + '° E' : Math.abs(lng).toFixed(5) + '° W'}`;
+    setCoordinatesText(coordsStr);
+
+    if (loc.coords.accuracy) {
+      setAccuracyMeters(Math.round(loc.coords.accuracy));
+    }
+
+    // Throttle reverse geocoding to once every 5 seconds to prevent rate limits
+    const now = Date.now();
+    if (now - lastGeocodeTimeRef.current > 5000 || !lastGeocodeTimeRef.current) {
+      lastGeocodeTimeRef.current = now;
+      try {
+        const geocoded = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        if (geocoded && geocoded.length > 0) {
+          const place = geocoded[0];
+          const areaParts = [place.name, place.street].filter(Boolean);
+          const cityParts = [place.district || place.subregion, place.city, place.region].filter(Boolean);
+
+          const mainTitle = place.name || place.street || place.district || 'Current Location';
+          const fullAddress = [...areaParts, ...cityParts].filter((v, i, a) => a.indexOf(v) === i).join(', ');
+
+          setAddressTitle(mainTitle);
+          setAddressText(fullAddress || coordsStr);
+        } else {
+          setAddressTitle('Live GPS Pinpoint');
+          setAddressText(coordsStr);
         }
-      } else {
-        setAddressText('Location permission not granted');
+      } catch {
+        setAddressTitle('Live GPS Coordinates');
+        setAddressText(coordsStr);
       }
-    } catch {
-      setAddressText('GPS tracking active');
     }
   }, []);
 
+  // Continuous Live GPS Watcher (tracks user movement in real-time)
   useEffect(() => {
-    fetchLocation();
-  }, [fetchLocation]);
+    let locationSubscription: Location.LocationSubscription | null = null;
+
+    const startLocationWatcher = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setAddressTitle('Location Permission Needed');
+          setAddressText('Please enable GPS permission in settings to allow automatic emergency response.');
+          return;
+        }
+
+        // Get immediate initial position
+        const initialLoc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        handleLocationUpdate(initialLoc);
+
+        // Start continuous live tracking subscription
+        locationSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 3000,   // Updates every 3 seconds
+            distanceInterval: 3,  // Or every 3 meters moved
+          },
+          (newLoc) => {
+            handleLocationUpdate(newLoc);
+          }
+        );
+      } catch (err) {
+        console.warn('GPS Watcher initialization error:', err);
+      }
+    };
+
+    startLocationWatcher();
+
+    return () => {
+      locationSubscription?.remove();
+    };
+  }, [handleLocationUpdate]);
 
   // Check for any ongoing active incident when screen comes into focus
   useFocusEffect(
@@ -166,12 +230,32 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Location bar */}
+        {/* Live GPS Location card with readable area + coordinates */}
         <View style={styles.locationBar}>
-          <Text style={styles.locationIcon}>📍</Text>
+          <Animated.View style={[styles.locationPulseDot, { transform: [{ scale: gpsPulseAnim }] }]}>
+            <View style={styles.locationDotInner} />
+          </Animated.View>
+
           <View style={{ flex: 1 }}>
-            <Text style={styles.locationTitle}>Your Live Emergency Location</Text>
-            <Text style={styles.locationText} numberOfLines={1}>{addressText}</Text>
+            <View style={styles.locationHeaderRow}>
+              <Text style={styles.locationTitle} numberOfLines={1}>{addressTitle}</Text>
+              <View style={styles.liveBadgeContainer}>
+                <View style={styles.liveGreenDot} />
+                <Text style={styles.liveBadgeText}>
+                  LIVE GPS {accuracyMeters ? `(±${accuracyMeters}m)` : ''}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.locationText} numberOfLines={2}>
+              {addressText}
+            </Text>
+
+            {coordinatesText ? (
+              <Text style={styles.coordinatesSubtitle}>
+                📍 Coords: {coordinatesText}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -299,13 +383,43 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontWeight: '900', fontSize: 18 },
 
   locationBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     marginHorizontal: 20, marginBottom: 16, padding: 14,
-    backgroundColor: '#1a2235', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)',
+    shadowColor: '#3b82f6', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4,
   },
-  locationIcon: { fontSize: 18 },
-  locationTitle: { fontSize: 10, color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  locationText: { fontSize: 13, color: '#f1f5f9', fontWeight: '600' },
+  locationPulseDot: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: 'rgba(34,197,94,0.2)', alignItems: 'center', justifyContent: 'center',
+    marginTop: 2,
+  },
+  locationDotInner: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#22c55e',
+  },
+  locationHeaderRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4,
+  },
+  locationTitle: {
+    fontSize: 13, color: '#f1f5f9', fontWeight: '800', flex: 1, marginRight: 8,
+  },
+  liveBadgeContainer: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(34,197,94,0.15)', paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 6, borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)',
+  },
+  liveGreenDot: {
+    width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22c55e',
+  },
+  liveBadgeText: {
+    fontSize: 9, color: '#4ade80', fontWeight: '900', letterSpacing: 0.5,
+  },
+  locationText: {
+    fontSize: 12, color: '#94a3b8', fontWeight: '500', lineHeight: 16, marginBottom: 4,
+  },
+  coordinatesSubtitle: {
+    fontSize: 11, color: '#60a5fa', fontWeight: '700', fontFamily: 'monospace',
+  },
 
   activeSosBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
