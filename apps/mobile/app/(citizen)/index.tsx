@@ -23,7 +23,7 @@ import { dispatchOfflineSmsSOS } from '../../services/offlineSmsDispatch';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { emergencyContacts, appEnabled, toggleAppEnabled } = useSettingsStore();
   const [sosActive, setSosActive] = useState(false);
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
@@ -38,6 +38,24 @@ export default function HomeScreen() {
   const [voiceMatchCount, setVoiceMatchCount] = useState(0);
   const [recentVoiceKeywords, setRecentVoiceKeywords] = useState<string[]>([]);
   const [liveTranscript, setLiveTranscript] = useState<string>('');
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out of SERS?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)' as any);
+          },
+        },
+      ]
+    );
+  };
 
   // Persistent refs to avoid re-render effect cascades
   const locationRef = useRef<Location.LocationObject | null>(null);
@@ -321,13 +339,18 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Arjun'} 👋</Text>
           <Text style={styles.subtitle}>Stay safe. Help is always nearby.</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/(citizen)/contacts' as any)} style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'A'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => router.push('/(citizen)/contacts' as any)} style={styles.avatar}>
+            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'A'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutHeaderBtn}>
+            <Text style={styles.logoutHeaderBtnText}>🚪 Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -484,6 +507,11 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {/* Log Out Button */}
+        <TouchableOpacity style={styles.logoutBottomBtn} onPress={handleLogout}>
+          <Text style={styles.logoutBottomText}>🚪 Log Out of SERS</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -570,12 +598,37 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
   subtitle: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#ef4444', shadowOpacity: 0.2, shadowRadius: 6, elevation: 2,
   },
   avatarText: { color: '#fff', fontWeight: '900', fontSize: 18 },
+  logoutHeaderBtn: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  logoutHeaderBtnText: { color: '#dc2626', fontWeight: '800', fontSize: 12 },
+  logoutBottomBtn: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  logoutBottomText: { color: '#dc2626', fontWeight: '800', fontSize: 14 },
 
   locationBar: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
