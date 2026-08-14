@@ -1,6 +1,6 @@
 /**
  * Citizen — Dedicated Vehicle Crash & OBD-II Guard Screen
- * Connects to low-cost Bluetooth OBD-II (ELM327) scanners and Phone 6-Axis Telematics.
+ * Connects to Bluetooth OBD-II (ELM327) scanners and Phone 6-Axis Telematics.
  * Reads Speed (PID 0x0D), Engine RPM (PID 0x0C), Airbag status, G-Force Impact, and Vehicle Rollover.
  * Features 10-Second False Alarm Cancel Countdown and Single-Alert Deduplication.
  */
@@ -14,34 +14,13 @@ import { Stack, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   onVehicleUpdate, startVehicleMonitoring, stopVehicleMonitoring,
-  pairObdScannerDirect, disconnectObdScanner, triggerTestCrashSignal,
+  pairObdScannerDirect, disconnectObdScanner,
   getCurrentVehicleData, VehicleTelemetryData
 } from '../../services/vehicleTelemetryService';
 import { api } from '../../services/api';
 import { useSettingsStore } from '../../store/settingsStore';
 
 const { width } = Dimensions.get('window');
-
-const AFFORDABLE_DEVICES = [
-  {
-    name: 'ELM327 Bluetooth OBD-II Scanner',
-    price: '₹350 - ₹650 on Amazon/Flipkart',
-    icon: '🔌',
-    desc: 'Plugs directly into the standard 16-pin OBD-II port below your steering wheel. Reads real-time Speed, Engine RPM, Airbag CAN-bus signals & diagnostic trouble codes (DTC).',
-  },
-  {
-    name: 'ESP32 + MPU6050 6-Axis Gyro Telematics Unit',
-    price: '₹300 - ₹500 (Pre-built / DIY)',
-    icon: '📡',
-    desc: 'High-precision 6-axis accelerometer & gyroscope unit that mounts on vehicle dashboard. Detects vehicle rollovers, crash G-force shocks, and rapid deceleration.',
-  },
-  {
-    name: 'Smartphone 6-Axis Sensor Fusion (Built-in)',
-    price: 'Free (Uses Phone Hardware)',
-    icon: '📱',
-    desc: 'Continuously fuses GPS speed with your phone accelerometer & gyroscope with AI false alarm filtering.',
-  },
-];
 
 export default function VehicleCrashScreen() {
   const [telemetry, setTelemetry] = useState<VehicleTelemetryData>(getCurrentVehicleData());
@@ -252,46 +231,13 @@ export default function VehicleCrashScreen() {
           </View>
         </View>
 
-        {/* Test Crash Scenarios to Verify Zero False Alarms */}
-        <View style={styles.testSection}>
-          <Text style={styles.testSectionTitle}>🧪 Test False Alarm Filters & Real Crash:</Text>
-          <View style={{ gap: 8, marginTop: 8 }}>
-            <TouchableOpacity
-              style={styles.testScenarioBtn}
-              onPress={() => triggerTestCrashSignal('phone_drop_floor')}
-            >
-              <Text style={styles.testScenarioBtnText}>📱 Test Phone Drop on Car Floor (Filter: Ignored)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.testScenarioBtn, { borderColor: '#ef4444' }]}
-              onPress={() => triggerTestCrashSignal('airbag_deploy')}
-            >
-              <Text style={[styles.testScenarioBtnText, { color: '#ef4444' }]}>💥 Test Real Airbag Deployment (10s Countdown)</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Low-Cost Vehicle Hardware Guide */}
-        <View style={styles.hardwareGuide}>
-          <Text style={styles.guideTitle}>💡 Affordable Vehicle Hardware (Kam Kharch Devices)</Text>
-          <Text style={styles.guideSub}>
-            Ye devices aap apni car ya bike me connect kar sakte hain:
-          </Text>
-
-          {AFFORDABLE_DEVICES.map((dev) => (
-            <View key={dev.name} style={styles.devCard}>
-              <View style={styles.devHeader}>
-                <Text style={{ fontSize: 22, marginRight: 8 }}>{dev.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.devName}>{dev.name}</Text>
-                  <Text style={styles.devPrice}>{dev.price}</Text>
-                </View>
-              </View>
-              <Text style={styles.devDesc}>{dev.desc}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Connect OBD Button */}
+        <TouchableOpacity
+          style={styles.connectObdBigBtn}
+          onPress={() => setIsPairModalOpen(true)}
+        >
+          <Text style={styles.connectObdBigBtnText}>➕ Connect Vehicle OBD-II Scanner</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* 10-Second Crash Countdown Safety Cancellation Modal */}
@@ -429,45 +375,14 @@ const styles = StyleSheet.create({
   },
   shieldText: { color: '#94a3b8', fontSize: 12, lineHeight: 17 },
 
-  testSection: {
-    backgroundColor: '#111827',
-    borderRadius: 16,
+  connectObdBigBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+    alignItems: 'center',
+    marginTop: 8,
   },
-  testSectionTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 13 },
-  testScenarioBtn: {
-    backgroundColor: '#1e293b',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  testScenarioBtnText: { color: '#94a3b8', fontSize: 12, fontWeight: '700' },
-
-  hardwareGuide: {
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#1e293b',
-  },
-  guideTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 14, marginBottom: 4 },
-  guideSub: { color: '#94a3b8', fontSize: 12, marginBottom: 14 },
-  devCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  devHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  devName: { color: '#f1f5f9', fontWeight: '800', fontSize: 13 },
-  devPrice: { color: '#22c55e', fontSize: 11, fontWeight: '700' },
-  devDesc: { color: '#94a3b8', fontSize: 11, lineHeight: 16 },
+  connectObdBigBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
   countdownBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   countdownCard: {
