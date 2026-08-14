@@ -459,7 +459,7 @@ export default function HomeScreen() {
             { icon: '⌚', label: 'Smartwatch Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
             { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/contacts', color: '#f59e0b' },
             { icon: '🩺', label: 'ABDM Profile', route: '/(citizen)/abdm', color: '#a855f7' },
-            { icon: '🏥', label: 'Hospitals & Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
+            { icon: '🏥', label: 'Hospitals (Soon)', route: '/(citizen)/hospitals', color: '#3b82f6' },
             { icon: '🚑', label: 'Track Ambulance', route: '/(citizen)/map', color: '#22c55e' },
           ].map((action) => (
             <TouchableOpacity
