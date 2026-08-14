@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Animated, Vibration, Alert, Switch
+  Dimensions, Animated, Vibration, Alert
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -19,7 +19,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
-  const { appEnabled, toggleAppEnabled, emergencyContacts } = useSettingsStore();
+  const { emergencyContacts } = useSettingsStore();
   const [sosActive, setSosActive] = useState(false);
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -169,8 +169,7 @@ export default function HomeScreen() {
       return;
     }
 
-    if (sosActive || !appEnabled) {
-      if (!appEnabled) Alert.alert('App Disabled', 'Please enable SERS in Settings to use SOS.');
+    if (sosActive) {
       return;
     }
 
@@ -274,20 +273,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Master Switch */}
-        <View style={styles.masterSwitchContainer}>
-          <View>
-            <Text style={styles.masterSwitchTitle}>SERS Protection</Text>
-            <Text style={styles.masterSwitchSub}>{appEnabled ? 'Sensors Active' : 'Sensors Disabled'}</Text>
-          </View>
-          <Switch
-            value={appEnabled}
-            onValueChange={toggleAppEnabled}
-            trackColor={{ false: '#334155', true: '#ef4444' }}
-            thumbColor="#fff"
-          />
-        </View>
 
         {/* SOS Button — the hero element */}
         <View style={styles.sosContainer}>
