@@ -419,7 +419,9 @@ export default function HomeScreen() {
               onLongPress={handleSOS}
               delayLongPress={800}
               activeOpacity={0.85}>
-              <Text style={styles.sosEmoji}>{activeIncidentId ? '🚨' : (sosActive ? '📡' : '🆘')}</Text>
+              {activeIncidentId ? (
+                <Text style={styles.sosEmoji}>🚨</Text>
+              ) : null}
               <Text style={styles.sosButtonText}>
                 {activeIncidentId ? 'ACTIVE' : (sosActive ? 'SENDING...' : 'SOS')}
               </Text>

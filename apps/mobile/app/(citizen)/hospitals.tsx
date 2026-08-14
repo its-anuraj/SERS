@@ -51,94 +51,6 @@ function BedBar({ label, available, total, color }: { label: string; available: 
   );
 }
 
-const SAMPLE_HOSPITALS: Hospital[] = [
-  {
-    id: 'hosp-1',
-    name: 'AIIMS Trauma Centre & Super Specialty',
-    type: 'government',
-    address: 'Ring Road, Safdarjung Enclave, New Delhi',
-    latitude: 28.5672,
-    longitude: 77.2100,
-    distanceKm: '2.4',
-    distanceMeters: 2400,
-    etaMins: 6,
-    emergencyPhone: '+91 11 2658 8500',
-    icuBedsAvailable: 14,
-    erBedsAvailable: 8,
-    specialties: ['Trauma Care', 'Cardiology', 'Neurology', 'Orthopedics'],
-    hasTraumaCenter: true,
-    isAbdmRegistered: true,
-  },
-  {
-    id: 'hosp-2',
-    name: 'Medanta The Medicity Multi-Specialty',
-    type: 'multi-specialty',
-    address: 'Sector 38, CH Bakhtawar Singh Road, Gurugram',
-    latitude: 28.4390,
-    longitude: 77.0420,
-    distanceKm: '4.1',
-    distanceMeters: 4100,
-    etaMins: 9,
-    emergencyPhone: '+91 124 414 1414',
-    icuBedsAvailable: 22,
-    erBedsAvailable: 16,
-    specialties: ['Emergency Medicine', 'Cardiac Surgery', 'Critical Care'],
-    hasTraumaCenter: true,
-    isAbdmRegistered: true,
-  },
-  {
-    id: 'hosp-3',
-    name: 'Safdarjung Emergency & Burns Hospital',
-    type: 'government',
-    address: 'Ansari Nagar West, New Delhi',
-    latitude: 28.5700,
-    longitude: 77.2070,
-    distanceKm: '2.9',
-    distanceMeters: 2900,
-    etaMins: 7,
-    emergencyPhone: '+91 11 2616 5060',
-    icuBedsAvailable: 9,
-    erBedsAvailable: 12,
-    specialties: ['Accident & Trauma', 'Burns Unit', 'General Surgery'],
-    hasTraumaCenter: true,
-    isAbdmRegistered: true,
-  },
-  {
-    id: 'hosp-4',
-    name: 'Fortis Memorial Research Institute',
-    type: 'multi-specialty',
-    address: 'Sector 44, Opposite HUDA City Centre, Gurugram',
-    latitude: 28.4590,
-    longitude: 77.0720,
-    distanceKm: '5.2',
-    distanceMeters: 5200,
-    etaMins: 11,
-    emergencyPhone: '+91 124 496 2200',
-    icuBedsAvailable: 18,
-    erBedsAvailable: 10,
-    specialties: ['Neuro Trauma', 'Pediatric ICU', 'Cardiac Arrest'],
-    hasTraumaCenter: true,
-    isAbdmRegistered: true,
-  },
-  {
-    id: 'hosp-5',
-    name: 'Max Super Speciality Hospital',
-    type: 'multi-specialty',
-    address: '1, 2, Press Enclave Marg, Saket, New Delhi',
-    latitude: 28.5280,
-    longitude: 77.2120,
-    distanceKm: '6.8',
-    distanceMeters: 6800,
-    etaMins: 14,
-    emergencyPhone: '+91 11 2651 5050',
-    icuBedsAvailable: 15,
-    erBedsAvailable: 7,
-    specialties: ['Stroke Unit', 'Cardiac Emergency', 'Trauma Resuscitation'],
-    hasTraumaCenter: true,
-    isAbdmRegistered: true,
-  },
-];
-
 export default function HospitalsScreen() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [filtered, setFiltered] = useState<Hospital[]>([]);
@@ -152,30 +64,21 @@ export default function HospitalsScreen() {
     const coords = loc || location;
     try {
       const params = coords
-        ? `?lat=${coords.lat}&lng=${coords.lng}&radius=50000&limit=20`
+        ? `?lat=${coords.lat}&lng=${coords.lng}&limit=20`
         : `?limit=20`;
       const res = await api.get(`/hospitals/nearest${params}`);
       if (res.data?.data && res.data.data.length > 0) {
         setHospitals(res.data.data);
       } else {
-        // Try generic all hospitals route
         const res2 = await api.get('/hospitals?limit=20');
-        if (res2.data?.data && res2.data.data.length > 0) {
-          setHospitals(res2.data.data);
-        } else {
-          setHospitals(SAMPLE_HOSPITALS);
-        }
+        setHospitals(res2.data?.data || []);
       }
     } catch (err: any) {
       try {
         const res2 = await api.get('/hospitals?limit=20');
-        if (res2.data?.data && res2.data.data.length > 0) {
-          setHospitals(res2.data.data);
-        } else {
-          setHospitals(SAMPLE_HOSPITALS);
-        }
-      } catch {
-        setHospitals(SAMPLE_HOSPITALS);
+        setHospitals(res2.data?.data || []);
+      } catch (e: any) {
+        console.error('[Hospitals] API fetch failed:', e.message);
       }
     } finally {
       setLoading(false);

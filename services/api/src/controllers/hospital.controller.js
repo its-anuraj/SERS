@@ -65,13 +65,13 @@ const findBestHospital = async (latitude, longitude, requiredSpecialties = [], e
  */
 const getNearestHospitals = async (req, res, next) => {
     try {
-        const { lat, lng, radius = 15000, specialty, limit = 10 } = req.query;
+        const { lat, lng, radius = 50000, specialty, limit = 20 } = req.query;
         if (!lat || !lng) throw new ApiError(400, 'lat and lng are required');
 
         let sql = `
             SELECT h.*,
                 ST_Distance(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance_meters,
-                ROUND(ST_Distance(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) / 1000 * 60 / 60) AS eta_mins
+                ROUND(ST_Distance(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) / 1000 * 60 / 35) AS eta_mins
             FROM hospitals h
             WHERE h.is_active = TRUE
               AND ST_DWithin(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
@@ -86,7 +86,26 @@ const getNearestHospitals = async (req, res, next) => {
         sql += ` ORDER BY distance_meters ASC LIMIT $${params.length + 1}`;
         params.push(parseInt(limit));
 
-        const result = await query(sql, params);
+        let result = await query(sql, params);
+
+        // If radius is too strict, return all active hospitals sorted by actual distance
+        if (!result.rows.length) {
+            let fallbackSql = `
+                SELECT h.*,
+                    ST_Distance(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance_meters,
+                    ROUND(ST_Distance(h.location::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) / 1000 * 60 / 35) AS eta_mins
+                FROM hospitals h
+                WHERE h.is_active = TRUE
+            `;
+            const fallbackParams = [parseFloat(lng), parseFloat(lat)];
+            if (specialty) {
+                fallbackSql += ` AND $3 = ANY(h.specialties)`;
+                fallbackParams.push(specialty);
+            }
+            fallbackSql += ` ORDER BY distance_meters ASC LIMIT $${fallbackParams.length + 1}`;
+            fallbackParams.push(parseInt(limit));
+            result = await query(fallbackSql, fallbackParams);
+        }
 
         res.json({
             success: true,
@@ -99,7 +118,7 @@ const getNearestHospitals = async (req, res, next) => {
                 longitude: h.longitude,
                 distanceMeters: Math.round(h.distance_meters),
                 distanceKm: (h.distance_meters / 1000).toFixed(1),
-                etaMins: h.eta_mins,
+                etaMins: Math.max(1, parseInt(h.eta_mins) || 5),
                 emergencyPhone: h.emergency_phone,
                 icuBedsAvailable: h.icu_beds_available,
                 erBedsAvailable: h.er_beds_available,
