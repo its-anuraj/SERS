@@ -59,22 +59,6 @@ export default function RootLayout() {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    if (isLoading) return; // Wait for session load
-    
-    if (!isAuthenticated || !user) {
-      router.replace('/(auth)');
-      return;
-    }
-
-    // Role-based redirect
-    if (user.role === 'responder') {
-      router.replace('/(responder)');
-    } else {
-      router.replace('/(citizen)');
-    }
-  }, [isAuthenticated, user, isLoading]);
-
   // Manage WebSocket connection
   useEffect(() => {
     if (!isAuthenticated) return;

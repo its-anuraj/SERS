@@ -7,6 +7,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 
 type Mode = 'login' | 'register';
@@ -35,7 +36,12 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await login(phone.trim(), password);
-      // _layout.tsx watches isAuthenticated and auto-redirects by role
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'responder') {
+        router.replace('/(responder)');
+      } else {
+        router.replace('/(citizen)');
+      }
     } catch (err: any) {
       Alert.alert('Login Failed', err?.response?.data?.message || 'Invalid credentials.');
     } finally {
@@ -51,6 +57,12 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await register({ name: name.trim(), phone: regPhone.trim(), password: regPass, role, bloodGroup: role === 'citizen' ? bloodGroup : undefined });
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'responder') {
+        router.replace('/(responder)');
+      } else {
+        router.replace('/(citizen)');
+      }
     } catch (err: any) {
       Alert.alert('Registration Failed', err?.response?.data?.message || 'Something went wrong.');
     } finally {
