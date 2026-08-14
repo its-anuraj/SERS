@@ -1,5 +1,5 @@
 /**
- * Auth Store (Zustand)
+ * Auth Store (Zustand) — Ultra-fast, zero-lag authentication state management
  */
 
 import { create } from 'zustand';
@@ -42,48 +42,83 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   loadSession: async () => {
-    // Safety fallback timer so UI never hangs indefinitely
-    const timer = setTimeout(() => {
-      if (get().isLoading) set({ isLoading: false });
-    }, 2500);
-
     try {
-      const token = await SecureStore.getItemAsync('sers_access_token');
+      const [token, cachedUserStr] = await Promise.all([
+        SecureStore.getItemAsync('sers_access_token'),
+        SecureStore.getItemAsync('sers_user_profile'),
+      ]);
+
       if (!token) {
-        clearTimeout(timer);
-        return set({ isLoading: false });
+        return set({ user: null, isAuthenticated: false, isLoading: false });
       }
-      const res = await api.get('/users/profile');
-      clearTimeout(timer);
-      set({ user: res.data.data, isAuthenticated: true, isLoading: false });
+
+      // Fast-path: Instant 0ms render with cached user
+      if (cachedUserStr) {
+        try {
+          const cachedUser = JSON.parse(cachedUserStr);
+          set({ user: cachedUser, isAuthenticated: true, isLoading: false });
+        } catch {}
+      }
+
+      // Verify and refresh profile in background without blocking
+      api.get('/users/profile')
+        .then((res) => {
+          if (res.data?.data) {
+            set({ user: res.data.data, isAuthenticated: true, isLoading: false });
+            SecureStore.setItemAsync('sers_user_profile', JSON.stringify(res.data.data)).catch(() => {});
+          }
+        })
+        .catch(() => {
+          if (!cachedUserStr) {
+            SecureStore.deleteItemAsync('sers_access_token').catch(() => {});
+            set({ user: null, isAuthenticated: false, isLoading: false });
+          }
+        });
     } catch {
-      clearTimeout(timer);
-      await SecureStore.deleteItemAsync('sers_access_token');
-      set({ isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   login: async (phone, password) => {
     const res = await api.post('/auth/login', { phone, password });
     const { user, tokens } = res.data.data;
-    await SecureStore.setItemAsync('sers_access_token', tokens.accessToken);
-    await SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken);
-    set({ user, isAuthenticated: true });
+
+    // Instant state update for immediate UI transition
+    set({ user, isAuthenticated: true, isLoading: false });
+
+    // Store tokens in parallel
+    await Promise.all([
+      SecureStore.setItemAsync('sers_access_token', tokens.accessToken),
+      SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken),
+      SecureStore.setItemAsync('sers_user_profile', JSON.stringify(user)),
+    ]);
   },
 
   register: async (data) => {
     const res = await api.post('/auth/register', data);
     const { user, tokens } = res.data.data;
-    await SecureStore.setItemAsync('sers_access_token', tokens.accessToken);
-    await SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken);
-    set({ user, isAuthenticated: true });
+
+    // Instant state update
+    set({ user, isAuthenticated: true, isLoading: false });
+
+    await Promise.all([
+      SecureStore.setItemAsync('sers_access_token', tokens.accessToken),
+      SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken),
+      SecureStore.setItemAsync('sers_user_profile', JSON.stringify(user)),
+    ]);
   },
 
   logout: async () => {
-    try { await api.post('/auth/logout'); } catch {}
-    await SecureStore.deleteItemAsync('sers_access_token');
-    await SecureStore.deleteItemAsync('sers_refresh_token');
+    // 1. Immediately disconnect socket and reset auth state (0ms instant response)
     disconnectSocket();
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, isLoading: false });
+
+    // 2. Clear stored credentials and inform backend asynchronously in background
+    Promise.all([
+      SecureStore.deleteItemAsync('sers_access_token'),
+      SecureStore.deleteItemAsync('sers_refresh_token'),
+      SecureStore.deleteItemAsync('sers_user_profile'),
+      api.post('/auth/logout').catch(() => {}),
+    ]).catch(() => {});
   },
 }));
