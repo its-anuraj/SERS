@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
+import * as SecureStore from 'expo-secure-store';
 import { api } from '../services/api';
 import { connectSocket } from '../services/socket';
 
@@ -98,6 +99,7 @@ export default function SosActiveScreen() {
           if (incidentId) {
             await api.post(`/incidents/${incidentId}/cancel`, { reason: 'Cancelled by citizen' }).catch(() => {});
           }
+          await SecureStore.deleteItemAsync('sers_active_incident_id').catch(() => {});
           router.back();
         },
       },
@@ -179,7 +181,12 @@ export default function SosActiveScreen() {
           <Text style={styles.cancelText}>Cancel SOS</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.doneBtn}
+          onPress={async () => {
+            await SecureStore.deleteItemAsync('sers_active_incident_id').catch(() => {});
+            router.back();
+          }}>
           <Text style={styles.doneBtnText}>✅ Go Home</Text>
         </TouchableOpacity>
       )}
