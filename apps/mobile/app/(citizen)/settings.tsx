@@ -54,8 +54,8 @@ export default function CitizenSettingsScreen() {
       <Stack.Screen
         options={{
           title: 'Emergency Contacts & Settings',
-          headerStyle: { backgroundColor: '#0a0e1a' },
-          headerTintColor: '#fff',
+          headerStyle: { backgroundColor: '#ffffff' },
+          headerTintColor: '#0f172a',
         }}
       />
 
@@ -84,7 +84,7 @@ export default function CitizenSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Ramesh Kumar, Sunita Devi, Dr. Sharma"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               value={newName}
               onChangeText={setNewName}
             />
@@ -93,7 +93,7 @@ export default function CitizenSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. +91 98765 43210"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
               value={newPhone}
               onChangeText={setNewPhone}
@@ -123,9 +123,10 @@ export default function CitizenSettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Saved Contacts List */}
           <View style={{ marginTop: 20 }}>
             <Text style={styles.listHeader}>
-              Saved Emergency Contacts ({emergencyContacts?.length || 0})
+              Active Emergency Alert Contacts ({emergencyContacts?.length || 0})
             </Text>
 
             {emergencyContacts && emergencyContacts.length > 0 ? (
@@ -140,20 +141,23 @@ export default function CitizenSettingsScreen() {
                     </View>
                     <Text style={styles.contactPhone}>📞 {item.phone}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => removeEmergencyContact(item.id)} style={styles.removeBtn}>
+                  <TouchableOpacity
+                    onPress={() => removeEmergencyContact(item.id)}
+                    style={styles.removeBtn}
+                  >
                     <Text style={styles.removeBtnText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               ))
             ) : (
-              <Text style={styles.emptyText}>No emergency contacts added yet. Add family or friends above.</Text>
+              <Text style={styles.emptyText}>No emergency contacts added yet.</Text>
             )}
           </View>
         </View>
 
-        {/* Log Out */}
+        {/* Account & Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>🚪 Log Out of SERS</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -161,17 +165,21 @@ export default function CitizenSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0e1a', padding: 20 },
+  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16 },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: '#111827',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   avatar: {
     width: 52,
@@ -182,30 +190,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#fff', fontWeight: '900', fontSize: 22 },
-  profileName: { color: '#f1f5f9', fontWeight: '800', fontSize: 18 },
-  profilePhone: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
-  profileBadge: { color: '#22c55e', fontSize: 11, fontWeight: '700', marginTop: 4 },
+  profileName: { color: '#0f172a', fontWeight: '800', fontSize: 18 },
+  profilePhone: { color: '#475569', fontSize: 13, marginTop: 2 },
+  profileBadge: { color: '#16a34a', fontSize: 11, fontWeight: '700', marginTop: 4 },
 
   section: {
-    backgroundColor: '#111827',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    padding: 18,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#1e293b'
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#f1f5f9', marginBottom: 4 },
-  sectionSub: { fontSize: 13, color: '#94a3b8', marginBottom: 16, lineHeight: 18 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+  sectionSub: { fontSize: 12, color: '#475569', marginBottom: 16, lineHeight: 18 },
   
   addContactForm: { gap: 8 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 4 },
+  inputLabel: { fontSize: 12, fontWeight: '700', color: '#475569', marginTop: 4 },
   input: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 14,
-    color: '#f1f5f9',
+    color: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#cbd5e1',
     fontSize: 14,
   },
 
@@ -216,21 +228,21 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   chip: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f1f5f9',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   activeChip: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderColor: '#ef4444',
   },
   chipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#475569',
   },
   activeChipText: {
     color: '#ef4444',
@@ -238,7 +250,7 @@ const styles = StyleSheet.create({
   },
 
   addBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2563eb',
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
@@ -249,7 +261,7 @@ const styles = StyleSheet.create({
   listHeader: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#f1f5f9',
+    color: '#0f172a',
     marginBottom: 10,
   },
 
@@ -257,12 +269,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f8fafc',
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: '#e2e8f0',
   },
   nameRow: {
     flexDirection: 'row',
@@ -270,33 +282,37 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: 'wrap',
   },
-  contactName: { color: '#f1f5f9', fontWeight: '700', fontSize: 15 },
+  contactName: { color: '#0f172a', fontWeight: '700', fontSize: 15 },
   badgeContainer: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: 'rgba(37, 99, 235, 0.25)',
   },
   relationshipBadge: {
-    color: '#60a5fa',
+    color: '#2563eb',
     fontSize: 11,
     fontWeight: '700',
   },
-  contactPhone: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
-  removeBtn: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 8 },
+  contactPhone: { color: '#64748b', fontSize: 13, marginTop: 4 },
+  removeBtn: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8 },
   removeBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 12 },
   emptyText: { color: '#64748b', fontStyle: 'italic', textAlign: 'center', marginVertical: 14 },
 
   logoutBtn: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     padding: 16,
     borderRadius: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#fee2e2',
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  logoutText: { color: '#ef4444', fontWeight: '800', fontSize: 15 },
+  logoutText: { color: '#dc2626', fontWeight: '800', fontSize: 15 },
 });
