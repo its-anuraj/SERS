@@ -81,12 +81,16 @@ export default function SosActiveScreen() {
   useEffect(() => {
     if (!incidentId) return;
     const socket = connectSocket();
-    socket.on(`incident:${incidentId}:updated`, (data: any) => {
-      setIncidentStatus(data.status);
-      if (data.responder) setResponderInfo(data.responder);
-    });
+    if (socket) {
+      socket.on(`incident:${incidentId}:updated`, (data: any) => {
+        setIncidentStatus(data.status);
+        if (data.responder) setResponderInfo(data.responder);
+      });
+    }
     return () => {
-      socket.off(`incident:${incidentId}:updated`);
+      if (socket) {
+        socket.off(`incident:${incidentId}:updated`);
+      }
     };
   }, [incidentId]);
 

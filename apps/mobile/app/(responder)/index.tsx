@@ -122,18 +122,22 @@ export default function ResponderDashboard() {
 
     // Real-time updates via socket
     const socket = connectSocket();
-    socket.on('incident:new', (incident: Incident) => {
-      if (useSettingsStore.getState().dutyStatus === 'on_duty' && status === 'available') {
-        setIncidents(prev => [incident, ...prev]);
-        setIncomingAlert(incident);
-        Vibration.vibrate([500, 500, 500, 500], true); // Loop vibrate
-      }
-    });
-    socket.on('incident:updated', fetchMyIncident);
+    if (socket) {
+      socket.on('incident:new', (incident: Incident) => {
+        if (useSettingsStore.getState().dutyStatus === 'on_duty' && status === 'available') {
+          setIncidents(prev => [incident, ...prev]);
+          setIncomingAlert(incident);
+          Vibration.vibrate([500, 500, 500, 500], true); // Loop vibrate
+        }
+      });
+      socket.on('incident:updated', fetchMyIncident);
+    }
 
     return () => {
-      socket.off('incident:new');
-      socket.off('incident:updated');
+      if (socket) {
+        socket.off('incident:new');
+        socket.off('incident:updated');
+      }
     };
   }, [fetchIncidents, fetchMyIncident, status]);
 

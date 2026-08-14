@@ -9,55 +9,55 @@ import { getApiBaseUrl } from './api';
 let socket: Socket | null = null;
 
 /**
- * Connects to the backend WebSocket gateway.
- * Dynamically resolves host IP and attaches JWT auth token.
+ * Returns (and instantiates if needed) the singleton Socket instance.
+ * Guaranteed to return a valid Socket object so that .on() / .off() never crash.
  */
-export const connectSocket = (): Socket | null => {
-  if (socket?.connected) return socket;
+export const getSocket = (): Socket => {
+  if (!socket) {
+    const WS_URL = getApiBaseUrl();
+    socket = io(WS_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      autoConnect: false,
+    });
 
-  const WS_URL = getApiBaseUrl();
+    socket.on('connect', () => console.log('Socket connected:', socket?.id));
+    socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
+    socket.on('connect_error', (err) => {
+      if (err.message !== 'Authentication token required') {
+        console.warn('Socket error:', err.message);
+      }
+    });
+  }
+  return socket;
+};
 
-  // Retrieve token before initial connection to prevent auth handshake errors
+/**
+ * Connects to the backend WebSocket gateway.
+ * Dynamically resolves host IP and attaches JWT auth token from SecureStore.
+ */
+export const connectSocket = (): Socket => {
+  const sock = getSocket();
+
   SecureStore.getItemAsync('sers_access_token')
     .then((token) => {
-      if (!token) {
-        // Not logged in — do not spam connection attempts
-        return;
-      }
-
-      if (!socket) {
-        socket = io(WS_URL, {
-          auth: { token },
-          transports: ['websocket', 'polling'],
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 3000,
-        });
-
-        socket.on('connect', () => console.log('Socket connected:', socket?.id));
-        socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
-        socket.on('connect_error', (err) => {
-          if (err.message !== 'Authentication token required') {
-            console.warn('Socket error:', err.message);
-          }
-        });
-      } else {
-        socket.auth = { token };
-        if (!socket.connected) socket.connect();
+      if (token && sock) {
+        sock.auth = { token };
+        if (!sock.connected) {
+          sock.connect();
+        }
       }
     })
     .catch(() => {});
 
-  return socket;
+  return sock;
 };
-
-export const getSocket = (): Socket | null => socket;
 
 export const disconnectSocket = () => {
   if (socket) {
-    socket.removeAllListeners();
     socket.disconnect();
-    socket = null;
   }
 };
 
