@@ -145,7 +145,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0e1a' } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#f8fafc' } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)/index" options={{ headerShown: false }} />
         <Stack.Screen name="(citizen)/index" options={{ headerShown: false }} />
@@ -194,11 +194,11 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   splash: {
-    flex: 1, backgroundColor: '#0a0e1a',
+    flex: 1, backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
   },
   splashTitle: { fontSize: 48, fontWeight: '900', color: '#ef4444', marginBottom: 8 },
-  splashSub: { fontSize: 16, color: '#94a3b8' },
+  splashSub: { fontSize: 16, color: '#64748b' },
 
   crashOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)',

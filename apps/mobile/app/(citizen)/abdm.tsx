@@ -114,8 +114,8 @@ export default function AbdmHealthProfileScreen() {
       <Stack.Screen
         options={{
           title: 'ABDM Health Profile',
-          headerStyle: { backgroundColor: '#0a0e1a' },
-          headerTintColor: '#fff',
+          headerStyle: { backgroundColor: '#ffffff' },
+          headerTintColor: '#0f172a',
         }}
       />
 
@@ -205,7 +205,7 @@ export default function AbdmHealthProfileScreen() {
             <TextInput
               style={styles.addInput}
               placeholder="Add other allergy (e.g. Iodine, NSAIDs)"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               value={newAllergy}
               onChangeText={setNewAllergy}
             />
@@ -235,7 +235,7 @@ export default function AbdmHealthProfileScreen() {
             <TextInput
               style={styles.addInput}
               placeholder="e.g. Diabetes Type 2, Cardiac Stent (2020)"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#94a3b8"
               value={newCondition}
               onChangeText={setNewCondition}
             />
@@ -253,7 +253,7 @@ export default function AbdmHealthProfileScreen() {
           <TextInput
             style={styles.notesInput}
             placeholder="e.g. Diabetic on insulin. Daily blood pressure medication. Patient wears hearing aid."
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#94a3b8"
             multiline
             numberOfLines={4}
             value={medicalNotes}
@@ -277,7 +277,7 @@ export default function AbdmHealthProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0e1a', padding: 16 },
+  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16 },
 
   abhaCard: {
     backgroundColor: '#1e3a8a',
@@ -287,8 +287,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#3b82f6',
     shadowColor: '#3b82f6',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 10,
+    elevation: 3,
   },
   abhaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   abhaGovTitle: { color: '#fbbf24', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
@@ -307,62 +308,66 @@ const styles = StyleSheet.create({
   verifiedPillText: { color: '#4ade80', fontSize: 10, fontWeight: '900' },
 
   section: {
-    backgroundColor: '#111827',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#f1f5f9', marginBottom: 4 },
-  sectionSub: { fontSize: 12, color: '#94a3b8', marginBottom: 14, lineHeight: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+  sectionSub: { fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 16 },
 
   bloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   bloodChip: {
     width: (width - 76) / 4,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f1f5f9',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   bloodChipActive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderColor: '#ef4444',
   },
-  bloodChipText: { color: '#94a3b8', fontWeight: '800', fontSize: 15 },
+  bloodChipText: { color: '#475569', fontWeight: '800', fontSize: 15 },
   bloodChipTextActive: { color: '#ef4444', fontWeight: '900' },
 
   allergyTagsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   allergyTag: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f1f5f9',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   allergyTagActive: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
-    borderColor: '#f97316',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
+    borderColor: '#ea580c',
   },
-  allergyTagText: { color: '#94a3b8', fontSize: 12, fontWeight: '700' },
-  allergyTagTextActive: { color: '#f97316', fontWeight: '800' },
+  allergyTagText: { color: '#475569', fontSize: 12, fontWeight: '700' },
+  allergyTagTextActive: { color: '#ea580c', fontWeight: '800' },
 
   addRow: { flexDirection: 'row', gap: 8 },
   addInput: {
     flex: 1,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f8fafc',
     borderRadius: 10,
     padding: 12,
-    color: '#f1f5f9',
+    color: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#cbd5e1',
     fontSize: 13,
   },
   addTagBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2563eb',
     paddingHorizontal: 16,
     borderRadius: 10,
     justifyContent: 'center',
@@ -375,34 +380,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f8fafc',
     padding: 12,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  conditionText: { color: '#f1f5f9', fontWeight: '600', fontSize: 13 },
+  conditionText: { color: '#0f172a', fontWeight: '600', fontSize: 13 },
   removeConditionText: { color: '#ef4444', fontWeight: '800', fontSize: 14, paddingHorizontal: 6 },
 
   notesInput: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#f8fafc',
     borderRadius: 10,
     padding: 12,
-    color: '#f1f5f9',
+    color: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#cbd5e1',
     fontSize: 13,
     textAlignVertical: 'top',
     minHeight: 80,
   },
 
   saveBtn: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#16a34a',
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#22c55e',
+    shadowColor: '#16a34a',
     shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  saveBtnText: { color: '#0a0e1a', fontWeight: '900', fontSize: 15 },
+  saveBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 15 },
 });
