@@ -87,10 +87,8 @@ export default function RootLayout() {
     let removeCardiacListener: (() => void) | undefined;
 
     if (appEnabled) {
-      // Start sensors
+      // Start real crash sensors & cardiac listeners
       stopCrash = startCrashDetection((probability) => handleCrashDetected(probability, 'crash'));
-      stopVoice = startVoiceDetection(() => handleCrashDetected(1, 'voice'));
-      startSimulatedSmartwatch();
       removeCardiacListener = onCardiacEmergencyTrigger(() => handleCrashDetected(1, 'cardiac'));
 
       // Connect socket

@@ -1,11 +1,11 @@
 /**
- * Citizen Home Screen — Giant SOS Button + Continuous Live GPS Location & Active Emergency Tracking
+ * Citizen Home Screen — Giant SOS Button + Live GPS Location + Voice SOS Recognition + Active Emergency Tracking
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions, Animated, Vibration, Alert
+  Dimensions, Animated, Vibration, Alert, Modal
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +14,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import {
+  startVoiceDetection, stopVoiceDetection, processVoiceTranscript,
+  recordVoiceKeyword, onVoiceStateChange, EMERGENCY_KEYWORDS
+} from '../../services/voiceDetection';
 
 const { width } = Dimensions.get('window');
 
@@ -28,8 +32,14 @@ export default function HomeScreen() {
   const [coordinatesText, setCoordinatesText] = useState<string>('');
   const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
 
+  // Voice SOS state
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [voiceMatchCount, setVoiceMatchCount] = useState(0);
+  const [recentVoiceKeywords, setRecentVoiceKeywords] = useState<string[]>([]);
+
   const pulseAnim = useState(new Animated.Value(1))[0];
   const gpsPulseAnim = useRef(new Animated.Value(1)).current;
+  const voicePulseAnim = useRef(new Animated.Value(1)).current;
   const lastGeocodeTimeRef = useRef<number>(0);
 
   // SOS button pulse animation
@@ -56,6 +66,18 @@ export default function HomeScreen() {
     return () => gpsPulse.stop();
   }, []);
 
+  // Voice wave animation
+  useEffect(() => {
+    const voiceWave = Animated.loop(
+      Animated.sequence([
+        Animated.timing(voicePulseAnim, { toValue: 1.2, duration: 700, useNativeDriver: true }),
+        Animated.timing(voicePulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    voiceWave.start();
+    return () => voiceWave.stop();
+  }, []);
+
   // Update location and reverse geocode readable address
   const handleLocationUpdate = useCallback(async (loc: Location.LocationObject) => {
     setLocation(loc);
@@ -68,7 +90,6 @@ export default function HomeScreen() {
       setAccuracyMeters(Math.round(loc.coords.accuracy));
     }
 
-    // Throttle reverse geocoding to once every 5 seconds to prevent rate limits
     const now = Date.now();
     if (now - lastGeocodeTimeRef.current > 5000 || !lastGeocodeTimeRef.current) {
       lastGeocodeTimeRef.current = now;
@@ -108,18 +129,16 @@ export default function HomeScreen() {
           return;
         }
 
-        // Get immediate initial position
         const initialLoc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
         handleLocationUpdate(initialLoc);
 
-        // Start continuous live tracking subscription
         locationSubscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 3000,   // Updates every 3 seconds
-            distanceInterval: 3,  // Or every 3 meters moved
+            timeInterval: 3000,
+            distanceInterval: 3,
           },
           (newLoc) => {
             handleLocationUpdate(newLoc);
@@ -136,6 +155,66 @@ export default function HomeScreen() {
       locationSubscription?.remove();
     };
   }, [handleLocationUpdate]);
+
+  // Voice SOS Keyword trigger handler
+  const triggerVoiceSOS = useCallback(async (keyword: string) => {
+    setVoiceModalOpen(false);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    Vibration.vibrate([0, 300, 150, 300]);
+
+    let userLoc = location;
+    if (!userLoc) {
+      try {
+        userLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        userLoc = {
+          coords: { latitude: 28.4595, longitude: 77.0266, altitude: null, accuracy: null, altitudeAccuracy: null, heading: null, speed: null },
+          timestamp: Date.now(),
+        } as any;
+      }
+    }
+
+    try {
+      // Auto-dispatch with medical profile & hospital bed matching
+      const res = await api.post('/incidents/auto-dispatch', {
+        latitude: userLoc?.coords?.latitude || 28.4595,
+        longitude: userLoc?.coords?.longitude || 77.0266,
+        type: 'medical',
+        source: 'voice',
+        description: `Voice Emergency SOS: 3x keywords matched ("${keyword}"). Automatic medical profile & bed reservation.`,
+        notifyContacts: emergencyContacts.map(c => c.phone),
+      });
+
+      const incidentId = res.data?.data?.incidentId || res.data?.data?.id;
+      if (incidentId) {
+        setActiveIncidentId(incidentId);
+        await SecureStore.setItemAsync('sers_active_incident_id', incidentId);
+        router.push({ pathname: '/sos-active', params: { incidentId } });
+      } else {
+        router.push('/sos-active' as any);
+      }
+    } catch (err) {
+      console.error('Voice SOS auto-dispatch error', err);
+      router.push('/sos-active' as any);
+    }
+  }, [location, emergencyContacts]);
+
+  // Subscribe to Voice Detection state
+  useEffect(() => {
+    const unsub = onVoiceStateChange((state) => {
+      setVoiceMatchCount(state.matchCount);
+      setRecentVoiceKeywords(state.recentMatches);
+    });
+
+    const stopVoice = startVoiceDetection((data) => {
+      triggerVoiceSOS(data.keyword);
+    });
+
+    return () => {
+      unsub();
+      stopVoice();
+    };
+  }, [triggerVoiceSOS]);
 
   // Check for any ongoing active incident when screen comes into focus
   useFocusEffect(
@@ -163,15 +242,12 @@ export default function HomeScreen() {
   );
 
   const handleSOS = async () => {
-    // If an incident is already in progress, take user back to tracking & cancellation screen
     if (activeIncidentId) {
       router.push({ pathname: '/sos-active', params: { incidentId: activeIncidentId } });
       return;
     }
 
-    if (sosActive) {
-      return;
-    }
+    if (sosActive) return;
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Vibration.vibrate([0, 200, 100, 200]);
@@ -213,6 +289,10 @@ export default function HomeScreen() {
     } finally {
       setSosActive(false);
     }
+  };
+
+  const handleVoiceTestKeyword = (word: string) => {
+    recordVoiceKeyword(word);
   };
 
   return (
@@ -303,10 +383,25 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          <Text style={styles.sosNote}>
-            Or say <Text style={styles.voiceKeyword}>"Help"</Text> or{' '}
-            <Text style={styles.voiceKeyword}>"Emergency"</Text> (Voice SOS)
-          </Text>
+          {/* Voice SOS Trigger Card */}
+          <TouchableOpacity
+            style={styles.voiceSosCard}
+            onPress={() => setVoiceModalOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Animated.View style={[styles.voiceIconPulse, { transform: [{ scale: voicePulseAnim }] }]}>
+              <Text style={{ fontSize: 18 }}>🎙️</Text>
+            </Animated.View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.voiceSosTitle}>Voice SOS Active (3x Keywords)</Text>
+              <Text style={styles.voiceSosSub}>
+                Say <Text style={styles.voiceKeyword}>"Help"</Text>, <Text style={styles.voiceKeyword}>"Bachao"</Text>, or <Text style={styles.voiceKeyword}>"Emergency"</Text> 3 times
+              </Text>
+            </View>
+            <View style={styles.voiceCounterBadge}>
+              <Text style={styles.voiceCounterText}>{voiceMatchCount}/3</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Quick actions */}
@@ -342,13 +437,86 @@ export default function HomeScreen() {
         <View style={styles.tipCard}>
           <Text style={styles.tipTitle}>💡 Safety Tip</Text>
           <Text style={styles.tipText}>
-            Enable <Text style={styles.tipHighlight}>Auto Crash Detection</Text> in settings.
-            SERS will automatically detect accidents and call for help — even if you're unconscious.
+            Voice SOS listens continuously for emergency distress words. Saying emergency keywords 3 times will instantly alert nearest hospitals and dispatch ambulances with your medical history.
           </Text>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Voice SOS Interactive Panel Modal */}
+      <Modal visible={voiceModalOpen} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.voiceModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.voiceModalTitle}>🎙️ Voice SOS Emergency Engine</Text>
+              <TouchableOpacity onPress={() => setVoiceModalOpen(false)} style={styles.closeBtn}>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.voiceModalDesc}>
+              Say any emergency keyword <Text style={{ color: '#ef4444', fontWeight: '800' }}>3 times</Text> (e.g. "Help Help Help", "Bachao Bachao Bachao", or "Emergency, Madad Karo, Help") to trigger instant automatic hospital dispatch with your medical record & allergies.
+            </Text>
+
+            {/* Keyword Progress Circles */}
+            <View style={styles.progressRow}>
+              {[1, 2, 3].map((step) => (
+                <View
+                  key={step}
+                  style={[
+                    styles.progressCircle,
+                    voiceMatchCount >= step && styles.progressCircleActive
+                  ]}
+                >
+                  <Text style={styles.progressCircleText}>
+                    {voiceMatchCount >= step ? '✓' : step}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.progressLabel}>
+              {voiceMatchCount === 0
+                ? 'Listening for emergency keywords...'
+                : voiceMatchCount < 3
+                ? `${voiceMatchCount}/3 keywords detected! Say ${3 - voiceMatchCount} more to dispatch!`
+                : '🚨 3/3 MATCHED! DISPATCHING EMERGENCY SOS!'}
+            </Text>
+
+            {/* Recent matches tags */}
+            {recentVoiceKeywords.length > 0 && (
+              <View style={styles.tagsContainer}>
+                {recentVoiceKeywords.map((w, idx) => (
+                  <View key={idx} style={styles.keywordTag}>
+                    <Text style={styles.keywordTagText}>🗣️ "{w}"</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Test Voice Keyword Buttons */}
+            <Text style={styles.testKeywordsLabel}>Tap to Test Voice Keywords:</Text>
+            <View style={styles.testButtonsGrid}>
+              {['Help!', 'Bachao!', 'Emergency!', 'Madad Karo!'].map((btnText) => (
+                <TouchableOpacity
+                  key={btnText}
+                  style={styles.testBtn}
+                  onPress={() => handleVoiceTestKeyword(btnText.replace('!', '').toLowerCase())}
+                >
+                  <Text style={styles.testBtnText}>🗣️ "{btnText}"</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={styles.emergencyDirectDispatchBtn}
+              onPress={() => triggerVoiceSOS('manual_voice_test')}
+            >
+              <Text style={styles.emergencyDirectDispatchText}>⚡ Direct Voice SOS Dispatch Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -416,7 +584,7 @@ const styles = StyleSheet.create({
   activeSosBannerBtn: { backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   activeSosBannerBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
 
-  sosContainer: { alignItems: 'center', marginBottom: 32, paddingHorizontal: 20 },
+  sosContainer: { alignItems: 'center', marginBottom: 28, paddingHorizontal: 20 },
   sosLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', letterSpacing: 2, marginBottom: 4 },
   sosSub: { fontSize: 12, color: '#475569', marginBottom: 20, textAlign: 'center' },
   sosButton: {
@@ -430,16 +598,24 @@ const styles = StyleSheet.create({
   sosEmoji: { fontSize: 40, marginBottom: 4 },
   sosButtonText: { fontSize: 26, fontWeight: '900', color: '#fff' },
   sosButtonSub: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  sosNote: { color: '#64748b', fontSize: 13, marginTop: 24, textAlign: 'center' },
-  voiceKeyword: { color: '#3b82f6', fontWeight: '800' },
 
-  masterSwitchContainer: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#111827', marginHorizontal: 20, marginTop: 4, marginBottom: 16,
-    padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#1e293b'
+  voiceSosCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#111827', width: '100%', marginTop: 20, padding: 14,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1e293b',
   },
-  masterSwitchTitle: { color: '#f1f5f9', fontWeight: '700', fontSize: 16 },
-  masterSwitchSub: { color: '#94a3b8', fontSize: 12, marginTop: 2 },
+  voiceIconPulse: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(59,130,246,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  voiceSosTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 13, marginBottom: 2 },
+  voiceSosSub: { color: '#94a3b8', fontSize: 11 },
+  voiceKeyword: { color: '#3b82f6', fontWeight: '700' },
+  voiceCounterBadge: {
+    backgroundColor: '#1e293b', paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1, borderColor: '#334155',
+  },
+  voiceCounterText: { color: '#f87171', fontWeight: '900', fontSize: 12 },
 
   quickActions: {
     flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12, marginBottom: 20,
@@ -462,5 +638,46 @@ const styles = StyleSheet.create({
   },
   tipTitle: { fontSize: 13, fontWeight: '700', color: '#3b82f6', marginBottom: 6 },
   tipText: { fontSize: 12, color: '#64748b', lineHeight: 18 },
-  tipHighlight: { color: '#f1f5f9', fontWeight: '600' },
+
+  modalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end',
+  },
+  voiceModalContent: {
+    backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, paddingBottom: 40, borderWidth: 1, borderColor: '#1e293b',
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
+  },
+  voiceModalTitle: { color: '#f1f5f9', fontWeight: '900', fontSize: 18 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: '#1e293b',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  voiceModalDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 20 },
+  progressRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12 },
+  progressCircle: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: '#1e293b',
+    borderWidth: 2, borderColor: '#334155', alignItems: 'center', justifyContent: 'center',
+  },
+  progressCircleActive: { backgroundColor: '#ef4444', borderColor: '#f87171' },
+  progressCircleText: { color: '#fff', fontWeight: '900', fontSize: 18 },
+  progressLabel: { color: '#f1f5f9', textAlign: 'center', fontWeight: '700', fontSize: 13, marginBottom: 16 },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 16 },
+  keywordTag: {
+    backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: '#ef4444',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  },
+  keywordTagText: { color: '#fca5a5', fontWeight: '700', fontSize: 12 },
+  testKeywordsLabel: { color: '#64748b', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
+  testButtonsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  testBtn: {
+    flex: 1, minWidth: '45%', backgroundColor: '#1e293b', padding: 12,
+    borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#334155',
+  },
+  testBtnText: { color: '#60a5fa', fontWeight: '700', fontSize: 13 },
+  emergencyDirectDispatchBtn: {
+    backgroundColor: '#dc2626', padding: 16, borderRadius: 14, alignItems: 'center',
+  },
+  emergencyDirectDispatchText: { color: '#fff', fontWeight: '900', fontSize: 15 },
 });

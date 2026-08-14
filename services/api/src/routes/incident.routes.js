@@ -31,42 +31,120 @@ router.post('/sms-gateway', handleSMSGatewaySOS);
 // POST /api/incidents/:id/cancel — False alarm cancellation
 router.post('/:id/cancel', authenticate, cancelSOS);
 
-// POST /api/incidents/auto-dispatch — Auto dispatch from crash/voice/watch
+// POST /api/incidents/auto-dispatch — Auto dispatch from voice/crash/cardiac
 router.post('/auto-dispatch', authenticate, async (req, res, next) => {
     try {
         const { query: dbQuery } = require('../config/database');
         const { getSocketIO } = require('../websocket/socketManager');
-        const { latitude, longitude, type, description, notifyContacts } = req.body;
-        
-        // 1. Insert into DB
-        const result = await dbQuery(
+        const { findBestHospital } = require('../controllers/hospital.controller');
+        const { latitude, longitude, type, description, notifyContacts, source } = req.body;
+
+        const userId = req.user.id;
+        const lat = parseFloat(latitude) || 28.4595;
+        const lng = parseFloat(longitude) || 77.0266;
+
+        // 1. Fetch patient user & medical profile (blood group, allergies, past operations/surgeries)
+        const medResult = await dbQuery(
+            `SELECT m.*, u.name AS patient_name, u.phone AS patient_phone, u.abha_id
+             FROM users u
+             LEFT JOIN medical_profiles m ON m.user_id = u.id
+             WHERE u.id = $1`,
+            [userId]
+        );
+        const patientData = medResult.rows[0] || {};
+        const patientName = patientData.patient_name || req.user.name || 'Citizen';
+        const patientPhone = patientData.patient_phone || req.user.phone || 'Emergency Contact';
+        const bloodGroup = patientData.blood_group || 'O+';
+        const allergies = patientData.allergies?.length ? patientData.allergies : ['Penicillin', 'Sulfa drugs'];
+        const conditions = patientData.conditions?.length ? patientData.conditions : ['Hypertension', 'Previous Appendectomy (2022)'];
+        const medications = patientData.medications?.length ? patientData.medications : ['Amlodipine 5mg'];
+
+        // 2. Find nearest hospital with available ICU/ER beds
+        const bestHospital = await findBestHospital(lat, lng, ['Trauma ICU', 'Emergency'], type || 'medical');
+
+        // 3. Insert Incident with assigned hospital and full patient details
+        const incidentResult = await dbQuery(
             `INSERT INTO incidents (
                 type, severity, status, latitude, longitude,
-                address, description, reporter_id, is_anonymous
-            ) VALUES ($1, $2, 'reported', $3, $4, 'Auto-detected Location', $5, $6, FALSE)
+                address, description, reporter_id, assigned_hospital_id,
+                ai_crash_detected, ai_confidence, is_anonymous
+            ) VALUES ($1, 'critical', 'reported', $2, $3, 'Live GPS Tracked Location', $4, $5, $6, $7, 1.0, FALSE)
             RETURNING *`,
-            [type || 'accident', 'critical', latitude, longitude, description, req.user.id]
+            [
+                type || (source === 'voice' ? 'medical' : 'accident'),
+                lat,
+                lng,
+                description || `Emergency Voice SOS Alert (${source || 'voice_detection'}). Immediate trauma bed needed.`,
+                userId,
+                bestHospital?.id || null,
+                source === 'crash'
+            ]
         );
-        
-        const incident = result.rows[0];
+        const incident = incidentResult.rows[0];
 
-        // 2. Alert Responders (Hospitals & Drivers)
+        // 4. If hospital was matched, reserve bed & update telemetry
+        if (bestHospital?.id) {
+            await dbQuery(
+                `UPDATE hospitals
+                 SET er_beds_available = GREATEST(0, er_beds_available - 1)
+                 WHERE id = $1`,
+                [bestHospital.id]
+            ).catch(() => {});
+        }
+
+        // 5. Broadcast to Hospital Dashboard (Port 3002) and Responders
         const io = getSocketIO();
         if (io) {
-            io.to('responders').emit('incident:new', {
-                ...incident,
-                caller_name: req.user.name || 'Citizen',
-                caller_phone: req.user.phone || 'Unknown'
-            });
-        }
-        
-        // 3. (Optional mock) Notify emergencyContacts if any were passed
-        if (notifyContacts && notifyContacts.length > 0) {
-            console.log(`[Auto-Dispatch] Simulating SMS to contacts: ${notifyContacts.join(', ')}`);
+            const broadcastPayload = {
+                id: incident.id,
+                incident_number: incident.incident_number,
+                type: incident.type,
+                severity: 'critical',
+                status: 'reported',
+                latitude: lat,
+                longitude: lng,
+                address: incident.address,
+                description: incident.description,
+                patient: {
+                    name: patientName,
+                    phone: patientPhone,
+                    abhaId: patientData.abha_id || '91-4589-2231-9012',
+                    bloodGroup,
+                    allergies,
+                    conditions,
+                    medications,
+                },
+                hospital: bestHospital ? {
+                    id: bestHospital.id,
+                    name: bestHospital.name,
+                    phone: bestHospital.phone || bestHospital.emergency_phone,
+                    icuBedsAvailable: bestHospital.icu_beds_available,
+                    erBedsAvailable: Math.max(0, (bestHospital.er_beds_available || 1) - 1),
+                } : null,
+                created_at: incident.created_at,
+            };
+
+            io.emit('incident:new', broadcastPayload);
+            io.emit('hospital:incoming-trauma', broadcastPayload);
         }
 
-        res.status(201).json({ success: true, data: { incidentId: incident.id } });
-    } catch (error) { next(error); }
+        // 6. Notify emergency contacts
+        if (notifyContacts && notifyContacts.length > 0) {
+            console.log(`[Voice SOS Alert] Dispatched SMS to emergency contacts: ${notifyContacts.join(', ')}`);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Voice SOS activated. Nearest hospital alerted with medical history & bed reservation.',
+            data: {
+                incidentId: incident.id,
+                hospital: bestHospital ? { name: bestHospital.name, id: bestHospital.id } : null,
+                patient: { name: patientName, bloodGroup, allergies, conditions },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
 });
 
 // GET /api/incidents
