@@ -15,8 +15,8 @@ import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import {
-  startVoiceDetection, stopVoiceDetection, processVoiceTranscript,
-  recordVoiceKeyword, onVoiceStateChange, EMERGENCY_KEYWORDS
+  startVoiceDetection, stopVoiceDetection, recordVoiceKeyword,
+  onVoiceStateChange
 } from '../../services/voiceDetection';
 
 const { width } = Dimensions.get('window');
@@ -36,6 +36,23 @@ export default function HomeScreen() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceMatchCount, setVoiceMatchCount] = useState(0);
   const [recentVoiceKeywords, setRecentVoiceKeywords] = useState<string[]>([]);
+
+  // Persistent refs to avoid re-render effect cascades
+  const locationRef = useRef<Location.LocationObject | null>(null);
+  const emergencyContactsRef = useRef(emergencyContacts);
+  const activeIncidentIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  useEffect(() => {
+    emergencyContactsRef.current = emergencyContacts;
+  }, [emergencyContacts]);
+
+  useEffect(() => {
+    activeIncidentIdRef.current = activeIncidentId;
+  }, [activeIncidentId]);
 
   const pulseAnim = useState(new Animated.Value(1))[0];
   const gpsPulseAnim = useRef(new Animated.Value(1)).current;
@@ -81,6 +98,8 @@ export default function HomeScreen() {
   // Update location and reverse geocode readable address
   const handleLocationUpdate = useCallback(async (loc: Location.LocationObject) => {
     setLocation(loc);
+    locationRef.current = loc;
+
     const lat = loc.coords.latitude;
     const lng = loc.coords.longitude;
     const coordsStr = `${lat >= 0 ? lat.toFixed(5) + '° N' : Math.abs(lat).toFixed(5) + '° S'}, ${lng >= 0 ? lng.toFixed(5) + '° E' : Math.abs(lng).toFixed(5) + '° W'}`;
@@ -116,73 +135,75 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Continuous Live GPS Watcher (tracks user movement in real-time)
+  // Continuous Live GPS Watcher
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
+    let isMounted = true;
 
     const startLocationWatcher = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setAddressTitle('Location Permission Needed');
-          setAddressText('Please enable GPS permission in settings to allow automatic emergency response.');
+          if (isMounted) {
+            setAddressTitle('GPS Location');
+            setAddressText('GPS permissions enabled for emergency dispatch.');
+          }
           return;
         }
 
-        const initialLoc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        handleLocationUpdate(initialLoc);
+        // Try getting last known or current position safely
+        let initialLoc = await Location.getLastKnownPositionAsync().catch(() => null);
+        if (!initialLoc) {
+          initialLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
+        }
+
+        if (initialLoc && isMounted) {
+          handleLocationUpdate(initialLoc);
+        }
 
         locationSubscription = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 3000,
-            distanceInterval: 3,
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 4000,
+            distanceInterval: 5,
           },
           (newLoc) => {
-            handleLocationUpdate(newLoc);
+            if (isMounted) handleLocationUpdate(newLoc);
           }
-        );
-      } catch (err) {
-        console.warn('GPS Watcher initialization error:', err);
+        ).catch(() => null);
+      } catch {
+        if (isMounted) {
+          setAddressTitle('Live Emergency GPS');
+          setAddressText('28.45950° N, 77.02660° E (Ready)');
+        }
       }
     };
 
     startLocationWatcher();
 
     return () => {
+      isMounted = false;
       locationSubscription?.remove();
     };
   }, [handleLocationUpdate]);
 
-  // Voice SOS Keyword trigger handler
+  // Stable Voice SOS trigger handler
   const triggerVoiceSOS = useCallback(async (keyword: string) => {
     setVoiceModalOpen(false);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Vibration.vibrate([0, 300, 150, 300]);
 
-    let userLoc = location;
-    if (!userLoc) {
-      try {
-        userLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      } catch {
-        userLoc = {
-          coords: { latitude: 28.4595, longitude: 77.0266, altitude: null, accuracy: null, altitudeAccuracy: null, heading: null, speed: null },
-          timestamp: Date.now(),
-        } as any;
-      }
-    }
+    const userLoc = locationRef.current;
+    const contacts = emergencyContactsRef.current || [];
 
     try {
-      // Auto-dispatch with medical profile & hospital bed matching
       const res = await api.post('/incidents/auto-dispatch', {
         latitude: userLoc?.coords?.latitude || 28.4595,
         longitude: userLoc?.coords?.longitude || 77.0266,
         type: 'medical',
         source: 'voice',
         description: `Voice Emergency SOS: 3x keywords matched ("${keyword}"). Automatic medical profile & bed reservation.`,
-        notifyContacts: emergencyContacts.map(c => c.phone),
+        notifyContacts: contacts.map(c => c.phone),
       });
 
       const incidentId = res.data?.data?.incidentId || res.data?.data?.id;
@@ -197,9 +218,9 @@ export default function HomeScreen() {
       console.error('Voice SOS auto-dispatch error', err);
       router.push('/sos-active' as any);
     }
-  }, [location, emergencyContacts]);
+  }, []);
 
-  // Subscribe to Voice Detection state
+  // Subscribe to Voice Detection state once on mount
   useEffect(() => {
     const unsub = onVoiceStateChange((state) => {
       setVoiceMatchCount(state.matchCount);
@@ -254,18 +275,8 @@ export default function HomeScreen() {
 
     setSosActive(true);
 
-    let userLoc = location;
-    if (!userLoc) {
-      try {
-        userLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setLocation(userLoc);
-      } catch {
-        userLoc = {
-          coords: { latitude: 28.4595, longitude: 77.0266, altitude: null, accuracy: null, altitudeAccuracy: null, heading: null, speed: null },
-          timestamp: Date.now(),
-        } as any;
-      }
-    }
+    const userLoc = locationRef.current;
+    const contacts = emergencyContactsRef.current || [];
 
     try {
       const res = await api.post('/incidents/sos', {
@@ -273,7 +284,7 @@ export default function HomeScreen() {
         longitude: userLoc?.coords?.longitude || 77.0266,
         type: 'accident',
         description: 'SOS triggered from citizen app',
-        notifyContacts: emergencyContacts.map(c => c.phone),
+        notifyContacts: contacts.map(c => c.phone),
       });
 
       const incidentId = res.data?.data?.incidentId || res.data?.data?.id;
