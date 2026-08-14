@@ -37,9 +37,6 @@ import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { startCrashDetection } from '../services/crashDetection';
-import { startVoiceDetection, stopVoiceDetection } from '../services/voiceDetection';
-import { startSimulatedSmartwatch, stopSmartwatch, onCardiacEmergencyTrigger } from '../services/smartwatchService';
 import { connectSocket, getSocket } from '../services/socket';
 import { api } from '../services/api';
 
@@ -78,36 +75,18 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, user, isLoading]);
 
-  // Manage Background Services based on appEnabled
+  // Manage WebSocket connection
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    let stopCrash: (() => void) | undefined;
-    let stopVoice: (() => void) | undefined;
-    let removeCardiacListener: (() => void) | undefined;
-
-    if (appEnabled) {
-      // Start real crash sensors & cardiac listeners
-      stopCrash = startCrashDetection((probability) => handleCrashDetected(probability, 'crash'));
-      removeCardiacListener = onCardiacEmergencyTrigger(() => handleCrashDetected(1, 'cardiac'));
-
-      // Connect socket
-      connectSocket();
-    } else {
-      // Stop sensors & socket
-      stopSmartwatch();
-      stopVoiceDetection();
-      const socket = getSocket();
-      if (socket) socket.disconnect();
-    }
+    // Connect socket for real-time dispatch updates
+    connectSocket();
 
     return () => {
-      if (stopCrash) stopCrash();
-      if (stopVoice) stopVoice();
-      if (removeCardiacListener) removeCardiacListener();
-      stopSmartwatch();
+      const socket = getSocket();
+      if (socket) socket.disconnect();
     };
-  }, [isAuthenticated, appEnabled]);
+  }, [isAuthenticated]);
 
   const handleCrashDetected = (probability: number, triggerSource: 'crash' | 'voice' | 'cardiac' = 'crash') => {
     if (crashCancelRef.current) {
@@ -140,36 +119,34 @@ export default function RootLayout() {
   };
 
   const triggerSOSFromCrash = async (source: 'crash' | 'voice' | 'cardiac') => {
-    // 1. Alert emergency contacts & auto-dial
     const contacts = useSettingsStore.getState().emergencyContacts;
-    Linking.openURL('tel:112').catch(() => console.log('Dialer error'));
-    
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       let coords = null;
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
       }
 
-      if (coords) {
-        // Auto-dispatch API handles finding beds & alerting hospitals directly
-        const res = await api.post('/incidents/auto-dispatch', {
-          latitude: coords.lat,
-          longitude: coords.lng,
-          type: source === 'cardiac' ? 'cardiac' : 'accident',
-          description: `Automatic SOS triggered from ${source} detection.`,
-          notifyContacts: contacts.map(c => c.phone)
-        });
-        
-        const { incidentId } = res.data.data;
-        router.push(`/sos-active?incidentId=${incidentId}&source=${source}_detection`);
+      const res = await api.post('/incidents/auto-dispatch', {
+        latitude: coords?.lat || 28.4595,
+        longitude: coords?.lng || 77.0266,
+        type: source === 'cardiac' ? 'cardiac' : 'accident',
+        source,
+        description: `Emergency alert triggered from ${source} detection.`,
+        notifyContacts: contacts.map(c => c.phone),
+      });
+
+      const incidentId = res.data?.data?.incidentId || res.data?.data?.id;
+      if (incidentId) {
+        router.push({ pathname: '/sos-active', params: { incidentId } });
       } else {
-        router.push(`/sos-active?source=${source}_detection_no_location`);
+        router.push('/sos-active' as any);
       }
     } catch (e) {
-      console.error('Auto dispatch failed', e);
-      router.push(`/sos-active?source=${source}_detection_fallback`);
+      console.error('Auto dispatch error', e);
+      router.push('/sos-active' as any);
     }
   };
 
