@@ -332,7 +332,7 @@ export default function LoginPage() {
                       required
                       value={name}
                       onChange={e => setName(e.target.value)}
-                      placeholder="e.g. Dr. Rajesh Varma"
+                      placeholder="e.g. Rajesh Varma (Triage Coordinator)"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                     />
                   </div>
