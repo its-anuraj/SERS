@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   AlertTriangle, Activity, Ambulance, Hospital, Zap,
   MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
-  Shield, Menu, X, BarChart3, RefreshCw, Play, CheckCircle2, Heart
+  Shield, Menu, X, BarChart3, RefreshCw
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -239,7 +239,6 @@ export default function DashboardPage() {
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [typeData, setTypeData]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [simulating, setSimulating] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<any | null>(null);
 
   useEffect(() => {
@@ -322,40 +321,6 @@ export default function DashboardPage() {
     return () => { socket.disconnect(); };
   }, []);
 
-  // 1-Click Interactive Emergency Dispatch Simulator (Creates real emergency in PostgreSQL)
-  const triggerTestEmergency = async () => {
-    setSimulating(true);
-    try {
-      const liveIncident = {
-        type: 'accident',
-        latitude: 12.9716 + (Math.random() - 0.5) * 0.04,
-        longitude: 77.5946 + (Math.random() - 0.5) * 0.04,
-        address: 'Live Crash Alert — Bengaluru Central Corridor',
-        landmark: 'Near Trinity Circle / MG Road',
-        description: 'Multi-Sensor AFDP Airbag Crash Detection — Realtime Dispatch Triggered',
-        aiCrashDetected: true,
-        aiSeverityScore: 9.6,
-      };
-
-      const res = await apiFetch('/api/incidents/sos', {
-        method: 'POST',
-        body: JSON.stringify(liveIncident),
-      });
-
-      if (res.success && res.data) {
-        await fetchAll();
-        if (res.data.id) {
-          setSelectedIncident(res.data);
-        }
-      }
-      setNewAlertCount(n => n + 1);
-    } catch (e) {
-      console.error('Trigger emergency error:', e);
-    } finally {
-      setSimulating(false);
-    }
-  };
-
   const dispatchAmbulance = async (incId: string) => {
     try {
       await apiFetch(`/api/incidents/${incId}/dispatch`, {
@@ -395,15 +360,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Interactive Test SOS Simulator Button */}
-            <button
-              onClick={triggerTestEmergency}
-              disabled={simulating}
-              className="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow-md shadow-rose-600/20 flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer">
-              <Play size={13} className={simulating ? 'animate-spin' : ''} />
-              {simulating ? 'Triggering...' : '🚨 Trigger Live Emergency'}
-            </button>
-
             {/* Socket status indicator */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80">
               <Radio size={14} className={socketConnected ? 'text-emerald-600 animate-pulse' : 'text-slate-400'} />
@@ -431,7 +387,7 @@ export default function DashboardPage() {
         {/* Main Content Area */}
         <div className="p-6 space-y-6 flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
           {/* Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
               label="Active Emergency Alerts"
               value={activeIncidents.length}
@@ -458,15 +414,6 @@ export default function DashboardPage() {
               icon={Ambulance}
               color="#3b82f6"
               bgGradient="from-blue-50/50 to-white"
-              loading={loading}
-            />
-            <StatCard
-              label="Golden Hour Avg Response"
-              value={avgResponse}
-              sub="⏱️ Realtime response telemetry"
-              icon={Zap}
-              color="#d97706"
-              bgGradient="from-amber-50/50 to-white"
               loading={loading}
             />
           </div>
