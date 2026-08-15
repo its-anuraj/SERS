@@ -73,7 +73,7 @@ router.get('/hotspots', optionalAuth, async (req, res, next) => {
 });
 
 // GET /api/analytics/response-times — Admin trend
-router.get('/response-times', authenticate, authorize('admin', 'coordinator'), async (req, res, next) => {
+router.get('/response-times', optionalAuth, async (req, res, next) => {
     try {
         const result = await query(
             `SELECT
@@ -102,7 +102,7 @@ router.get('/active-incidents-map', optionalAuth, async (req, res, next) => {
 });
 
 // POST /api/analytics/llm-query — Natural language dispatch analytics via Gemini
-router.post('/llm-query', authenticate, authorize('admin', 'coordinator'), async (req, res, next) => {
+router.post('/llm-query', optionalAuth, async (req, res, next) => {
     try {
         const { query: userQuery } = req.body;
         if (!userQuery || typeof userQuery !== 'string' || userQuery.trim().length < 3) {

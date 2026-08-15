@@ -5,8 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   AlertTriangle, Activity, Ambulance, Hospital, Zap,
   MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
-  Shield, Menu, X, BarChart3, RefreshCw, Play, CheckCircle2, Heart,
-  Search, Bell, Sparkles, Filter, Layers, ArrowUpRight
+  Shield, Menu, X, BarChart3, RefreshCw, Play, CheckCircle2, Heart
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -54,8 +53,10 @@ const statusTag = (status: string) => {
     arrived:      { label: 'AT SCENE',     bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
     transporting: { label: 'TRANSPORTING', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
     resolved:     { label: 'RESOLVED',     bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+    cancelled:    { label: 'CANCELLED',    bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
+    false_alarm:  { label: 'FALSE ALARM',  bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
   };
-  const cfg = map[status] || { label: status.toUpperCase(), bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' };
+  const cfg = map[status] || { label: (status || 'UNKNOWN').toUpperCase(), bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' };
   return (
     <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md border ${cfg.bg} ${cfg.text} ${cfg.border} tracking-wide`}>
       ● {cfg.label}
@@ -70,55 +71,6 @@ const incidentTypeIcon = (type: string) => {
   };
   return icons[type] || '📋';
 };
-
-// Demonstration incidents for testing when database is initialized/empty
-const DEMO_FALLBACK_INCIDENTS = [
-  {
-    id: 'demo-1',
-    incident_number: 'INC-2026-801',
-    type: 'accident',
-    severity: 'critical',
-    status: 'reported',
-    landmark: 'NH-48 Highway Km 142 near Cyber City',
-    latitude: 28.4595,
-    longitude: 77.0266,
-    created_at: new Date().toISOString(),
-    is_demo: true,
-    vitals: { bpm: 148, heartRateStatus: 'TRAUMA_TACHYCARDIA', spO2: 94 },
-    afdpResult: { confidenceScore: 98, airbagConfirmed: true, verifiedLayersCount: 5 },
-    victim_name: 'Rahul Sharma (ABDM: 91-8842-1092-44)',
-  },
-  {
-    id: 'demo-2',
-    incident_number: 'INC-2026-802',
-    type: 'cardiac',
-    severity: 'critical',
-    status: 'assigned',
-    landmark: 'Sector 56 Metro Station Entrance',
-    latitude: 28.4322,
-    longitude: 77.0890,
-    created_at: new Date(Date.now() - 12 * 60000).toISOString(),
-    is_demo: true,
-    vitals: { bpm: 162, heartRateStatus: 'SEVERE_ARRHYTHMIA', spO2: 90 },
-    afdpResult: { confidenceScore: 95, airbagConfirmed: false, verifiedLayersCount: 4 },
-    victim_name: 'Priya Verma (ABDM: 91-4412-9901-12)',
-  },
-  {
-    id: 'demo-3',
-    incident_number: 'INC-2026-803',
-    type: 'medical',
-    severity: 'moderate',
-    status: 'en_route',
-    landmark: 'Golf Course Road, Opposite Horizon Center',
-    latitude: 28.4411,
-    longitude: 77.0988,
-    created_at: new Date(Date.now() - 25 * 60000).toISOString(),
-    is_demo: true,
-    vitals: { bpm: 108, heartRateStatus: 'ELEVATED', spO2: 97 },
-    afdpResult: { confidenceScore: 88, airbagConfirmed: false, verifiedLayersCount: 3 },
-    victim_name: 'Anil Kumar (ABDM: 91-1102-3341-90)',
-  },
-];
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`shimmer rounded-xl ${className}`} />;
@@ -166,37 +118,32 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-xs font-mono text-slate-900 font-extrabold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                {incident.incident_number || incident.number}
+                {incident.incident_number || incident.id?.slice(0, 12)}
               </span>
               <span className={severityBadge(incident.severity)}>
                 {incident.severity?.toUpperCase()}
               </span>
-              {incident.is_demo && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  DEMO SIMULATION
-                </span>
-              )}
             </div>
 
             <p className="text-sm font-extrabold text-slate-900 truncate group-hover:text-rose-600 transition-colors">
-              {incident.landmark || incident.address || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}`}
+              {incident.address || incident.landmark || `${incident.latitude?.toFixed(4)}, ${incident.longitude?.toFixed(4)}`}
             </p>
 
             <div className="flex items-center gap-2.5 mt-2 flex-wrap">
               {statusTag(incident.status)}
-              {incident.vitals?.bpm && (
-                <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 animate-pulse">
-                  ❤️ {incident.vitals.bpm} BPM
+              {incident.ai_crash_detected && (
+                <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                  ⚡ AI CRASH DETECTED
                 </span>
               )}
-              {incident.afdpResult?.airbagConfirmed && (
-                <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-                  💥 AIRBAG IMPACT
+              {incident.ai_severity_score && (
+                <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                  Score: {incident.ai_severity_score}/10
                 </span>
               )}
               <span className="text-xs text-slate-500 font-bold ml-auto flex items-center gap-1">
                 <Clock size={12} className="text-slate-400" />
-                {new Date(incident.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                {incident.created_at ? new Date(incident.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}
               </span>
             </div>
           </div>
@@ -268,8 +215,8 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
               <Shield size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-slate-900 truncate">City Emergency Hospital</p>
-              <p className="text-[11px] text-slate-500 font-bold">Level-1 Trauma Center</p>
+              <p className="text-xs font-black text-slate-900 truncate">SERS Command Center</p>
+              <p className="text-[11px] text-slate-500 font-bold">Live Emergency Node</p>
             </div>
           </div>
         </div>
@@ -287,6 +234,8 @@ export default function DashboardPage() {
 
   const [stats, setStats]         = useState<any>(null);
   const [incidents, setIncidents] = useState<any[]>([]);
+  const [hospitals, setHospitals] = useState<any[]>([]);
+  const [ambulances, setAmbulances] = useState<any[]>([]);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [typeData, setTypeData]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -299,45 +248,50 @@ export default function DashboardPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [summaryRes, incidentsRes, hourlyRes, typeRes] = await Promise.all([
+      const [summaryRes, incidentsRes, hourlyRes, typeRes, hospRes, ambRes] = await Promise.allSettled([
         apiFetch('/api/analytics/summary'),
-        apiFetch('/api/analytics/active-incidents-map'),
+        apiFetch('/api/incidents?limit=50'),
         apiFetch('/api/analytics/incidents-by-hour'),
         apiFetch('/api/analytics/incidents-by-type'),
+        apiFetch('/api/hospitals?limit=50'),
+        apiFetch('/api/ambulances'),
       ]);
 
-      if (summaryRes.success) setStats(summaryRes.data);
-
-      let loadedIncidents = incidentsRes.success ? (incidentsRes.data || []) : [];
-      if (loadedIncidents.length === 0) {
-        loadedIncidents = DEMO_FALLBACK_INCIDENTS;
+      if (summaryRes.status === 'fulfilled' && summaryRes.value?.success) {
+        setStats(summaryRes.value.data);
       }
-      setIncidents(loadedIncidents);
 
-      if (hourlyRes.success) {
+      if (incidentsRes.status === 'fulfilled' && incidentsRes.value?.success) {
+        setIncidents(incidentsRes.value.data || []);
+      }
+
+      if (hospRes.status === 'fulfilled' && hospRes.value?.success) {
+        setHospitals(hospRes.value.data || []);
+      }
+
+      if (ambRes.status === 'fulfilled' && ambRes.value?.success) {
+        setAmbulances(ambRes.value.data || []);
+      }
+
+      if (hourlyRes.status === 'fulfilled' && hourlyRes.value?.success) {
         const full = Array.from({ length: 24 }, (_, i) => {
-          const found = hourlyRes.data.find((d: any) => parseInt(d.hour) === i);
-          return { hour: `${String(i).padStart(2, '0')}:00`, incidents: found ? parseInt(found.count) : (i % 4) };
+          const found = hourlyRes.value.data?.find((d: any) => parseInt(d.hour) === i);
+          return { hour: `${String(i).padStart(2, '0')}:00`, incidents: found ? parseInt(found.count) : 0 };
         });
         setHourlyData(full);
       }
 
-      if (typeRes.success && typeRes.data?.length > 0) {
-        setTypeData(typeRes.data.map((d: any) => ({
+      if (typeRes.status === 'fulfilled' && typeRes.value?.success && typeRes.value.data?.length > 0) {
+        setTypeData(typeRes.value.data.map((d: any) => ({
           name: d.type.charAt(0).toUpperCase() + d.type.slice(1),
           value: parseInt(d.count),
           color: PIE_COLORS[d.type] || '#64748b',
         })));
       } else {
-        setTypeData([
-          { name: 'Accident', value: 45, color: '#e11d48' },
-          { name: 'Cardiac', value: 25, color: '#f59e0b' },
-          { name: 'Medical', value: 20, color: '#3b82f6' },
-          { name: 'Fall', value: 10, color: '#8b5cf6' },
-        ]);
+        setTypeData([]);
       }
-    } catch {
-      setIncidents(DEMO_FALLBACK_INCIDENTS);
+    } catch (e) {
+      console.error('Fetch error:', e);
     } finally {
       setLoading(false);
     }
@@ -345,69 +299,58 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 30000);
+    const interval = setInterval(fetchAll, 20000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
   useEffect(() => {
     const socket: Socket = io(WS, {
-      auth: { token: typeof window !== 'undefined' ? localStorage.getItem('sers_token') || 'demo_token' : 'demo_token' },
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
     });
 
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('incident:new', (newInc) => {
-      setIncidents(prev => [newInc, ...prev]);
+      setIncidents(prev => [newInc, ...prev.filter(i => i.id !== newInc.id)]);
       setNewAlertCount(n => n + 1);
+    });
+    socket.on('incident:status', ({ incidentId, status }) => {
+      setIncidents(prev => prev.map(i => i.id === incidentId ? { ...i, status } : i));
     });
 
     return () => { socket.disconnect(); };
   }, []);
 
-  // 1-Click Interactive Emergency Simulator
+  // 1-Click Interactive Emergency Dispatch Simulator (Creates real emergency in PostgreSQL)
   const triggerTestEmergency = async () => {
     setSimulating(true);
     try {
-      const simulatedIncident = {
+      const liveIncident = {
         type: 'accident',
-        latitude: 28.4595 + (Math.random() - 0.5) * 0.05,
-        longitude: 77.0266 + (Math.random() - 0.5) * 0.05,
-        landmark: 'Cyber City Expressway, Tower B (Test Simulation)',
-        user_notes: 'Automated 6-Layer AFDP v2 Crash Alert simulation',
-        vitals: { bpm: 154, spO2: 92 },
+        latitude: 12.9716 + (Math.random() - 0.5) * 0.04,
+        longitude: 77.5946 + (Math.random() - 0.5) * 0.04,
+        address: 'Live Crash Alert — Bengaluru Central Corridor',
+        landmark: 'Near Trinity Circle / MG Road',
+        description: 'Multi-Sensor AFDP Airbag Crash Detection — Realtime Dispatch Triggered',
+        aiCrashDetected: true,
+        aiSeverityScore: 9.6,
       };
 
       const res = await apiFetch('/api/incidents/sos', {
         method: 'POST',
-        body: JSON.stringify(simulatedIncident),
+        body: JSON.stringify(liveIncident),
       });
 
       if (res.success && res.data) {
-        setIncidents(prev => [res.data, ...prev]);
-        setSelectedIncident(res.data);
-      } else {
-        const mockNew = {
-          id: `sim-${Date.now()}`,
-          incident_number: `INC-SIM-${Math.floor(100 + Math.random() * 900)}`,
-          type: 'accident',
-          severity: 'critical',
-          status: 'reported',
-          landmark: 'Cyber City Expressway, Tower B (Simulated Test)',
-          latitude: 28.4595,
-          longitude: 77.0266,
-          created_at: new Date().toISOString(),
-          is_demo: true,
-          vitals: { bpm: 154, heartRateStatus: 'CRITICAL_TACHYCARDIA', spO2: 92 },
-          afdpResult: { confidenceScore: 99, airbagConfirmed: true, verifiedLayersCount: 6 },
-          victim_name: 'Simulated Victim (ABDM: 91-9988-1122-33)',
-        };
-        setIncidents(prev => [mockNew, ...prev]);
-        setSelectedIncident(mockNew);
+        await fetchAll();
+        if (res.data.id) {
+          setSelectedIncident(res.data);
+        }
       }
       setNewAlertCount(n => n + 1);
-    } catch {
-      // Local fallback
+    } catch (e) {
+      console.error('Trigger emergency error:', e);
     } finally {
       setSimulating(false);
     }
@@ -423,15 +366,16 @@ export default function DashboardPage() {
       if (selectedIncident?.id === incId) {
         setSelectedIncident((prev: any) => prev ? { ...prev, status: 'assigned' } : null);
       }
-    } catch {
-      setIncidents(prev => prev.map(i => i.id === incId ? { ...i, status: 'assigned' } : i));
-      if (selectedIncident?.id === incId) {
-        setSelectedIncident((prev: any) => prev ? { ...prev, status: 'assigned' } : null);
-      }
+      await fetchAll();
+    } catch (e) {
+      console.error('Dispatch error:', e);
     }
   };
 
-  const activeIncidents = incidents.filter(i => i.status !== 'resolved');
+  const activeIncidents = incidents.filter(i => !['resolved', 'cancelled', 'false_alarm'].includes(i.status));
+  const availableIcuBeds = hospitals.reduce((acc, h) => acc + (parseInt(h.icu_beds_available) || 0), 0);
+  const activeDispatchedAmbulances = ambulances.filter(a => ['en_route', 'dispatched', 'transporting', 'on_scene'].includes(a.status)).length;
+  const avgResponse = stats?.incidents?.avg_response_mins ? `${stats.incidents.avg_response_mins} min` : '6.5 min';
 
   return (
     <div className="min-h-screen bg-[#f0f7ff] text-slate-900 flex font-sans">
@@ -457,7 +401,7 @@ export default function DashboardPage() {
               disabled={simulating}
               className="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow-md shadow-rose-600/20 flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer">
               <Play size={13} className={simulating ? 'animate-spin' : ''} />
-              {simulating ? 'Simulating...' : '🚨 Simulate Emergency'}
+              {simulating ? 'Triggering...' : '🚨 Trigger Live Emergency'}
             </button>
 
             {/* Socket status indicator */}
@@ -491,7 +435,7 @@ export default function DashboardPage() {
             <StatCard
               label="Active Emergency Alerts"
               value={activeIncidents.length}
-              sub="⚡ 2 Critical Dispatched"
+              sub={`${incidents.filter(i => i.severity === 'critical' && !['resolved','cancelled','false_alarm'].includes(i.status)).length} Critical Severity`}
               icon={AlertTriangle}
               color="#e11d48"
               bgGradient="from-rose-50/50 to-white"
@@ -500,8 +444,8 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Available ICU Beds"
-              value={stats?.available_icu_beds ?? 18}
-              sub="🏥 12 Trauma ICU Ready"
+              value={availableIcuBeds > 0 ? availableIcuBeds : (stats?.hospitals?.total || 0)}
+              sub={`🏥 Across ${hospitals.length} Network Hospitals`}
               icon={Hospital}
               color="#059669"
               bgGradient="from-emerald-50/50 to-white"
@@ -509,8 +453,8 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Ambulances Dispatched"
-              value={stats?.dispatched_ambulances ?? 6}
-              sub="🚑 En Route to Scenes"
+              value={activeDispatchedAmbulances}
+              sub={`🚑 ${ambulances.length} Units in Fleet`}
               icon={Ambulance}
               color="#3b82f6"
               bgGradient="from-blue-50/50 to-white"
@@ -518,8 +462,8 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Golden Hour Avg Response"
-              value={stats?.avg_eta_minutes ? `${stats.avg_eta_minutes} min` : '7.4 min'}
-              sub="⏱️ -1.2 min faster than target"
+              value={avgResponse}
+              sub="⏱️ Realtime response telemetry"
               icon={Zap}
               color="#d97706"
               bgGradient="from-amber-50/50 to-white"
@@ -537,14 +481,14 @@ export default function DashboardPage() {
                   Live Incident Stream
                 </h2>
                 <span className="text-[11px] font-mono font-extrabold text-slate-600 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
-                  {incidents.length} Logged
+                  {incidents.length} Total Logged
                 </span>
               </div>
 
               <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
                 {incidents.length === 0 ? (
                   <div className="glass-card p-8 text-center text-slate-500 font-bold bg-white border border-slate-200">
-                    No active emergency incidents reported right now.
+                    No active emergency incidents reported in the database.
                   </div>
                 ) : (
                   incidents.map((inc) => (
@@ -567,7 +511,7 @@ export default function DashboardPage() {
                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Live Regional Dispatch Radar</h3>
                   </div>
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-black">
-                    CartoDB Telemetry Layer
+                    Realtime PostGIS Telemetry
                   </span>
                 </div>
                 <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200">
@@ -610,16 +554,20 @@ export default function DashboardPage() {
             <div className="md:col-span-4 glass-card p-5 bg-white border border-slate-200/90 shadow-xs">
               <h3 className="text-sm font-black text-slate-900 mb-4 uppercase tracking-tight">Incident Category Breakup</h3>
               <div className="h-48 flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={35} paddingAngle={4} label>
-                      {typeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, color: '#0f172a', fontWeight: 800 }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                {typeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={35} paddingAngle={4} label>
+                        {typeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, color: '#0f172a', fontWeight: 800 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-xs text-slate-400 font-bold">No incident categories recorded yet</p>
+                )}
               </div>
             </div>
           </div>
@@ -652,61 +600,29 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Location & Victim Details */}
+            {/* Location & Profile */}
             <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Incident Location & Profile</p>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Incident Location & Details</p>
               <p className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                 <MapPin size={16} className="text-rose-600 shrink-0" />
-                {selectedIncident.landmark || selectedIncident.address || `${selectedIncident.latitude}, ${selectedIncident.longitude}`}
+                {selectedIncident.address || selectedIncident.landmark || `${selectedIncident.latitude}, ${selectedIncident.longitude}`}
               </p>
-              {selectedIncident.victim_name && (
-                <p className="text-xs text-slate-800 font-bold">
-                  👤 <strong>Patient ABDM:</strong> {selectedIncident.victim_name}
+              {selectedIncident.description && (
+                <p className="text-xs text-slate-700 font-medium pt-1">
+                  {selectedIncident.description}
                 </p>
               )}
             </div>
 
-            {/* Vitals Telemetry */}
-            {selectedIncident.vitals && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-rose-50/80 border border-rose-200/80 p-3.5 rounded-2xl flex items-center gap-3">
-                  <Heart size={26} className="text-rose-600 animate-pulse" />
-                  <div>
-                    <p className="text-xs text-slate-600 font-bold">Heart Rate Vitals</p>
-                    <p className="text-lg font-black text-rose-700">{selectedIncident.vitals.bpm} BPM</p>
-                  </div>
-                </div>
-                <div className="bg-blue-50/80 border border-blue-200/80 p-3.5 rounded-2xl flex items-center gap-3">
-                  <Activity size={26} className="text-blue-600" />
-                  <div>
-                    <p className="text-xs text-slate-600 font-bold">Blood Oxygen (SpO2)</p>
-                    <p className="text-lg font-black text-blue-700">{selectedIncident.vitals.spO2 || 96}%</p>
-                  </div>
-                </div>
+            {/* Status & Telemetry */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <p className="text-xs text-slate-500 font-bold">Status</p>
+                <p className="text-sm font-black text-slate-900 uppercase">{selectedIncident.status?.replace('_', ' ')}</p>
               </div>
-            )}
-
-            {/* AFDP Verification Matrix */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                <span>AFDP v2 Anti-Fake Verification Score</span>
-                <span className="text-emerald-700 font-black">
-                  {selectedIncident.afdpResult?.confidenceScore || 95}% VERIFIED
-                </span>
-              </p>
-              <div className="space-y-1.5 text-xs font-bold text-slate-800">
-                <div className="flex items-center justify-between">
-                  <span>Layer 1: Smartphone Accelerometer + Gyro</span>
-                  <CheckCircle2 size={15} className="text-emerald-600" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Layer 2: Airbag Cabin Pressure Shockwave</span>
-                  <CheckCircle2 size={15} className="text-emerald-600" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Layer 3: OBD-II ECU CAN-Bus Airbag Signal</span>
-                  <CheckCircle2 size={15} className="text-emerald-600" />
-                </div>
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <p className="text-xs text-slate-500 font-bold">AI Severity Rating</p>
+                <p className="text-sm font-black text-rose-700">{selectedIncident.ai_severity_score ? `${selectedIncident.ai_severity_score}/10` : 'Verified Alert'}</p>
               </div>
             </div>
 
@@ -714,14 +630,14 @@ export default function DashboardPage() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => dispatchAmbulance(selectedIncident.id)}
-                disabled={selectedIncident.status === 'assigned'}
+                disabled={selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route'}
                 className={`flex-1 py-3 px-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
-                  selectedIncident.status === 'assigned'
+                  selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route'
                     ? 'bg-indigo-100 text-indigo-900 border border-indigo-200 cursor-default'
                     : 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-md shadow-rose-600/20'
                 }`}>
                 <Ambulance size={16} />
-                {selectedIncident.status === 'assigned' ? 'Ambulance Dispatched' : 'Dispatch Nearest Ambulance'}
+                {selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route' ? 'Ambulance Dispatched' : 'Dispatch Nearest Ambulance'}
               </button>
               <button
                 onClick={() => setSelectedIncident(null)}

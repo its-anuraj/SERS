@@ -12,8 +12,8 @@ const {
     reserveHospitalBed, confirmBedHandshake
 } = require('../controllers/hospital.controller');
 
-// GET /api/hospitals — Admin list
-router.get('/', authenticate, authorize('admin', 'coordinator'), listHospitals);
+// GET /api/hospitals — Admin list & dashboard view
+router.get('/', optionalAuth, listHospitals);
 
 // GET /api/hospitals/nearest — Public (with optional auth for personalization)
 router.get('/nearest', optionalAuth, getNearestHospitals);

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * SERS Admin — Ambulance Fleet Management Page (Light Theme)
+ * SERS Admin — Ambulance Fleet Management Page (100% Real Live Database Data)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -24,85 +24,32 @@ interface Ambulance {
   id: string;
   registration_number: string;
   vehicle_type: string;
-  status: 'available' | 'dispatched' | 'en_route' | 'at_scene' | 'transporting' | 'maintenance' | 'offline';
-  driver_name: string;
-  driver_phone: string;
+  status: string;
+  driver_name?: string;
+  driver_phone?: string;
   paramedic_name?: string;
   hospital_id?: string;
   hospital_name?: string;
-  latitude?: number;
-  longitude?: number;
-  last_seen?: string;
-  equipment: string[];
-  is_demo?: boolean;
+  current_lat?: number;
+  current_lng?: number;
+  equipment_list?: string[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   available:    { label: 'Available',    color: '#16a34a', bg: '#f0fdf4' },
   dispatched:   { label: 'Dispatched',   color: '#2563eb', bg: '#eff6ff' },
   en_route:     { label: 'En Route',     color: '#0891b2', bg: '#ecfeff' },
+  on_scene:     { label: 'On Scene',     color: '#9333ea', bg: '#faf5ff' },
   at_scene:     { label: 'At Scene',     color: '#9333ea', bg: '#faf5ff' },
   transporting: { label: 'Transporting', color: '#ea580c', bg: '#fff7ed' },
+  at_hospital:  { label: 'At Hospital',  color: '#3b82f6', bg: '#eff6ff' },
   maintenance:  { label: 'Maintenance',  color: '#d97706', bg: '#fffbeb' },
   offline:      { label: 'Offline',      color: '#64748b', bg: '#f8fafc' },
 };
 
-const DEMO_FLEET: Ambulance[] = [
-  {
-    id: 'amb-demo-1',
-    registration_number: 'HR-26-EQ-1008',
-    vehicle_type: 'ALS (Advanced Life Support)',
-    status: 'available',
-    driver_name: 'Vikram Singh',
-    driver_phone: '+91 98712 34567',
-    paramedic_name: 'Dr. Neha Kapoor (Paramedic)',
-    hospital_name: 'City Emergency & Multi-Specialty Hospital',
-    equipment: ['Ventilator', 'Defibrillator', 'ECG Monitor', 'O2 Cylinder', 'ICU Meds'],
-    is_demo: true,
-  },
-  {
-    id: 'amb-demo-2',
-    registration_number: 'HR-26-EQ-2045',
-    vehicle_type: 'ALS (Advanced Life Support)',
-    status: 'en_route',
-    driver_name: 'Manish Verma',
-    driver_phone: '+91 98110 99887',
-    paramedic_name: 'Suresh Kumar',
-    hospital_name: 'Max Super Specialty Hospital',
-    equipment: ['Defibrillator', 'Suction Machine', 'Splints', 'Stretcher'],
-    is_demo: true,
-  },
-  {
-    id: 'amb-demo-3',
-    registration_number: 'HR-26-EQ-3099',
-    vehicle_type: 'BLS (Basic Life Support)',
-    status: 'dispatched',
-    driver_name: 'Rajesh Yadav',
-    driver_phone: '+91 99533 11224',
-    paramedic_name: 'Pooja Sharma',
-    hospital_name: 'Fortis Memorial Research Institute',
-    equipment: ['First Aid Kit', 'O2 Mask', 'Spine Board'],
-    is_demo: true,
-  },
-  {
-    id: 'amb-demo-4',
-    registration_number: 'HR-26-EQ-4011',
-    vehicle_type: 'Neonatal Care Unit',
-    status: 'available',
-    driver_name: 'Amit Joshi',
-    driver_phone: '+91 97177 44556',
-    paramedic_name: 'Dr. Sunita Rao',
-    hospital_name: 'City Emergency Hospital',
-    equipment: ['Incubator', 'Infant Ventilator', 'Pulse Oximeter'],
-    is_demo: true,
-  },
-];
-
-const VEHICLE_TYPES = ['ALS', 'BLS', 'Neonatal', 'Bariatric', 'Bike'];
-
 const EMPTY: Partial<Ambulance> = {
-  registration_number: '', vehicle_type: 'ALS', status: 'available',
-  driver_name: '', driver_phone: '', paramedic_name: '', equipment: ['Defibrillator', 'O2 Tank'],
+  registration_number: '', vehicle_type: 'als', status: 'available',
+  driver_name: '', driver_phone: '', paramedic_name: '',
 };
 
 export default function FleetPage() {
@@ -113,15 +60,18 @@ export default function FleetPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing]     = useState<Partial<Ambulance>>(EMPTY);
   const [saving, setSaving]       = useState(false);
+  const [errorMsg, setErrorMsg]   = useState('');
 
   const fetchFleet = useCallback(async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
-      const data = await apiFetch('/api/ambulances?limit=200');
-      const loaded = data.data || [];
-      setFleet(loaded.length > 0 ? loaded : DEMO_FLEET);
-    } catch {
-      setFleet(DEMO_FLEET);
+      const res = await apiFetch('/api/ambulances?limit=200');
+      setFleet(res.data || []);
+    } catch (e: any) {
+      console.error('Fleet fetch error:', e);
+      setErrorMsg('Failed to load fleet data from database');
+      setFleet([]);
     } finally {
       setLoading(false);
     }
@@ -135,30 +85,15 @@ export default function FleetPage() {
   const save = async () => {
     setSaving(true);
     try {
-      if (editing.id && !editing.is_demo) {
+      if (editing.id) {
         await apiFetch(`/api/ambulances/${editing.id}`, { method: 'PATCH', body: JSON.stringify(editing) });
       } else {
         await apiFetch('/api/ambulances', { method: 'POST', body: JSON.stringify(editing) });
       }
       setModalOpen(false);
-      fetchFleet();
-    } catch {
-      if (editing.id) {
-        setFleet(prev => prev.map(a => a.id === editing.id ? { ...a, ...editing } as Ambulance : a));
-      } else {
-        const newAmb: Ambulance = {
-          id: `amb-${Date.now()}`,
-          registration_number: editing.registration_number || 'HR-26-EQ-9999',
-          vehicle_type: editing.vehicle_type || 'ALS',
-          status: (editing.status as any) || 'available',
-          driver_name: editing.driver_name || 'Driver Unit',
-          driver_phone: editing.driver_phone || '+91 99999 88888',
-          paramedic_name: editing.paramedic_name,
-          equipment: editing.equipment || ['Defibrillator'],
-        };
-        setFleet(prev => [newAmb, ...prev]);
-      }
-      setModalOpen(false);
+      await fetchFleet();
+    } catch (e: any) {
+      alert('Error updating vehicle: ' + e.message);
     } finally {
       setSaving(false);
     }
@@ -172,7 +107,8 @@ export default function FleetPage() {
   const filtered = fleet.filter(a => {
     const matchSearch = !search ||
       a.registration_number?.toLowerCase().includes(search.toLowerCase()) ||
-      a.driver_name?.toLowerCase().includes(search.toLowerCase());
+      a.driver_name?.toLowerCase().includes(search.toLowerCase()) ||
+      a.hospital_name?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -191,7 +127,7 @@ export default function FleetPage() {
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-slate-900">Ambulance Fleet Dispatcher</h1>
-              <p className="text-xs text-slate-500 font-semibold">{fleet.length} total emergency units in fleet network</p>
+              <p className="text-xs text-slate-500 font-semibold">{fleet.length} registered emergency units in database</p>
             </div>
           </div>
 
@@ -204,6 +140,12 @@ export default function FleetPage() {
             </button>
           </div>
         </div>
+
+        {errorMsg && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+            {errorMsg}
+          </div>
+        )}
 
         {/* Status filter pills */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -236,14 +178,18 @@ export default function FleetPage() {
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by registration number, driver name, or unit type..."
+            placeholder="Search by registration number, driver name, or hospital..."
             className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:border-blue-500 shadow-xs"
           />
         </div>
 
         {/* Fleet Grid */}
         {loading ? (
-          <div className="text-center py-16 text-slate-500 font-semibold">Loading live fleet GPS telemetry...</div>
+          <div className="text-center py-16 text-slate-500 font-semibold">Loading fleet telemetry from database...</div>
+        ) : filtered.length === 0 ? (
+          <div className="glass-card p-12 text-center text-slate-400 font-bold bg-white border border-slate-200">
+            No ambulance units found matching your search.
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(a => {
@@ -254,7 +200,7 @@ export default function FleetPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="font-extrabold text-base text-slate-900">{a.registration_number}</h3>
-                        <p className="text-xs text-slate-500 font-semibold">{a.vehicle_type}</p>
+                        <p className="text-xs text-slate-500 font-semibold uppercase">{a.vehicle_type}</p>
                       </div>
                       <span className="text-xs font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1.5 border" style={{ background: sc.bg, color: sc.color, borderColor: `${sc.color}40` }}>
                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.color }} />
@@ -262,21 +208,14 @@ export default function FleetPage() {
                       </span>
                     </div>
 
-                    {a.is_demo && (
-                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                        PRE-CONFIGURED FLEET UNIT
-                      </span>
-                    )}
-
                     <div className="pt-2 border-t border-slate-100 space-y-1 text-xs text-slate-700 font-medium">
-                      <p><strong>Driver:</strong> 🧑‍✈️ {a.driver_name} ({a.driver_phone})</p>
-                      {a.paramedic_name && <p><strong>Paramedic:</strong> 🩺 {a.paramedic_name}</p>}
+                      <p><strong>Driver:</strong> 🧑‍✈️ {a.driver_name || 'Assigned on Dispatch'} {a.driver_phone ? `(${a.driver_phone})` : ''}</p>
                       {a.hospital_name && <p className="text-slate-500 flex items-center gap-1"><MapPin size={12} /> {a.hospital_name}</p>}
                     </div>
 
-                    {a.equipment?.length > 0 && (
+                    {a.equipment_list && a.equipment_list.length > 0 && (
                       <div className="flex items-center gap-1 flex-wrap pt-1">
-                        {a.equipment.map(eq => (
+                        {a.equipment_list.map(eq => (
                           <span key={eq} className="text-[10px] bg-slate-100 border border-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-md">
                             {eq}
                           </span>
@@ -300,7 +239,7 @@ export default function FleetPage() {
       {/* Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="glass-card max-w-md w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl">
+          <div className="glass-card max-w-md w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl rounded-3xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Edit Vehicle Status' : 'Add Vehicle to Fleet'}</h2>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={18} /></button>
@@ -316,12 +255,16 @@ export default function FleetPage() {
                 />
               </div>
               <div>
-                <label className="text-slate-500 font-bold mb-1 block">Driver Name</label>
-                <input
-                  value={editing.driver_name || ''}
-                  onChange={e => setEditing(prev => ({ ...prev, driver_name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-bold"
-                />
+                <label className="text-slate-500 font-bold mb-1 block">Vehicle Type</label>
+                <select
+                  value={editing.vehicle_type || 'als'}
+                  onChange={e => setEditing(prev => ({ ...prev, vehicle_type: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-bold">
+                  <option value="als">ALS (Advanced Life Support)</option>
+                  <option value="bls">BLS (Basic Life Support)</option>
+                  <option value="mobile_icu">Mobile ICU</option>
+                  <option value="bike">First Responder Bike</option>
+                </select>
               </div>
               <div>
                 <label className="text-slate-500 font-bold mb-1 block">Status</label>

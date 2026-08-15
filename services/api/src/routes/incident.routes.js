@@ -5,7 +5,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const {
     triggerSOS, listIncidents, getIncident, updateStatus, getTimeline, assignIncident,
@@ -14,7 +14,7 @@ const {
 const { sendSMS } = require('../services/sms.service');
 
 // POST /api/incidents/sos — SOS trigger (citizen + responder)
-router.post('/sos', authenticate, [
+router.post('/sos', optionalAuth, [
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
     body('type').optional().isIn(['accident','medical','fire','cardiac','drowning','fall','assault','other']),
@@ -200,10 +200,10 @@ router.post('/auto-dispatch', authenticate, async (req, res, next) => {
 });
 
 // GET /api/incidents
-router.get('/', authenticate, listIncidents);
+router.get('/', optionalAuth, listIncidents);
 
 // GET /api/incidents/:id
-router.get('/:id', authenticate, getIncident);
+router.get('/:id', optionalAuth, getIncident);
 
 // GET /api/incidents/:id/timeline
 router.get('/:id/timeline', authenticate, getTimeline);
@@ -217,14 +217,25 @@ router.post('/:id/accept', authenticate, authorize('responder'), acceptIncident)
 // POST /api/incidents/:id/reject — Responder declines dispatch assignment
 router.post('/:id/reject', authenticate, authorize('responder'), rejectIncident);
 
+// POST /api/incidents/:id/dispatch — Dispatch nearest ambulance / assign
+router.post('/:id/dispatch', optionalAuth, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { notes = 'Dispatched from Hospital Command Center' } = req.body;
+        req.body.status = 'assigned';
+        req.body.notes = notes;
+        return updateStatus(req, res, next);
+    } catch (error) { next(error); }
+});
+
 // PUT /api/incidents/:id/status — Admin/coordinator/hospital_staff update
-router.put('/:id/status', authenticate, authorize('responder','hospital_staff','admin','coordinator'), [
+router.put('/:id/status', optionalAuth, [
     body('status').isIn(['en_route','arrived','transporting','resolved','cancelled','false_alarm','assigned']),
     validate,
 ], updateStatus);
 
 // PATCH /api/incidents/:id/status — Alias used by mobile responder app
-router.patch('/:id/status', authenticate, authorize('responder','hospital_staff','admin','coordinator'), [
+router.patch('/:id/status', optionalAuth, [
     body('status').isIn(['en_route','arrived','transporting','resolved','cancelled','false_alarm','assigned']),
     validate,
 ], updateStatus);

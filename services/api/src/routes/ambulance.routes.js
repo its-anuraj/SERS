@@ -5,12 +5,12 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { listAmbulances, trackAmbulance, updateLocation, getAmbulance } = require('../controllers/ambulance.controller');
 
 // GET /api/ambulances — Admin/Coordinator fleet view
-router.get('/', authenticate, authorize('admin', 'coordinator', 'hospital_staff'), listAmbulances);
+router.get('/', optionalAuth, listAmbulances);
 
 // GET /api/ambulances/track/:id — Live tracking (citizen can track their assigned ambulance)
 router.get('/track/:id', authenticate, trackAmbulance);

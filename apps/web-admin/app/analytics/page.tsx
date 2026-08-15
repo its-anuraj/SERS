@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * SERS Admin — Analytics & AI Dispatch Page (Light Theme)
+ * SERS Admin — Analytics & AI Dispatch Page (100% Real Live Database Data)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -41,7 +41,7 @@ interface ChatMessage {
 }
 
 interface Summary {
-  incidents: { total_incidents: number; resolved: number; active: number; ai_detected: number; avg_response_mins: number };
+  incidents: { total_incidents: number; resolved: number; active: number; ai_detected: number; avg_response_mins: number | null };
   hospitals: { total: number; on_network: number };
   ambulances: { total: number; available: number };
 }
@@ -49,46 +49,7 @@ interface Summary {
 interface IncidentByType { type: string; count: number }
 interface ResponseTrend { day: string; avg_response_mins: number; total_incidents: number }
 interface HourlyData { hour: number; count: number }
-interface Hotspot { latitude: number; longitude: number; risk_score: number; risk_label: string; predicted_for_hour: number }
-
-const MOCK_SUMMARY: Summary = {
-  incidents: { total_incidents: 247, resolved: 198, active: 12, ai_detected: 89, avg_response_mins: 7.4 },
-  hospitals: { total: 28, on_network: 22 },
-  ambulances: { total: 45, available: 31 },
-};
-
-const MOCK_TYPE_DATA: IncidentByType[] = [
-  { type: 'accident', count: 84 }, { type: 'cardiac', count: 52 },
-  { type: 'medical', count: 61 }, { type: 'fire', count: 18 },
-  { type: 'fall', count: 22 }, { type: 'other', count: 10 },
-];
-
-const MOCK_TREND: ResponseTrend[] = Array.from({ length: 14 }, (_, i) => ({
-  day: new Date(Date.now() - (13 - i) * 86400000).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
-  avg_response_mins: +(5 + Math.random() * 6).toFixed(1),
-  total_incidents: Math.floor(12 + Math.random() * 20),
-}));
-
-const MOCK_HOURLY: HourlyData[] = Array.from({ length: 24 }, (_, h) => ({
-  hour: h,
-  count: h >= 7 && h <= 10 ? Math.floor(15 + Math.random() * 12) :
-         h >= 17 && h <= 20 ? Math.floor(18 + Math.random() * 15) :
-         h >= 0  && h <= 5  ? Math.floor(2 + Math.random() * 5) :
-         Math.floor(6 + Math.random() * 10),
-}));
-
-const MOCK_HOTSPOTS: Hotspot[] = [
-  { latitude: 28.4595, longitude: 77.0266, risk_score: 0.92, risk_label: 'critical', predicted_for_hour: 18 },
-  { latitude: 28.4682, longitude: 77.0732, risk_score: 0.76, risk_label: 'high', predicted_for_hour: 9 },
-  { latitude: 28.4322, longitude: 77.0890, risk_score: 0.65, risk_label: 'high', predicted_for_hour: 8 },
-  { latitude: 28.4411, longitude: 77.0988, risk_score: 0.58, risk_label: 'medium', predicted_for_hour: 17 },
-];
-
-const TYPE_COLORS: Record<string, string> = {
-  accident: '#dc2626', cardiac: '#ea580c', medical: '#2563eb',
-  fire: '#d97706', drowning: '#0891b2', fall: '#9333ea',
-  assault: '#db2777', other: '#64748b',
-};
+interface Hotspot { id: string; latitude: number; longitude: number; risk_score: number; risk_label: string; predicted_for_hour: number }
 
 const RISK_STYLES: Record<string, { color: string; bg: string; border: string }> = {
   critical: { color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
@@ -120,7 +81,7 @@ function LLMChat() {
     {
       id: 'welcome',
       role: 'assistant',
-      content: `👋 Hello! I'm the **SERS AI Dispatch Assistant**, powered by Gemini.\n\nI can answer questions about emergency incident trends, response times, ICU bed availability, and ambulance dispatch in plain English.`,
+      content: `👋 Hello! I'm the **SERS AI Dispatch Assistant**, connected directly to the SERS PostgreSQL database engine.\n\nAsk any question about live emergency incidents, average response times, ICU bed capacity, or ambulance fleet status in plain English.`,
       timestamp: new Date(),
     },
   ]);
@@ -146,12 +107,12 @@ function LLMChat() {
       });
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString() + '-res', role: 'assistant', content: res.data?.answer || 'Search completed.', timestamp: new Date() },
+        { id: Date.now().toString() + '-res', role: 'assistant', content: res.data?.answer || 'Analytics query processed.', timestamp: new Date() },
       ]);
-    } catch {
+    } catch (e: any) {
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString() + '-fb', role: 'assistant', content: '📊 **Avg Response Time: 7.4 minutes**. Emergency dispatch operates at peak capacity.', timestamp: new Date() },
+        { id: Date.now().toString() + '-err', role: 'assistant', content: '⚠️ Unable to connect to analytics query engine. Please check backend connection.', timestamp: new Date() },
       ]);
     } finally {
       setIsLoading(false);
@@ -166,14 +127,14 @@ function LLMChat() {
         </div>
         <div>
           <p className="font-bold text-slate-900 text-sm">SERS AI Dispatch Assistant</p>
-          <p className="text-xs text-slate-500 font-semibold">Powered by Gemini AI</p>
+          <p className="text-xs text-slate-500 font-semibold">Live Database Intelligence & Natural Language Query</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`p-3.5 rounded-2xl text-xs leading-relaxed max-w-[80%] ${
+            <div className={`p-3.5 rounded-2xl text-xs leading-relaxed max-w-[80%] whitespace-pre-wrap ${
               msg.role === 'user'
                 ? 'bg-red-600 text-white font-bold rounded-tr-xs'
                 : 'bg-slate-100 border border-slate-200 text-slate-800 font-medium rounded-tl-xs'
@@ -190,7 +151,7 @@ function LLMChat() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
-          placeholder="Ask Gemini AI about response times, ICU beds..."
+          placeholder="Ask about response times, ICU bed availability, active incidents..."
           className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-500"
         />
         <button
@@ -205,11 +166,11 @@ function LLMChat() {
 }
 
 export default function AnalyticsPage() {
-  const [summary, setSummary] = useState<Summary>(MOCK_SUMMARY);
-  const [typeData, setTypeData] = useState<IncidentByType[]>(MOCK_TYPE_DATA);
-  const [trendData, setTrendData] = useState<ResponseTrend[]>(MOCK_TREND);
-  const [hourlyData, setHourlyData] = useState<HourlyData[]>(MOCK_HOURLY);
-  const [hotspots, setHotspots] = useState<Hotspot[]>(MOCK_HOTSPOTS);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [typeData, setTypeData] = useState<IncidentByType[]>([]);
+  const [trendData, setTrendData] = useState<ResponseTrend[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
+  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'hotspots' | 'chat'>('overview');
 
@@ -224,24 +185,47 @@ export default function AnalyticsPage() {
         apiFetch('/api/analytics/hotspots'),
       ]);
 
-      if (sum.status === 'fulfilled') setSummary(sum.value.data);
-      if (types.status === 'fulfilled') setTypeData(types.value.data);
-      if (trends.status === 'fulfilled') setTrendData(trends.value.data);
-      if (hourly.status === 'fulfilled') setHourlyData(hourly.value.data);
-      if (spots.status === 'fulfilled') setHotspots(spots.value.data);
-    } catch {}
+      if (sum.status === 'fulfilled' && sum.value?.data) {
+        setSummary(sum.value.data);
+      }
+      if (types.status === 'fulfilled' && Array.isArray(types.value?.data)) {
+        setTypeData(types.value.data.map((d: any) => ({
+          type: d.type,
+          count: parseInt(d.count) || 0,
+        })));
+      }
+      if (trends.status === 'fulfilled' && Array.isArray(trends.value?.data)) {
+        setTrendData(trends.value.data.map((d: any) => ({
+          day: new Date(d.day).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          avg_response_mins: parseFloat(d.avg_response_mins) || 0,
+          total_incidents: parseInt(d.total_incidents) || 0,
+        })));
+      }
+      if (hourly.status === 'fulfilled' && Array.isArray(hourly.value?.data)) {
+        const full = Array.from({ length: 24 }, (_, h) => {
+          const found = hourly.value.data.find((d: any) => parseInt(d.hour) === h);
+          return { hour: h, count: found ? parseInt(found.count) : 0 };
+        });
+        setHourlyData(full);
+      }
+      if (spots.status === 'fulfilled' && Array.isArray(spots.value?.data)) {
+        setHotspots(spots.value.data);
+      }
+    } catch (e) {
+      console.error('Analytics load error:', e);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const statCards = [
-    { label: 'Total Incidents (30d)', value: summary.incidents.total_incidents, sub: `${summary.incidents.resolved} resolved`, color: '#dc2626', icon: AlertTriangle },
-    { label: 'Active Incidents', value: summary.incidents.active, sub: 'Right now', color: '#ea580c', icon: Flame },
-    { label: 'Avg Response Time', value: `${summary.incidents.avg_response_mins} min`, sub: 'Golden Hour metric', color: '#2563eb', icon: Clock },
-    { label: 'AI Crash Detections', value: summary.incidents.ai_detected, sub: 'Auto-triggered SOS', color: '#9333ea', icon: Bot },
-    { label: 'Ambulances Available', value: `${summary.ambulances.available}/${summary.ambulances.total}`, sub: 'Active fleet', color: '#16a34a', icon: Ambulance },
-    { label: 'Hospitals on Network', value: `${summary.hospitals.on_network}/${summary.hospitals.total}`, sub: 'SERS-connected', color: '#0891b2', icon: Hospital },
+    { label: 'Total Incidents (30d)', value: summary?.incidents?.total_incidents ?? '—', sub: `${summary?.incidents?.resolved ?? 0} resolved`, color: '#dc2626', icon: AlertTriangle },
+    { label: 'Active Incidents', value: summary?.incidents?.active ?? '—', sub: 'In progress', color: '#ea580c', icon: Flame },
+    { label: 'Avg Response Time', value: summary?.incidents?.avg_response_mins ? `${summary.incidents.avg_response_mins} min` : 'N/A', sub: 'Golden Hour metric', color: '#2563eb', icon: Clock },
+    { label: 'AI Crash Detections', value: summary?.incidents?.ai_detected ?? '—', sub: 'Auto-triggered SOS', color: '#9333ea', icon: Bot },
+    { label: 'Ambulances Available', value: summary?.ambulances ? `${summary.ambulances.available}/${summary.ambulances.total}` : '—', sub: 'Active fleet units', color: '#16a34a', icon: Ambulance },
+    { label: 'Hospitals on Network', value: summary?.hospitals ? `${summary.hospitals.on_network}/${summary.hospitals.total}` : '—', sub: 'Connected centers', color: '#0891b2', icon: Hospital },
   ];
 
   return (
@@ -294,18 +278,47 @@ export default function AnalyticsPage() {
               {statCards.map(c => <MiniStat key={c.label} {...c} />)}
             </div>
 
-            <div className="glass-card p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <h3 className="font-extrabold text-base text-slate-900 mb-4">Emergency Incident Types</h3>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={typeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="type" stroke="#64748b" fontSize={11} />
-                    <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a' }} />
-                    <Bar dataKey="count" fill="#dc2626" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="glass-card p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
+                <h3 className="font-extrabold text-base text-slate-900 mb-4">Emergency Incident Breakdown (30 Days)</h3>
+                <div className="h-56">
+                  {typeData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={typeData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="type" stroke="#64748b" fontSize={11} />
+                        <YAxis stroke="#64748b" fontSize={11} />
+                        <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a' }} />
+                        <Bar dataKey="count" fill="#dc2626" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-400 font-bold">
+                      No incident data logged in the database
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="glass-card p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
+                <h3 className="font-extrabold text-base text-slate-900 mb-4">Response Time Trends</h3>
+                <div className="h-56">
+                  {trendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="day" stroke="#64748b" fontSize={11} />
+                        <YAxis stroke="#64748b" fontSize={11} />
+                        <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a' }} />
+                        <Area type="monotone" dataKey="avg_response_mins" stroke="#2563eb" fill="#93c5fd" fillOpacity={0.4} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-400 font-bold">
+                      No response time history recorded yet
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -313,22 +326,26 @@ export default function AnalyticsPage() {
 
         {activeTab === 'hotspots' && (
           <div className="glass-card p-5 bg-white border border-slate-200 shadow-sm rounded-2xl space-y-4">
-            <h3 className="font-extrabold text-base text-slate-900">Predicted Incident Hotspots</h3>
-            <div className="space-y-3">
-              {hotspots.map((h, i) => {
-                const style = RISK_STYLES[h.risk_label] || RISK_STYLES.low;
-                return (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-xl border" style={{ background: style.bg, borderColor: style.border }}>
-                    <span className="font-bold text-xs" style={{ color: style.color }}>
-                      📍 {h.latitude.toFixed(4)}, {h.longitude.toFixed(4)} ({h.risk_label.toUpperCase()})
-                    </span>
-                    <span className="font-black text-sm" style={{ color: style.color }}>
-                      {(h.risk_score * 100).toFixed(0)}% Risk
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <h3 className="font-extrabold text-base text-slate-900">Predicted Incident Hotspots (PostgreSQL)</h3>
+            {hotspots.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-6 text-center">No active predicted accident hotspots in database for today</p>
+            ) : (
+              <div className="space-y-3">
+                {hotspots.map((h) => {
+                  const style = RISK_STYLES[h.risk_label] || RISK_STYLES.low;
+                  return (
+                    <div key={h.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ background: style.bg, borderColor: style.border }}>
+                      <span className="font-bold text-xs" style={{ color: style.color }}>
+                        📍 {parseFloat(String(h.latitude)).toFixed(4)}, {parseFloat(String(h.longitude)).toFixed(4)} ({h.risk_label?.toUpperCase()})
+                      </span>
+                      <span className="font-black text-sm" style={{ color: style.color }}>
+                        {(parseFloat(String(h.risk_score)) * 100).toFixed(0)}% Risk Score
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

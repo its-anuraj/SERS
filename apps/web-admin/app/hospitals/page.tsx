@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * SERS Admin — Hospital Management Page (Light Theme)
+ * SERS Admin — Hospital Management Page (100% Real Live Database Data)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -28,6 +28,7 @@ interface Hospital {
   name: string;
   address: string;
   phone: string;
+  emergency_phone?: string;
   is_active: boolean;
   is_on_sers_network: boolean;
   icu_beds_total: number;
@@ -37,75 +38,7 @@ interface Hospital {
   specialties: string[];
   latitude: number;
   longitude: number;
-  is_demo?: boolean;
 }
-
-const DEMO_HOSPITALS: Hospital[] = [
-  {
-    id: 'hosp-demo-1',
-    name: 'City Emergency & Multi-Specialty Hospital',
-    address: 'Sector 44, Golf Course Extension, Gurgaon',
-    phone: '+91 124 499 1000',
-    is_active: true,
-    is_on_sers_network: true,
-    icu_beds_total: 30,
-    icu_beds_available: 12,
-    er_beds_total: 50,
-    er_beds_available: 28,
-    specialties: ['Trauma ICU', 'Cardiac Arrest', 'Burn Care', 'Neurosurgery'],
-    latitude: 28.4595,
-    longitude: 77.0266,
-    is_demo: true,
-  },
-  {
-    id: 'hosp-demo-2',
-    name: 'Max Super Specialty Hospital',
-    address: 'Block B, Sushant Lok Phase 1, Gurgaon',
-    phone: '+91 124 662 3000',
-    is_active: true,
-    is_on_sers_network: true,
-    icu_beds_total: 45,
-    icu_beds_available: 8,
-    er_beds_total: 60,
-    er_beds_available: 15,
-    specialties: ['Emergency Trauma', 'Orthopedics', 'Cardiology', 'Pediatric ER'],
-    latitude: 28.4682,
-    longitude: 77.0732,
-    is_demo: true,
-  },
-  {
-    id: 'hosp-demo-3',
-    name: 'Fortis Memorial Research Institute',
-    address: 'Sector 44, Opposite HUDA City Centre, Gurgaon',
-    phone: '+91 124 716 2200',
-    is_active: true,
-    is_on_sers_network: true,
-    icu_beds_total: 60,
-    icu_beds_available: 22,
-    er_beds_total: 80,
-    er_beds_available: 42,
-    specialties: ['Level-1 Trauma Center', 'Organ Transplant', 'Stroke Unit'],
-    latitude: 28.4571,
-    longitude: 77.0725,
-    is_demo: true,
-  },
-  {
-    id: 'hosp-demo-4',
-    name: 'Artemis Hospital',
-    address: 'Sector 51, Gurgaon, Haryana 122001',
-    phone: '+91 124 451 1111',
-    is_active: true,
-    is_on_sers_network: false,
-    icu_beds_total: 25,
-    icu_beds_available: 4,
-    er_beds_total: 40,
-    er_beds_available: 9,
-    specialties: ['Emergency Triage', 'Cardiovascular Surgery'],
-    latitude: 28.4312,
-    longitude: 77.0811,
-    is_demo: true,
-  },
-];
 
 const EMPTY_HOSPITAL: Partial<Hospital> = {
   name: '', address: '', phone: '',
@@ -121,16 +54,15 @@ export default function HospitalsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing]     = useState<Partial<Hospital>>(EMPTY_HOSPITAL);
   const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState('');
 
   const fetchHospitals = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch('/api/hospitals?limit=100');
-      const loaded = data.data || [];
-      setHospitals(loaded.length > 0 ? loaded : DEMO_HOSPITALS);
-    } catch {
-      setHospitals(DEMO_HOSPITALS);
+      const res = await apiFetch('/api/hospitals?limit=100');
+      setHospitals(res.data || []);
+    } catch (e) {
+      console.error('Hospitals fetch error:', e);
+      setHospitals([]);
     } finally {
       setLoading(false);
     }
@@ -144,42 +76,24 @@ export default function HospitalsPage() {
   const saveHospital = async () => {
     setSaving(true);
     try {
-      if (editing.id && !editing.is_demo) {
-        await apiFetch(`/api/hospitals/${editing.id}`, { method: 'PATCH', body: JSON.stringify(editing) });
+      if (editing.id) {
+        await apiFetch(`/api/hospitals/${editing.id}/capacity`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            icuBedsAvailable: editing.icu_beds_available,
+            erBedsAvailable: editing.er_beds_available,
+          }),
+        });
       } else {
         await apiFetch('/api/hospitals', { method: 'POST', body: JSON.stringify(editing) });
       }
       setModalOpen(false);
-      fetchHospitals();
-    } catch {
-      if (editing.id) {
-        setHospitals(prev => prev.map(h => h.id === editing.id ? { ...h, ...editing } as Hospital : h));
-      } else {
-        const newHosp: Hospital = {
-          id: `hosp-${Date.now()}`,
-          name: editing.name || 'New Emergency Hospital',
-          address: editing.address || 'Central City Road',
-          phone: editing.phone || '+91 999 888 7777',
-          is_active: true,
-          is_on_sers_network: true,
-          icu_beds_total: editing.icu_beds_total || 20,
-          icu_beds_available: editing.icu_beds_available || 10,
-          er_beds_total: editing.er_beds_total || 30,
-          er_beds_available: editing.er_beds_available || 15,
-          specialties: editing.specialties || ['Trauma ER'],
-          latitude: 28.4595,
-          longitude: 77.0266,
-        };
-        setHospitals(prev => [newHosp, ...prev]);
-      }
-      setModalOpen(false);
+      await fetchHospitals();
+    } catch (e: any) {
+      alert('Failed to update hospital: ' + e.message);
     } finally {
       setSaving(false);
     }
-  };
-
-  const toggleNetwork = async (h: Hospital) => {
-    setHospitals(prev => prev.map(item => item.id === h.id ? { ...item, is_on_sers_network: !item.is_on_sers_network } : item));
   };
 
   const filtered = hospitals.filter(h =>
@@ -226,12 +140,12 @@ export default function HospitalsPage() {
           {[
             { label: 'Total Hospitals', value: hospitals.length, color: '#2563eb' },
             { label: 'On SERS Network', value: hospitals.filter(h => h.is_on_sers_network).length, color: '#16a34a' },
-            { label: 'Total ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_total || 0), 0), color: '#ea580c' },
-            { label: 'Available ICU Beds', value: hospitals.reduce((a, h) => a + (h.icu_beds_available || 0), 0), color: '#0891b2' },
+            { label: 'Total ICU Beds', value: hospitals.reduce((a, h) => a + (parseInt(String(h.icu_beds_total)) || 0), 0), color: '#ea580c' },
+            { label: 'Available ICU Beds', value: hospitals.reduce((a, h) => a + (parseInt(String(h.icu_beds_available)) || 0), 0), color: '#0891b2' },
           ].map(s => (
             <div key={s.label} className="glass-card p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{s.label}</p>
-              <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-2xl font-black" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
             </div>
           ))}
         </div>
@@ -249,12 +163,21 @@ export default function HospitalsPage() {
 
         {/* Hospital List */}
         {loading ? (
-          <div className="text-center py-16 text-slate-500 font-semibold">Loading live hospital telemetry...</div>
+          <div className="text-center py-16 text-slate-500 font-semibold">Loading live hospital telemetry from database...</div>
+        ) : filtered.length === 0 ? (
+          <div className="glass-card p-12 text-center text-slate-400 font-bold bg-white border border-slate-200">
+            No hospital records found in database.
+          </div>
         ) : (
           <div className="space-y-4">
             {filtered.map(h => {
-              const icuPct = bedPct(h.icu_beds_available, h.icu_beds_total);
-              const erPct  = bedPct(h.er_beds_available, h.er_beds_total);
+              const icuAvail = parseInt(String(h.icu_beds_available)) || 0;
+              const icuTotal = parseInt(String(h.icu_beds_total)) || 0;
+              const erAvail  = parseInt(String(h.er_beds_available)) || 0;
+              const erTotal  = parseInt(String(h.er_beds_total)) || 0;
+              const icuPct   = bedPct(icuAvail, icuTotal);
+              const erPct    = bedPct(erAvail, erTotal);
+
               return (
                 <div key={h.id} className="glass-card p-5 rounded-2xl bg-white border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-slate-300 transition-all">
                   <div className="space-y-2 min-w-0 flex-1">
@@ -267,16 +190,11 @@ export default function HospitalsPage() {
                       }`}>
                         {h.is_on_sers_network ? '● SERS CONNECTED' : '○ OFF-NETWORK'}
                       </span>
-                      {h.is_demo && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                          PRE-CONFIGURED DEMO NETWORK
-                        </span>
-                      )}
                     </div>
 
                     <p className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 truncate">
                       <MapPin size={13} className="text-slate-400 shrink-0" />
-                      {h.address} · 📞 {h.phone}
+                      {h.address} · 📞 {h.emergency_phone || h.phone}
                     </p>
 
                     {/* Bed Gauges */}
@@ -284,40 +202,33 @@ export default function HospitalsPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-bold">ICU Beds:</span>
                         <span className="text-xs font-black" style={{ color: bedColor(icuPct) }}>
-                          {h.icu_beds_available} / {h.icu_beds_total} ({icuPct}% free)
+                          {icuAvail} / {icuTotal} ({icuPct}% free)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-bold">ER Beds:</span>
                         <span className="text-xs font-black" style={{ color: bedColor(erPct) }}>
-                          {h.er_beds_available} / {h.er_beds_total} ({erPct}% free)
+                          {erAvail} / {erTotal} ({erPct}% free)
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {h.specialties?.map(s => (
-                          <span key={s} className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
+                      {Array.isArray(h.specialties) && h.specialties.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {h.specialties.map(s => (
+                            <span key={s} className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-3 shrink-0">
                     <button
-                      onClick={() => toggleNetwork(h)}
-                      className={`text-xs font-extrabold px-3.5 py-2 rounded-xl border transition-colors cursor-pointer ${
-                        h.is_on_sers_network
-                          ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                          : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                      }`}>
-                      {h.is_on_sers_network ? 'Disconnect' : 'Connect to SERS'}
-                    </button>
-                    <button
                       onClick={() => openEdit(h)}
                       className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-extrabold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
-                      <Edit3 size={13} /> Edit
+                      <Edit3 size={13} /> Edit Beds
                     </button>
                   </div>
                 </div>
@@ -330,9 +241,9 @@ export default function HospitalsPage() {
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="glass-card max-w-lg w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl">
+          <div className="glass-card max-w-lg w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl rounded-3xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Edit Hospital Telemetry' : 'Add Hospital to SERS'}</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Update Bed Availability' : 'Add Hospital to Network'}</h2>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={18} /></button>
             </div>
 
@@ -342,14 +253,7 @@ export default function HospitalsPage() {
                 <input
                   value={editing.name || ''}
                   onChange={e => setEditing(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Address</label>
-                <input
-                  value={editing.address || ''}
-                  onChange={e => setEditing(prev => ({ ...prev, address: e.target.value }))}
+                  disabled={!!editing.id}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                 />
               </div>
@@ -364,11 +268,11 @@ export default function HospitalsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 font-bold mb-1 block">Total ICU Beds</label>
+                  <label className="text-xs text-slate-500 font-bold mb-1 block">Available ER Beds</label>
                   <input
                     type="number"
-                    value={editing.icu_beds_total || 0}
-                    onChange={e => setEditing(prev => ({ ...prev, icu_beds_total: Number(e.target.value) }))}
+                    value={editing.er_beds_available || 0}
+                    onChange={e => setEditing(prev => ({ ...prev, er_beds_available: Number(e.target.value) }))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
                   />
                 </div>
@@ -379,7 +283,7 @@ export default function HospitalsPage() {
               onClick={saveHospital}
               disabled={saving}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
-              <Save size={16} /> {saving ? 'Saving...' : 'Save Hospital Settings'}
+              <Save size={16} /> {saving ? 'Saving...' : 'Save Hospital Capacity'}
             </button>
           </div>
         </div>

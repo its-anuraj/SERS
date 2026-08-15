@@ -1,5 +1,9 @@
 'use client';
 
+/**
+ * SERS Admin — Incident History & Log Page (100% Real Live Database Data)
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle, Clock, CheckCircle2,
@@ -30,17 +34,6 @@ interface Incident {
   ai_severity_score: number | null;
   created_at: string;
   resolved_at: string | null;
-  timeline?: TimelineEvent[];
-  is_demo?: boolean;
-}
-
-interface TimelineEvent {
-  id: string;
-  event_type: string;
-  actor_name: string | null;
-  actor_role: string;
-  description: string;
-  timestamp: string;
 }
 
 const SEVERITY_CONFIG: Record<string, { bg: string; border: string; text: string; label: string }> = {
@@ -65,79 +58,11 @@ const TYPE_ICON: Record<string, string> = {
   drowning: '🌊', fall: '⬇️', assault: '⚠️', other: '📋',
 };
 
-const DEMO_INCIDENTS: Incident[] = [
-  {
-    id: 'inc-demo-1',
-    incident_number: 'INC-2026-901',
-    type: 'accident',
-    severity: 'critical',
-    status: 'reported',
-    latitude: 28.4595,
-    longitude: 77.0266,
-    address: 'NH-48 Expressway Km 142 near Cyber Hub',
-    landmark: 'Highway Flyover Junction',
-    description: 'Automatic vehicle collision alert. Cabin pressure airbag shockwave detected.',
-    reporter_name: 'Rahul Sharma (ABDM Verified)',
-    reporter_phone: '+91 98765 43210',
-    responder_name: 'Vikram Singh',
-    hospital_name: 'City Emergency & Multi-Specialty Hospital',
-    ambulance_reg: 'HR-26-EQ-1008',
-    ai_crash_detected: true,
-    ai_severity_score: 9,
-    created_at: new Date().toISOString(),
-    resolved_at: null,
-    is_demo: true,
-  },
-  {
-    id: 'inc-demo-2',
-    incident_number: 'INC-2026-902',
-    type: 'cardiac',
-    severity: 'critical',
-    status: 'assigned',
-    latitude: 28.4322,
-    longitude: 77.0890,
-    address: 'Sector 56 Metro Station Gate 2',
-    landmark: 'Commercial Complex Entrance',
-    description: 'Smartwatch BLE GATT vitals reported cardiac arrhythmia (>160 BPM).',
-    reporter_name: 'Priya Verma',
-    reporter_phone: '+91 98112 33445',
-    responder_name: 'Manish Verma',
-    hospital_name: 'Max Super Specialty Hospital',
-    ambulance_reg: 'HR-26-EQ-2045',
-    ai_crash_detected: true,
-    ai_severity_score: 8,
-    created_at: new Date(Date.now() - 15 * 60000).toISOString(),
-    resolved_at: null,
-    is_demo: true,
-  },
-  {
-    id: 'inc-demo-3',
-    incident_number: 'INC-2026-903',
-    type: 'medical',
-    severity: 'moderate',
-    status: 'en_route',
-    latitude: 28.4411,
-    longitude: 77.0988,
-    address: 'Golf Course Road, Opposite Horizon Center',
-    landmark: 'Horizon Center Office Park',
-    description: 'Asthma respiratory distress emergency SOS request.',
-    reporter_name: 'Anil Kumar',
-    reporter_phone: '+91 99100 88776',
-    responder_name: 'Rajesh Yadav',
-    hospital_name: 'Fortis Memorial Research Institute',
-    ambulance_reg: 'HR-26-EQ-3099',
-    ai_crash_detected: false,
-    ai_severity_score: 5,
-    created_at: new Date(Date.now() - 40 * 60000).toISOString(),
-    resolved_at: null,
-    is_demo: true,
-  },
-];
-
 function timeAgo(dateStr: string) {
+  if (!dateStr) return '—';
   const d = new Date(dateStr);
   const secs = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (secs < 60)  return `${secs}s ago`;
+  if (secs < 60)  return `${Math.max(1, secs)}s ago`;
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -169,16 +94,14 @@ function IncidentDrawer({ incident, onClose, onStatusUpdate }: {
     if (!newStatus) return;
     setUpdating(true);
     try {
-      if (!incident.is_demo) {
-        await apiFetch(`/api/incidents/${incident.id}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: newStatus, notes: `Status updated to ${newStatus} by admin` }),
-        });
-      }
+      await apiFetch(`/api/incidents/${incident.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus, notes: `Status updated to ${newStatus} by command center` }),
+      });
       onStatusUpdate(incident.id, newStatus);
       setNewStatus('');
-    } catch {
-      onStatusUpdate(incident.id, newStatus);
+    } catch (e: any) {
+      alert('Failed to update incident status: ' + e.message);
     } finally {
       setUpdating(false);
     }
@@ -227,13 +150,20 @@ function IncidentDrawer({ incident, onClose, onStatusUpdate }: {
           </div>
           <div>
             <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><User size={12} /> Reporter</p>
-            <p className="font-bold text-slate-900">{incident.reporter_name}</p>
+            <p className="font-bold text-slate-900">{incident.reporter_name || 'System / Auto SOS'}</p>
           </div>
           <div>
             <p className="text-slate-500 font-bold mb-1 flex items-center gap-1"><Activity size={12} /> Contact</p>
-            <p className="font-bold text-slate-900">{incident.reporter_phone}</p>
+            <p className="font-bold text-slate-900">{incident.reporter_phone || 'N/A'}</p>
           </div>
         </div>
+
+        {incident.description && (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <p className="text-slate-500 font-bold mb-1">Incident Description</p>
+            <p className="text-slate-800 font-medium">{incident.description}</p>
+          </div>
+        )}
 
         {/* Status Update */}
         <div className="space-y-2 pt-2 border-t border-slate-200">
@@ -252,7 +182,7 @@ function IncidentDrawer({ incident, onClose, onStatusUpdate }: {
               onClick={handleStatusUpdate}
               disabled={!newStatus || updating}
               className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl text-xs cursor-pointer">
-              Update
+              {updating ? 'Updating...' : 'Update'}
             </button>
           </div>
         </div>
@@ -272,10 +202,10 @@ export default function IncidentsPage() {
     setLoading(true);
     try {
       const data = await apiFetch('/api/incidents?limit=100&offset=0');
-      const loaded = data.data || [];
-      setIncidents(loaded.length > 0 ? loaded : DEMO_INCIDENTS);
-    } catch {
-      setIncidents(DEMO_INCIDENTS);
+      setIncidents(data.data || []);
+    } catch (e) {
+      console.error('Incidents fetch error:', e);
+      setIncidents([]);
     } finally {
       setLoading(false);
     }
@@ -292,7 +222,8 @@ export default function IncidentsPage() {
       list = list.filter(i =>
         i.incident_number?.toLowerCase().includes(q) ||
         i.type?.toLowerCase().includes(q) ||
-        i.address?.toLowerCase().includes(q)
+        i.address?.toLowerCase().includes(q) ||
+        i.landmark?.toLowerCase().includes(q)
       );
     }
     setFiltered(list);
@@ -321,7 +252,7 @@ export default function IncidentsPage() {
               <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
                 <AlertTriangle size={24} className="text-red-600" /> Emergency Incident Logs
               </h1>
-              <p className="text-xs text-slate-500 font-semibold">Realtime incoming alert history & response tracking ({incidents.length} total logged)</p>
+              <p className="text-xs text-slate-500 font-semibold">Realtime incoming alert history & response tracking ({incidents.length} total in database)</p>
             </div>
           </div>
           <button
@@ -364,8 +295,10 @@ export default function IncidentsPage() {
         <div className="glass-card rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
           {loading ? (
             <div className="p-16 text-center text-slate-500 font-semibold">Loading incident telemetry logs...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-16 text-center text-slate-400 font-bold">No incident records found.</div>
           ) : (
-            filtered.map((incident, idx) => {
+            filtered.map((incident) => {
               const sev = SEVERITY_CONFIG[incident.severity] || SEVERITY_CONFIG.minor;
               const stat = STATUS_CONFIG[incident.status] || { color: '#64748b', label: incident.status, icon: '?' };
 
@@ -384,7 +317,7 @@ export default function IncidentsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 font-bold flex items-center gap-1 truncate">
-                        <MapPin size={12} className="text-slate-400" /> {incident.address}
+                        <MapPin size={12} className="text-slate-400" /> {incident.address || `${incident.latitude}, ${incident.longitude}`}
                       </p>
                     </div>
                   </div>

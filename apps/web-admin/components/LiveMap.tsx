@@ -12,6 +12,7 @@ interface Incident {
   severity: string;
   status: string;
   landmark?: string;
+  address?: string;
 }
 
 interface LiveMapProps {
@@ -37,10 +38,9 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
     const initMap = async () => {
       const L = (await import('leaflet')).default;
 
-      if (!mapInstanceRef.current) {
-        // Initialize map centered on Gurgaon / Delhi NCR area
-        mapInstanceRef.current = L.map(mapRef.current!, {
-          center: [28.4595, 77.0266],
+      if (!mapInstanceRef.current && mapRef.current) {
+        mapInstanceRef.current = L.map(mapRef.current, {
+          center: [12.9716, 77.5946],
           zoom: 12,
           zoomControl: true,
         });
@@ -53,15 +53,17 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
         }).addTo(mapInstanceRef.current);
       }
 
+      if (!mapInstanceRef.current) return;
+
       // Clear old markers
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
 
       // Add incident markers
       incidents.forEach(incident => {
-        const lat = incident.latitude ?? incident.lat;
-        const lng = incident.longitude ?? incident.lng;
-        if (!lat || !lng) return;
+        const lat = parseFloat(String(incident.latitude ?? incident.lat));
+        const lng = parseFloat(String(incident.longitude ?? incident.lng));
+        if (isNaN(lat) || isNaN(lng)) return;
 
         const color = severityColor(incident.severity);
         const icon = L.divIcon({
@@ -84,9 +86,9 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
         const marker = L.marker([lat, lng], { icon })
           .addTo(mapInstanceRef.current)
           .bindPopup(`
-            <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 180px; padding: 4px;">
-              <strong style="color: ${color}; font-size: 12px; font-weight: 800;">🚨 ${incident.severity.toUpperCase()} EMERGENCY</strong>
-              <p style="margin: 4px 0; font-size: 13px; font-weight: 700; color: #0f172a;">${incident.landmark || 'Emergency Alert Location'}</p>
+            <div style="font-family: inherit; min-width: 180px; padding: 4px;">
+              <strong style="color: ${color}; font-size: 12px; font-weight: 800;">🚨 ${(incident.severity || 'ALERT').toUpperCase()} EMERGENCY</strong>
+              <p style="margin: 4px 0; font-size: 13px; font-weight: 700; color: #0f172a;">${incident.address || incident.landmark || 'Emergency Alert Location'}</p>
               <p style="font-size: 11px; font-weight: 600; color: #64748b; margin: 0;">${incident.type} · Status: ${incident.status}</p>
             </div>
           `);
@@ -97,6 +99,11 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
 
         markersRef.current.push(marker);
       });
+
+      if (markersRef.current.length > 0) {
+        const group = L.featureGroup(markersRef.current);
+        mapInstanceRef.current.fitBounds(group.getBounds().pad(0.2));
+      }
     };
 
     initMap();
