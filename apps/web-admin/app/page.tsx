@@ -425,12 +425,12 @@ export default function DashboardPage() {
               icon={AlertTriangle}
               color="#e11d48"
               bgGradient="from-rose-50/50 to-white"
-              pulse="status-pulse-red"
+              pulse={activeIncidents.length > 0 ? "status-pulse-red" : undefined}
               loading={loading}
             />
             <StatCard
               label="Available ICU Beds"
-              value={availableIcuBeds > 0 ? availableIcuBeds : (stats?.hospitals?.total || 0)}
+              value={availableIcuBeds}
               sub={`🏥 Across ${hospitals.length} Network Hospitals`}
               icon={Hospital}
               color="#059669"
@@ -464,8 +464,9 @@ export default function DashboardPage() {
 
               <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
                 {incidents.length === 0 ? (
-                  <div className="glass-card p-8 text-center text-slate-500 font-bold bg-white border border-slate-200">
-                    No active emergency incidents reported in the database.
+                  <div className="glass-card p-10 text-center text-slate-500 font-bold bg-white border border-slate-200 rounded-2xl">
+                    <p className="text-sm font-black text-slate-800">No active emergency incidents</p>
+                    <p className="text-xs text-slate-400 mt-1 font-semibold">Incoming SOS alerts, AI crash detections, and medical distress calls will stream here automatically.</p>
                   </div>
                 ) : (
                   incidents.map((inc) => (

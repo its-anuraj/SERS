@@ -174,8 +174,12 @@ export default function HospitalsPage() {
         {loading ? (
           <div className="text-center py-16 text-slate-500 font-semibold">Loading live hospital telemetry from database...</div>
         ) : filtered.length === 0 ? (
-          <div className="glass-card p-12 text-center text-slate-400 font-bold bg-white border border-slate-200">
-            No hospital records found in database.
+          <div className="glass-card p-12 text-center bg-white border border-slate-200 rounded-3xl space-y-3">
+            <p className="text-base font-extrabold text-slate-800">No partner hospitals registered yet</p>
+            <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">When hospitals join the SERS emergency response grid, their live ICU/ER beds and triage capacity will appear here automatically.</p>
+            <button onClick={openAdd} className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+              <Plus size={15} /> Register Hospital
+            </button>
           </div>
         ) : (
           <div className="space-y-4">

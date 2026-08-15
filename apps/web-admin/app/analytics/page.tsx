@@ -220,12 +220,12 @@ export default function AnalyticsPage() {
   useEffect(() => { load(); }, [load]);
 
   const statCards = [
-    { label: 'Total Incidents (30d)', value: summary?.incidents?.total_incidents ?? '—', sub: `${summary?.incidents?.resolved ?? 0} resolved`, color: '#dc2626', icon: AlertTriangle },
-    { label: 'Active Incidents', value: summary?.incidents?.active ?? '—', sub: 'In progress', color: '#ea580c', icon: Flame },
+    { label: 'Total Incidents (30d)', value: summary?.incidents ? (summary.incidents.total_incidents ?? 0) : '—', sub: `${summary?.incidents?.resolved ?? 0} resolved`, color: '#dc2626', icon: AlertTriangle },
+    { label: 'Active Incidents', value: summary?.incidents ? (summary.incidents.active ?? 0) : '—', sub: 'In progress', color: '#ea580c', icon: Flame },
     { label: 'Avg Response Time', value: summary?.incidents?.avg_response_mins ? `${summary.incidents.avg_response_mins} min` : 'N/A', sub: 'Golden Hour metric', color: '#2563eb', icon: Clock },
-    { label: 'AI Crash Detections', value: summary?.incidents?.ai_detected ?? '—', sub: 'Auto-triggered SOS', color: '#9333ea', icon: Bot },
-    { label: 'Ambulances Available', value: summary?.ambulances ? `${summary.ambulances.available}/${summary.ambulances.total}` : '—', sub: 'Active fleet units', color: '#16a34a', icon: Ambulance },
-    { label: 'Hospitals on Network', value: summary?.hospitals ? `${summary.hospitals.on_network}/${summary.hospitals.total}` : '—', sub: 'Connected centers', color: '#0891b2', icon: Hospital },
+    { label: 'AI Crash Detections', value: summary?.incidents ? (summary.incidents.ai_detected ?? 0) : '—', sub: 'Auto-triggered SOS', color: '#9333ea', icon: Bot },
+    { label: 'Ambulances Available', value: summary?.ambulances ? `${summary.ambulances.available}/${summary.ambulances.total}` : '0/0', sub: 'Active fleet units', color: '#16a34a', icon: Ambulance },
+    { label: 'Hospitals on Network', value: summary?.hospitals ? `${summary.hospitals.on_network}/${summary.hospitals.total}` : '0/0', sub: 'Connected centers', color: '#0891b2', icon: Hospital },
   ];
 
   return (

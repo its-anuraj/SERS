@@ -20,34 +20,29 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
 
   // Login form state
-  const [identifier, setIdentifier] = useState('drmeera@demo.sers.in');
-  const [password, setPassword] = useState('Test@1234');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
 
   // Sign up form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+91');
-  const [hospitalName, setHospitalName] = useState('Apollo Hospitals Bannerghatta');
+  const [hospitalName, setHospitalName] = useState('');
   const [roleTitle, setRoleTitle] = useState('Emergency Triage Chief');
   const [licenseCode, setLicenseCode] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
 
   // Hospital options
-  const [hospitalsList, setHospitalsList] = useState<string[]>([
-    'Apollo Hospitals Bannerghatta',
-    'Manipal Hospital Old Airport Road',
-    'Fortis Hospital Cunningham Road',
-    'NIMHANS (Government — Trauma)',
-    'Victoria Government Hospital',
-  ]);
+  const [hospitalsList, setHospitalsList] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch live hospitals from API for signup dropdown
+    // Fetch live hospitals from API if any exist
     fetch(`${API}/api/hospitals?limit=50`)
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setHospitalsList(data.data.map((h: any) => h.name));
+          setHospitalName(data.data[0].name);
         }
       })
       .catch(() => {});
@@ -68,7 +63,7 @@ export default function LoginPage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Invalid login credentials');
+        throw new Error(json.message || 'Invalid email/phone or password');
       }
 
       // Store auth tokens & user info
@@ -79,7 +74,7 @@ export default function LoginPage() {
       setSuccess(`Welcome back, ${json.data.user.name}! Redirecting to Command Center...`);
       setTimeout(() => {
         router.push('/');
-      }, 1000);
+      }, 800);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please check your credentials.');
     } finally {
@@ -100,6 +95,9 @@ export default function LoginPage() {
       if (signupPassword.length < 8) {
         throw new Error('Password must be at least 8 characters long');
       }
+      if (!hospitalName.trim()) {
+        throw new Error('Please enter your hospital name');
+      }
 
       const res = await fetch(`${API}/api/auth/register`, {
         method: 'POST',
@@ -118,6 +116,30 @@ export default function LoginPage() {
         throw new Error(json.message || 'Hospital staff registration failed');
       }
 
+      // Also create/register hospital node if not existing
+      try {
+        await fetch(`${API}/api/hospitals`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${json.data.tokens.accessToken}`,
+          },
+          body: JSON.stringify({
+            name: hospitalName.trim(),
+            address: 'Main Emergency Hospital Center',
+            phone: phone.trim(),
+            emergency_phone: phone.trim(),
+            email: email.trim(),
+            icu_beds_total: 20,
+            icu_beds_available: 10,
+            er_beds_total: 30,
+            er_beds_available: 15,
+            is_active: true,
+            is_on_sers_network: true,
+          }),
+        });
+      } catch {}
+
       // Store tokens and user profile
       localStorage.setItem('sers_token', json.data.tokens.accessToken);
       localStorage.setItem('sers_refresh_token', json.data.tokens.refreshToken);
@@ -132,7 +154,7 @@ export default function LoginPage() {
       setSuccess('Hospital Staff Node registered successfully! Redirecting to Command Center...');
       setTimeout(() => {
         router.push('/');
-      }, 1000);
+      }, 800);
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -140,15 +162,8 @@ export default function LoginPage() {
     }
   };
 
-  // Quick preset login helper
-  const setQuickUser = (emailVal: string, passVal: string) => {
-    setIdentifier(emailVal);
-    setPassword(passVal);
-  };
-
   return (
     <div className="min-h-screen bg-[#f0f7ff] text-slate-900 flex flex-col justify-center items-center p-4 md:p-8 font-sans">
-      {/* Background ambient accents */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-blue-100/60 to-transparent pointer-events-none -z-10" />
 
       <div className="w-full max-w-xl space-y-6">
@@ -227,7 +242,7 @@ export default function LoginPage() {
                     required
                     value={identifier}
                     onChange={e => setIdentifier(e.target.value)}
-                    placeholder="drmeera@demo.sers.in or +919876500005"
+                    placeholder="Enter email or +91 phone number"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -261,27 +276,6 @@ export default function LoginPage() {
                 {loading ? 'Authenticating...' : 'Sign In to Hospital Command Center'}
                 <ArrowRight size={16} />
               </button>
-
-              {/* Quick Login Presets */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider text-center">Quick Access Accounts</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setQuickUser('drmeera@demo.sers.in', 'Test@1234')}
-                    className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 text-left transition-colors cursor-pointer">
-                    <p className="text-[11px] font-black text-slate-900 truncate">Dr. Meera Nair</p>
-                    <p className="text-[10px] text-slate-500 font-bold">Hospital Staff / Triage</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickUser('admin@sers.in', 'Test@1234')}
-                    className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 text-left transition-colors cursor-pointer">
-                    <p className="text-[11px] font-black text-slate-900 truncate">SERS Central Admin</p>
-                    <p className="text-[10px] text-slate-500 font-bold">Full Grid Administrator</p>
-                  </button>
-                </div>
-              </div>
             </form>
           )}
 
@@ -298,7 +292,7 @@ export default function LoginPage() {
                       required
                       value={name}
                       onChange={e => setName(e.target.value)}
-                      placeholder="Dr. Rajesh Varma"
+                      placeholder="e.g. Dr. Rajesh Varma"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                     />
                   </div>
@@ -313,7 +307,7 @@ export default function LoginPage() {
                       required
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      placeholder="rajesh.varma@apollo.com"
+                      placeholder="e.g. rajesh.varma@hospital.com"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                     />
                   </div>
@@ -355,17 +349,28 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">Partner Hospital Node</label>
+                <label className="text-xs font-bold text-slate-700 block">Hospital Name / Medical Center</label>
                 <div className="relative">
                   <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <select
-                    value={hospitalName}
-                    onChange={e => setHospitalName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs">
-                    {hospitalsList.map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
+                  {hospitalsList.length > 0 ? (
+                    <select
+                      value={hospitalName}
+                      onChange={e => setHospitalName(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs">
+                      {hospitalsList.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      value={hospitalName}
+                      onChange={e => setHospitalName(e.target.value)}
+                      placeholder="e.g. City General Hospital"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -378,7 +383,7 @@ export default function LoginPage() {
                       type="text"
                       value={licenseCode}
                       onChange={e => setLicenseCode(e.target.value)}
-                      placeholder="NABH-KA-2026-9041"
+                      placeholder="e.g. NABH-KA-2026-9041"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                     />
                   </div>

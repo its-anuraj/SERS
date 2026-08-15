@@ -196,8 +196,12 @@ export default function FleetPage() {
         {loading ? (
           <div className="text-center py-16 text-slate-500 font-semibold">Loading fleet telemetry from database...</div>
         ) : filtered.length === 0 ? (
-          <div className="glass-card p-12 text-center text-slate-400 font-bold bg-white border border-slate-200">
-            No ambulance units found matching your search.
+          <div className="glass-card p-12 text-center bg-white border border-slate-200 rounded-3xl space-y-3">
+            <p className="text-base font-extrabold text-slate-800">No ambulance units registered yet</p>
+            <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">When ALS/BLS ambulances and first-responder bikes are registered, their live GPS telemetry, driver assignments, and dispatch status will show here.</p>
+            <button onClick={openAdd} className="mt-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-md shadow-blue-600/20 transition-all cursor-pointer">
+              <Plus size={15} /> Add Ambulance
+            </button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

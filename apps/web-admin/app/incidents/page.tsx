@@ -307,7 +307,10 @@ export default function IncidentsPage() {
           {loading ? (
             <div className="p-16 text-center text-slate-500 font-semibold">Loading incident telemetry logs...</div>
           ) : filtered.length === 0 ? (
-            <div className="p-16 text-center text-slate-400 font-bold">No incident records found.</div>
+            <div className="p-16 text-center text-slate-400 font-bold">
+              <p className="text-base text-slate-700 font-black">No emergency incidents recorded</p>
+              <p className="text-xs text-slate-400 font-medium mt-1">Realtime logs will be automatically registered when live citizen emergency calls or vehicle crash sensor alerts arrive.</p>
+            </div>
           ) : (
             filtered.map((incident) => {
               const sev = SEVERITY_CONFIG[incident.severity] || SEVERITY_CONFIG.minor;
