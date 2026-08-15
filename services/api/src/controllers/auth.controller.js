@@ -95,17 +95,22 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
     try {
-        const { phone, password } = req.body;
+        const { phone, email, identifier, password } = req.body;
+        const lookup = identifier || phone || email;
 
-        // Find user
+        if (!lookup) {
+            throw new ApiError(400, 'Phone number or email is required');
+        }
+
+        // Find user by phone OR email
         const result = await query(
             `SELECT id, name, phone, email, role, password_hash, is_active, preferred_language, fcm_token
-             FROM users WHERE phone = $1 AND deleted_at IS NULL`,
-            [phone]
+             FROM users WHERE (phone = $1 OR email = $1) AND deleted_at IS NULL`,
+            [lookup]
         );
 
         if (result.rows.length === 0) {
-            throw new ApiError(401, 'Invalid phone or password');
+            throw new ApiError(401, 'Invalid email/phone or password');
         }
 
         const user = result.rows[0];

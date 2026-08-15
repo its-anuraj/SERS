@@ -132,6 +132,15 @@ export default function HospitalsPage() {
             <button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
               <Plus size={15} /> Add Hospital
             </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('sers_token');
+                localStorage.removeItem('sers_user');
+                window.location.href = '/login';
+              }}
+              className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
+              <X size={14} /> Log Out
+            </button>
           </div>
         </div>
 

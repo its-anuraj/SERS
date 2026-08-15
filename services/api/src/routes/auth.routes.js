@@ -22,8 +22,7 @@ router.post('/register', [
 
 // POST /api/auth/login
 router.post('/login', [
-    body('phone').trim().notEmpty(),
-    body('password').notEmpty(),
+    body('password').notEmpty().withMessage('Password is required'),
     validate,
 ], login);
 

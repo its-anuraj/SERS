@@ -255,11 +255,22 @@ export default function IncidentsPage() {
               <p className="text-xs text-slate-500 font-semibold">Realtime incoming alert history & response tracking ({incidents.length} total in database)</p>
             </div>
           </div>
-          <button
-            onClick={fetchIncidents}
-            className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Logs
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchIncidents}
+              className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Logs
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('sers_token');
+                localStorage.removeItem('sers_user');
+                window.location.href = '/login';
+              }}
+              className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
+              <X size={14} /> Log Out
+            </button>
+          </div>
         </div>
 
         {/* Stats Row */}

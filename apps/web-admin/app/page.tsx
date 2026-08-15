@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   AlertTriangle, Activity, Ambulance, Hospital, Zap,
   MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
-  Shield, Menu, X, BarChart3, RefreshCw
+  Shield, Menu, X, BarChart3, RefreshCw, LogOut, LogIn
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -164,6 +164,22 @@ const navItems = [
 ];
 
 function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () => void; activeCount: number }) {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('sers_user');
+      if (u) setCurrentUser(JSON.parse(u));
+    } catch {}
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('sers_token');
+    localStorage.removeItem('sers_refresh_token');
+    localStorage.removeItem('sers_user');
+    window.location.href = '/login';
+  };
+
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-xs lg:hidden" onClick={onClose} />}
@@ -206,6 +222,16 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
               )}
             </a>
           ))}
+
+          {/* Log Out Button below Analytics */}
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-extrabold text-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700 cursor-pointer">
+              <LogOut size={18} className="text-rose-500 group-hover:text-rose-700" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </nav>
 
         {/* User Identity Footer */}
@@ -215,8 +241,12 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
               <Shield size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-slate-900 truncate">SERS Command Center</p>
-              <p className="text-[11px] text-slate-500 font-bold">Live Emergency Node</p>
+              <p className="text-xs font-black text-slate-900 truncate">
+                {currentUser?.name || 'Hospital Triage Staff'}
+              </p>
+              <p className="text-[11px] text-slate-500 font-bold truncate">
+                {currentUser?.hospital || (currentUser?.role ? `${currentUser.role.replace('_', ' ').toUpperCase()}` : 'Level-1 Emergency Node')}
+              </p>
             </div>
           </div>
         </div>
