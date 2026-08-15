@@ -276,6 +276,60 @@ export default function LoginPage() {
                 {loading ? 'Authenticating...' : 'Sign In to Hospital Command Center'}
                 <ArrowRight size={16} />
               </button>
+
+              {/* Demo Credentials Section */}
+              <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    🔑 Demo Login Credentials (Click to Auto-Fill)
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">Password: Test@1234</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIdentifier('drmeera@demo.sers.in');
+                      setPassword('Test@1234');
+                    }}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-rose-400 bg-slate-50 hover:bg-rose-50/50 text-left transition-all cursor-pointer group shadow-xs">
+                    <p className="text-xs font-black text-slate-900 group-hover:text-rose-700">🏥 Dr. Meera Nair</p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-0.5 truncate">drmeera@demo.sers.in</p>
+                    <span className="inline-block mt-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
+                      Hospital Staff
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIdentifier('admin@sers.in');
+                      setPassword('Test@1234');
+                    }}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50/50 text-left transition-all cursor-pointer group shadow-xs">
+                    <p className="text-xs font-black text-slate-900 group-hover:text-indigo-700">🛡️ Central Admin</p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-0.5 truncate">admin@sers.in</p>
+                    <span className="inline-block mt-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800">
+                      Grid Admin
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIdentifier('ravi@demo.sers.in');
+                      setPassword('Test@1234');
+                    }}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/50 text-left transition-all cursor-pointer group shadow-xs">
+                    <p className="text-xs font-black text-slate-900 group-hover:text-emerald-700">🚑 Ravi Paramedic</p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-0.5 truncate">ravi@demo.sers.in</p>
+                    <span className="inline-block mt-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      Responder
+                    </span>
+                  </button>
+                </div>
+              </div>
             </form>
           )}
 
