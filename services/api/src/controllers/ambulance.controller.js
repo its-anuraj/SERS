@@ -193,4 +193,65 @@ const getAmbulance = async (req, res, next) => {
     }
 };
 
-module.exports = { findNearestAvailableAmbulance, listAmbulances, trackAmbulance, updateLocation, getAmbulance };
+
+
+/**
+ * POST /api/ambulances — Register a new ambulance on SERS
+ * Note: ambulances.driver_id is a FK to users; driver_name/driver_phone are stored
+ * in users table. For quick registration without user account, we store in make_model.
+ */
+const createAmbulance = async (req, res, next) => {
+    try {
+        const {
+            registration_number, vehicle_type = 'bls', hospital_id = null,
+            driver_name, driver_phone, status = 'available',
+            equipment_list = [], make_model = null, year = null,
+        } = req.body;
+        if (!registration_number) {
+            throw new ApiError(400, 'registration_number is required');
+        }
+        // Valid ambulance_status enum: available, en_route, on_scene, transporting, at_hospital, maintenance, offline
+        const validStatuses = ['available', 'en_route', 'on_scene', 'transporting', 'at_hospital', 'maintenance', 'offline'];
+        const safeStatus = validStatuses.includes(status) ? status : 'available';
+
+        // Store driver info in make_model field if no user account (quick registration)
+        const makeModelStr = make_model || (driver_name ? `Driver: ${driver_name}${driver_phone ? ' | ' + driver_phone : ''}` : null);
+
+        const result = await query(
+            `INSERT INTO ambulances (
+                registration_number, vehicle_type, hospital_id,
+                status, equipment_list, make_model, year, is_active
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,TRUE)
+             RETURNING *`,
+            [
+                registration_number, vehicle_type, hospital_id || null,
+                safeStatus, equipment_list, makeModelStr, year || null,
+            ]
+        );
+        res.status(201).json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PATCH /api/ambulances/:id/status — Update ambulance duty status
+ */
+const updateAmbulanceStatus = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        const validStatuses = ['available', 'en_route', 'on_scene', 'transporting', 'at_hospital', 'maintenance', 'offline'];
+        if (!validStatuses.includes(status)) throw new ApiError(400, `Invalid status. Valid: ${validStatuses.join(', ')}`);
+        const result = await query(
+            `UPDATE ambulances SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
+            [status, req.params.id]
+        );
+        if (!result.rows.length) throw new ApiError(404, 'Ambulance not found');
+        const io = getSocketIO();
+        if (io) io.emit('ambulance:status_update', { id: req.params.id, status });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) { next(error); }
+};
+
+module.exports = { findNearestAvailableAmbulance, listAmbulances, trackAmbulance, updateLocation, getAmbulance, createAmbulance, updateAmbulanceStatus };
+

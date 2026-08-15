@@ -9,11 +9,14 @@ const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const {
     getNearestHospitals, getHospital, getAvailability, updateCapacity, listHospitals,
-    reserveHospitalBed, confirmBedHandshake
+    reserveHospitalBed, confirmBedHandshake, createHospital, deleteHospital
 } = require('../controllers/hospital.controller');
 
 // GET /api/hospitals — Admin list & dashboard view
 router.get('/', optionalAuth, listHospitals);
+
+// POST /api/hospitals — Add hospital to SERS network (admin or open for setup)
+router.post('/', optionalAuth, createHospital);
 
 // GET /api/hospitals/nearest — Public (with optional auth for personalization)
 router.get('/nearest', optionalAuth, getNearestHospitals);

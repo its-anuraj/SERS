@@ -81,7 +81,7 @@ const triggerSOS = async (req, res, next) => {
             await query(
                 `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
                  VALUES ($1, 'updated', $2, $3, $4)`,
-                [existing.id, reporterId, req.user.role, `Additional SOS report received nearby for this crash scene.`]
+                [existing.id, reporterId, req.user?.role ?? 'citizen', `Additional SOS report received nearby for this crash scene.`]
             );
 
             return res.status(200).json({
@@ -122,7 +122,7 @@ const triggerSOS = async (req, res, next) => {
             await client.query(
                 `INSERT INTO incident_events (incident_id, event_type, actor_id, actor_role, description)
                  VALUES ($1, 'created', $2, $3, $4)`,
-                [incident.id, reporterId, req.user.role,
+                [incident.id, reporterId, req.user?.role ?? 'citizen',
                     `Incident reported via ${aiCrashDetected ? 'AI crash detection' : 'SOS button'}`]
             );
 
@@ -159,10 +159,12 @@ const triggerSOS = async (req, res, next) => {
             logger.error('Auto-assign failed', { incidentId: incident.id, error: err.message })
         );
 
-        // 5. Alert emergency contacts (async)
-        alertEmergencyContacts(req.user.id, incident.id, latitude, longitude).catch(err =>
-            logger.error('Emergency contact alert failed', { error: err.message })
-        );
+        // 5. Alert emergency contacts (async) — only if authenticated user
+        if (req.user?.id) {
+            alertEmergencyContacts(req.user.id, incident.id, latitude, longitude).catch(err =>
+                logger.error('Emergency contact alert failed', { error: err.message })
+            );
+        }
 
         res.status(201).json({
             success: true,
@@ -577,7 +579,7 @@ const updateStatus = async (req, res, next) => {
         // Broadcast status change via Socket.io
         const io = getSocketIO();
         if (io) {
-            io.to(`incident:${id}`).emit('incident:status', { incidentId: id, status, updatedBy: req.user.id });
+            io.to(`incident:${id}`).emit('incident:status', { incidentId: id, status, updatedBy: req.user?.id || 'system' });
         }
 
         res.json({ success: true, message: `Incident status updated to ${status}` });

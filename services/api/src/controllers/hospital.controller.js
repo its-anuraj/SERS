@@ -338,6 +338,66 @@ const confirmBedHandshake = async (req, res, next) => {
     }
 };
 
+
+/**
+ * POST /api/hospitals — Add a hospital to SERS network
+ */
+const createHospital = async (req, res, next) => {
+    try {
+        const {
+            name, address, phone, emergency_phone, email, website,
+            latitude, longitude, city, state, pincode,
+            specialties = [], has_icu = false, has_trauma_center = false,
+            has_blood_bank = false, has_burn_unit = false, has_nicu = false,
+            icu_beds_total = 0, icu_beds_available = 0,
+            er_beds_total = 0, er_beds_available = 0,
+            general_beds_total = 0, general_beds_available = 0,
+            is_active = true, is_on_sers_network = true,
+        } = req.body;
+        if (!name || !address || !latitude || !longitude) {
+            throw new ApiError(400, 'name, address, latitude, longitude are required');
+        }
+        const result = await query(
+            `INSERT INTO hospitals (
+                name, address, phone, emergency_phone, email, website,
+                latitude, longitude, city, state, pincode,
+                specialties, has_icu, has_trauma_center, has_blood_bank, has_burn_unit, has_nicu,
+                icu_beds_total, icu_beds_available,
+                er_beds_total, er_beds_available,
+                general_beds_total, general_beds_available,
+                is_active, is_on_sers_network
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+             RETURNING *`,
+            [
+                name, address, phone || null, emergency_phone || null,
+                email || null, website || null,
+                parseFloat(latitude), parseFloat(longitude),
+                city || null, state || null, pincode || null,
+                specialties,
+                has_icu, has_trauma_center, has_blood_bank, has_burn_unit, has_nicu,
+                icu_beds_total, icu_beds_available,
+                er_beds_total, er_beds_available,
+                general_beds_total, general_beds_available,
+                is_active, is_on_sers_network,
+            ]
+        );
+        logger.info('Hospital added to SERS', { id: result.rows[0].id, name });
+        res.status(201).json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * DELETE /api/hospitals/:id — Remove a hospital (admin only)
+ */
+const deleteHospital = async (req, res, next) => {
+    try {
+        await query(`UPDATE hospitals SET is_active = FALSE WHERE id = $1`, [req.params.id]);
+        res.json({ success: true, message: 'Hospital removed from SERS network' });
+    } catch (error) { next(error); }
+};
+
 module.exports = {
     findBestHospital,
     getNearestHospitals,
@@ -347,5 +407,9 @@ module.exports = {
     listHospitals,
     reserveHospitalBed,
     confirmBedHandshake,
+    createHospital,
+    deleteHospital,
 };
+
+
 
