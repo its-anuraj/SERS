@@ -416,10 +416,26 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Security Notice */}
-        <div className="flex items-center justify-center gap-2 text-center text-slate-400 text-xs font-bold">
-          <Shield size={14} className="text-slate-400" />
-          <span>SERS ABDM Certified · 256-Bit Encrypted Medical Gateway</span>
+        {/* ABDM & 256-Bit Encryption Security Guarantee Box */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-slate-800 text-xs font-black">
+            <Shield size={16} className="text-emerald-600 shrink-0" />
+            <span>SERS ABDM Certified · 256-Bit Encrypted Medical Gateway</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-[11px] text-slate-600 font-medium">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 space-y-0.5">
+              <p className="font-extrabold text-slate-900">🏛️ ABDM Integration (Govt. of India)</p>
+              <p className="text-slate-500 leading-snug">
+                Ayushman Bharat Digital Mission compliance allows emergency triage doctors to pull victim ABHA emergency health records, blood groups, and allergies with zero delay.
+              </p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 space-y-0.5">
+              <p className="font-extrabold text-slate-900">🔒 256-Bit End-to-End Encryption</p>
+              <p className="text-slate-500 leading-snug">
+                Military-grade AES-256 encryption protects all patient vitals, ECG waveforms, and crash telemetry transmitted between ambulances and hospital command nodes.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
