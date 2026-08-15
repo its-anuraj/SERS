@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   AlertTriangle, Activity, Ambulance, Hospital, Zap,
   MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
-  Shield, Menu, X, BarChart3, RefreshCw, LogOut, LogIn
+  Shield, Menu, X, BarChart3, RefreshCw, LogOut, LogIn, UserCheck
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -157,10 +157,11 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
 const navItems = [
   { icon: Activity, label: 'Command Center', href: '/', active: true },
   { icon: MapPin, label: 'Live Map', href: '/map' },
-  { icon: Ambulance, label: 'Fleet', href: '/fleet' },
-  { icon: Hospital, label: 'Hospitals', href: '/hospitals' },
-  { icon: AlertTriangle, label: 'Incidents', href: '/incidents' },
+  { icon: Ambulance, label: 'Fleet Dispatcher', href: '/fleet' },
+  { icon: Hospital, label: 'Partner Hospitals', href: '/hospitals' },
+  { icon: AlertTriangle, label: 'Emergency Incidents', href: '/incidents' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
+  { icon: UserCheck, label: 'Duty Attendance', href: '/attendance' },
 ];
 
 function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () => void; activeCount: number }) {

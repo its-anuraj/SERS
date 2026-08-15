@@ -265,9 +265,8 @@ export default function AnalyticsPage() {
         {/* Tabs */}
         <div className="flex gap-2 border-b border-slate-200 pb-2">
           {[
-            { key: 'overview', label: 'Overview', icon: BarChart2 },
-            { key: 'hotspots', label: 'Hotspot Map', icon: Flame },
-            { key: 'chat', label: 'AI Dispatch Chat', icon: MessageSquare },
+            { key: 'overview', label: 'Live Summary', icon: BarChart2 },
+            { key: 'chat', label: 'AI Dispatch Assistant', icon: MessageSquare },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -305,7 +304,7 @@ export default function AnalyticsPage() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-full flex items-center justify-center text-xs text-slate-400 font-bold">
-                      No incident data logged in the database
+                      Jab pehli emergency aayegi, data yahan apne aap dikhne lagega
                     </div>
                   )}
                 </div>
@@ -326,37 +325,12 @@ export default function AnalyticsPage() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-full flex items-center justify-center text-xs text-slate-400 font-bold">
-                      No response time history recorded yet
+                      Ambulance response times yahan track honge
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'hotspots' && (
-          <div className="glass-card p-5 bg-white border border-slate-200 shadow-sm rounded-2xl space-y-4">
-            <h3 className="font-extrabold text-base text-slate-900">Predicted Incident Hotspots (PostgreSQL)</h3>
-            {hotspots.length === 0 ? (
-              <p className="text-xs text-slate-400 font-bold py-6 text-center">No active predicted accident hotspots in database for today</p>
-            ) : (
-              <div className="space-y-3">
-                {hotspots.map((h) => {
-                  const style = RISK_STYLES[h.risk_label] || RISK_STYLES.low;
-                  return (
-                    <div key={h.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ background: style.bg, borderColor: style.border }}>
-                      <span className="font-bold text-xs" style={{ color: style.color }}>
-                        📍 {parseFloat(String(h.latitude)).toFixed(4)}, {parseFloat(String(h.longitude)).toFixed(4)} ({h.risk_label?.toUpperCase()})
-                      </span>
-                      <span className="font-black text-sm" style={{ color: style.color }}>
-                        {(parseFloat(String(h.risk_score)) * 100).toFixed(0)}% Risk Score
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 

@@ -22,6 +22,7 @@ const ambulanceRoutes = require('./routes/ambulance.routes');
 const abdmRoutes = require('./routes/abdm.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
 
 const app = express();
 
@@ -134,6 +135,7 @@ app.use('/api/ambulances', ambulanceRoutes);
 app.use('/api/abdm', abdmRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Apply stricter limit on SOS route
 app.use('/api/incidents/sos', sosLimiter);
