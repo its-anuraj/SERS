@@ -294,10 +294,10 @@ export default function LoginPage() {
                       setPassword('Test@1234');
                     }}
                     className="p-3 rounded-xl border border-slate-200 hover:border-rose-400 bg-slate-50 hover:bg-rose-50/50 text-left transition-all cursor-pointer group shadow-xs">
-                    <p className="text-xs font-black text-slate-900 group-hover:text-rose-700">🏥 Dr. Meera Nair</p>
+                    <p className="text-xs font-black text-slate-900 group-hover:text-rose-700">🏥 Meera Nair (ER Desk Staff)</p>
                     <p className="text-[10px] text-slate-500 font-bold mt-0.5 truncate">drmeera@demo.sers.in</p>
                     <span className="inline-block mt-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
-                      Hospital Staff / Triage
+                      Emergency Control Desk
                     </span>
                   </button>
 

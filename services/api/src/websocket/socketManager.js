@@ -37,6 +37,7 @@ const initSocketIO = (server) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.userId;
             socket.userRole = decoded.role;
+            socket.hospitalId = decoded.hospitalId || null;
             next();
         } catch (_err) {
             next(new Error('Invalid authentication token'));
@@ -45,8 +46,8 @@ const initSocketIO = (server) => {
 
     // ---- Connection handler ----
     io.on('connection', (socket) => {
-        const { userId, userRole } = socket;
-        logger.info('Socket connected', { socketId: socket.id, userId, userRole });
+        const { userId, userRole, hospitalId } = socket;
+        logger.info('Socket connected', { socketId: socket.id, userId, userRole, hospitalId });
 
         // Auto-join role-based rooms
         socket.join(`user:${userId}`);
@@ -55,7 +56,12 @@ const initSocketIO = (server) => {
             socket.join('admins');
             socket.join('responders'); // Admins see everything
         }
-        if (userRole === 'hospital_staff') socket.join('hospital:updates');
+        if (userRole === 'hospital_staff') {
+            socket.join('hospital:updates');
+            if (hospitalId) {
+                socket.join(`hospital:${hospitalId}`);
+            }
+        }
 
         // ---- Join incident room ----
         socket.on('incident:join', ({ incidentId }) => {

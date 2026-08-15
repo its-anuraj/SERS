@@ -14,14 +14,14 @@ const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
 /**
  * Generate JWT token pair
  */
-const generateTokens = (userId, role) => {
+const generateTokens = (userId, role, hospitalId = null) => {
     const accessToken = jwt.sign(
-        { userId, role },
+        { userId, role, hospitalId },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     const refreshToken = jwt.sign(
-        { userId, role, type: 'refresh' },
+        { userId, role, hospitalId, type: 'refresh' },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
     );
@@ -33,7 +33,7 @@ const generateTokens = (userId, role) => {
  */
 const register = async (req, res, next) => {
     try {
-        const { name, phone, email, password, role = 'citizen', preferredLanguage = 'en', bloodGroup } = req.body;
+        const { name, phone, email, password, role = 'citizen', hospitalId = null, preferredLanguage = 'en', bloodGroup } = req.body;
 
         // Check if phone already exists
         const existingUser = await query(
@@ -51,10 +51,10 @@ const register = async (req, res, next) => {
         const { user, tokens } = await withTransaction(async (client) => {
             // Insert user
             const userResult = await client.query(
-                `INSERT INTO users (name, phone, email, password_hash, role, preferred_language, is_active, is_verified)
-                 VALUES ($1, $2, $3, $4, $5, $6, TRUE, FALSE)
-                 RETURNING id, name, phone, email, role, preferred_language, created_at`,
-                [name, phone, email || null, passwordHash, role, preferredLanguage]
+                `INSERT INTO users (name, phone, email, password_hash, role, hospital_id, preferred_language, is_active, is_verified)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, FALSE)
+                 RETURNING id, name, phone, email, role, hospital_id, preferred_language, created_at`,
+                [name, phone, email || null, passwordHash, role, hospitalId, preferredLanguage]
             );
             const newUser = userResult.rows[0];
 
@@ -64,7 +64,7 @@ const register = async (req, res, next) => {
                 [newUser.id, bloodGroup || null]
             );
 
-            const tokens = generateTokens(newUser.id, newUser.role);
+            const tokens = generateTokens(newUser.id, newUser.role, newUser.hospital_id);
             return { user: newUser, tokens };
         });
 
@@ -80,6 +80,7 @@ const register = async (req, res, next) => {
                     phone: user.phone,
                     email: user.email,
                     role: user.role,
+                    hospitalId: user.hospital_id,
                     preferredLanguage: user.preferred_language,
                 },
                 tokens,
@@ -102,10 +103,13 @@ const login = async (req, res, next) => {
             throw new ApiError(400, 'Phone number or email is required');
         }
 
-        // Find user by phone OR email
+        // Find user by phone OR email with joined hospital info
         const result = await query(
-            `SELECT id, name, phone, email, role, password_hash, is_active, preferred_language, fcm_token
-             FROM users WHERE (phone = $1 OR email = $1) AND deleted_at IS NULL`,
+            `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
+                    h.name AS hospital_name
+             FROM users u
+             LEFT JOIN hospitals h ON u.hospital_id = h.id
+             WHERE (u.phone = $1 OR u.email = $1) AND u.deleted_at IS NULL`,
             [lookup]
         );
 
@@ -122,12 +126,12 @@ const login = async (req, res, next) => {
         // Verify password
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatch) {
-            throw new ApiError(401, 'Invalid phone or password');
+            throw new ApiError(401, 'Invalid email/phone or password');
         }
 
-        const tokens = generateTokens(user.id, user.role);
+        const tokens = generateTokens(user.id, user.role, user.hospital_id);
 
-        logger.info('User logged in', { userId: user.id, role: user.role });
+        logger.info('User logged in', { userId: user.id, role: user.role, hospitalId: user.hospital_id });
 
         res.json({
             success: true,
@@ -139,6 +143,8 @@ const login = async (req, res, next) => {
                     phone: user.phone,
                     email: user.email,
                     role: user.role,
+                    hospitalId: user.hospital_id,
+                    hospitalName: user.hospital_name,
                     preferredLanguage: user.preferred_language,
                 },
                 tokens,

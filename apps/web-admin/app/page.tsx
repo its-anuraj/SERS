@@ -270,16 +270,25 @@ export default function DashboardPage() {
   const [typeData, setTypeData]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     setIsMounted(true);
+    try {
+      const u = localStorage.getItem('sers_user');
+      if (u) setCurrentUser(JSON.parse(u));
+    } catch {}
   }, []);
 
   const fetchAll = useCallback(async () => {
     try {
+      const uStr = typeof window !== 'undefined' ? localStorage.getItem('sers_user') : null;
+      const u = uStr ? JSON.parse(uStr) : null;
+      const hospParam = u?.hospitalId ? `&hospitalId=${u.hospitalId}` : '';
+
       const [summaryRes, incidentsRes, hourlyRes, typeRes, hospRes, ambRes] = await Promise.allSettled([
         apiFetch('/api/analytics/summary'),
-        apiFetch('/api/incidents?limit=50'),
+        apiFetch(`/api/incidents?limit=50${hospParam}`),
         apiFetch('/api/analytics/incidents-by-hour'),
         apiFetch('/api/analytics/incidents-by-type'),
         apiFetch('/api/hospitals?limit=50'),
@@ -333,7 +342,9 @@ export default function DashboardPage() {
   }, [fetchAll]);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
     const socket: Socket = io(WS, {
+      auth: { token: token || 'guest' },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
     });
@@ -341,6 +352,12 @@ export default function DashboardPage() {
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('incident:new', (newInc) => {
+      // If user is hospital staff, only add alert if assigned to this hospital
+      const uStr = typeof window !== 'undefined' ? localStorage.getItem('sers_user') : null;
+      const u = uStr ? JSON.parse(uStr) : null;
+      if (u?.hospitalId && newInc.assigned_hospital_id && newInc.assigned_hospital_id !== u.hospitalId) {
+        return; // Ignore alerts for other hospitals
+      }
       setIncidents(prev => [newInc, ...prev.filter(i => i.id !== newInc.id)]);
       setNewAlertCount(n => n + 1);
     });
@@ -368,7 +385,8 @@ export default function DashboardPage() {
   };
 
   const activeIncidents = incidents.filter(i => !['resolved', 'cancelled', 'false_alarm'].includes(i.status));
-  const availableIcuBeds = hospitals.reduce((acc, h) => acc + (parseInt(h.icu_beds_available) || 0), 0);
+  const myHospital = hospitals.find(h => h.id === currentUser?.hospitalId || h.name === currentUser?.hospital);
+  const availableIcuBeds = myHospital ? parseInt(myHospital.icu_beds_available) || 0 : hospitals.reduce((acc, h) => acc + (parseInt(h.icu_beds_available) || 0), 0);
   const activeDispatchedAmbulances = ambulances.filter(a => ['en_route', 'dispatched', 'transporting', 'on_scene'].includes(a.status)).length;
   const avgResponse = stats?.incidents?.avg_response_mins ? `${stats.incidents.avg_response_mins} min` : '6.5 min';
 
@@ -384,8 +402,12 @@ export default function DashboardPage() {
               <Menu size={20} />
             </button>
             <div className="hidden sm:block">
-              <h1 className="text-base font-black text-slate-900 tracking-tight">Hospital Emergency Command Center</h1>
-              <p className="text-[11px] text-slate-500 font-bold">Realtime Autonomous Emergency Dispatch System</p>
+              <h1 className="text-base font-black text-slate-900 tracking-tight">
+                {currentUser?.hospital || 'Hospital Emergency Command Center'}
+              </h1>
+              <p className="text-[11px] text-slate-500 font-bold">
+                {currentUser?.name ? `Staff Desk: ${currentUser.name} (${currentUser.roleTitle || 'Triage Coordinator'})` : 'Hospital Command & Triage Portal'}
+              </p>
             </div>
           </div>
 

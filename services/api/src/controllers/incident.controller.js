@@ -411,7 +411,9 @@ const listIncidents = async (req, res, next) => {
         let paramIdx = 1;
 
         // Role-based filtering
-        const { assignedToMe } = req.query;
+        const { assignedToMe, hospitalId } = req.query;
+        const targetHospitalId = hospitalId || user.hospitalId;
+
         if (user.role === 'citizen') {
             baseQuery += ` AND i.reporter_id = $${paramIdx++}`;
             params.push(user.id);
@@ -424,6 +426,19 @@ const listIncidents = async (req, res, next) => {
                 baseQuery += ` AND (i.assigned_responder_id = $${paramIdx++} OR i.status = 'reported')`;
                 params.push(user.id);
             }
+        } else if (user.role === 'hospital_staff') {
+            // Strict hospital isolation: Staff ONLY see emergency alerts assigned/en-route to their hospital
+            if (targetHospitalId) {
+                baseQuery += ` AND i.assigned_hospital_id = $${paramIdx++}`;
+                params.push(targetHospitalId);
+            } else if (user.id) {
+                baseQuery += ` AND i.assigned_hospital_id = (SELECT hospital_id FROM users WHERE id = $${paramIdx++})`;
+                params.push(user.id);
+            }
+        } else if (targetHospitalId) {
+            // Coordinator or Admin filtering by specific hospital
+            baseQuery += ` AND i.assigned_hospital_id = $${paramIdx++}`;
+            params.push(targetHospitalId);
         }
 
         if (status) {
