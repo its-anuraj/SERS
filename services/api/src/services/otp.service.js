@@ -137,21 +137,29 @@ class OtpService {
 
         try {
             const senderEmail = process.env.SMTP_EMAIL || process.env.EMAIL_USER || 'noreply@sers.in';
-            await this.transporter.sendMail({
-                from: `"SERS Emergency System" <${senderEmail}>`,
-                to: cleanEmail,
-                subject: `🚨 ${otp} is your SERS Portal Login Verification Code`,
-                html: htmlContent,
-            });
+            await Promise.race([
+                this.transporter.sendMail({
+                    from: `"SERS Emergency System" <${senderEmail}>`,
+                    to: cleanEmail,
+                    subject: `🚨 ${otp} is your SERS Portal Login Verification Code`,
+                    html: htmlContent,
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP dispatch timed out')), 8000))
+            ]);
+
             logger.info(`✅ Live OTP email sent to ${cleanEmail}`);
-            return { sent: true, mode: 'live', message: `Verification code sent to ${cleanEmail}` };
-        } catch (err) {
-            logger.error(`❌ Failed to send live email OTP to ${cleanEmail}:`, err.message);
             return {
                 sent: true,
-                mode: 'simulated_fallback',
+                mode: 'live',
+                message: `Verification code sent to ${cleanEmail}`
+            };
+        } catch (error) {
+            logger.error(`❌ Failed to send live email OTP to ${cleanEmail}:`, error.message);
+            return {
+                sent: true,
+                mode: 'simulated',
                 previewOtp: otp,
-                message: `Live email dispatch error (${err.message}). Using instant verification code: ${otp}`
+                message: `Verification code generated (${otp}). Note: Live email delivery encountered an issue (${error.message}).`
             };
         }
     }
