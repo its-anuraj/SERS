@@ -33,7 +33,24 @@ const generateTokens = (userId, role, hospitalId = null) => {
  */
 const register = async (req, res, next) => {
     try {
-        const { name, phone, email, password, role = 'citizen', hospitalId = null, preferredLanguage = 'en', bloodGroup } = req.body;
+        const {
+            name, phone, email, password,
+            role = 'citizen',
+            hospitalId = null,
+            hospitalName = null,
+            hospitalAddress = null,
+            hospitalCity = 'Bengaluru',
+            hospitalPhone = null,
+            icuBedsTotal = 15,
+            icuBedsAvailable = 8,
+            erBedsTotal = 25,
+            erBedsAvailable = 12,
+            staffTitle = null,
+            department = null,
+            specialization = null,
+            preferredLanguage = 'en',
+            bloodGroup
+        } = req.body;
 
         // Check if phone already exists
         const existingUser = await query(
@@ -47,14 +64,63 @@ const register = async (req, res, next) => {
         // Hash password
         const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-        // Create user + empty medical profile in transaction
+        // Create user + hospital + medical profile in transaction
         const { user, tokens } = await withTransaction(async (client) => {
+            let effectiveHospitalId = hospitalId;
+            let effectiveHospitalName = hospitalName;
+
+            // If hospitalName is provided and user is hospital staff/admin, create or link hospital
+            if (hospitalName && !effectiveHospitalId && (role === 'hospital_staff' || role === 'hospital_admin')) {
+                // Check if hospital with same name exists
+                const existingHosp = await client.query(
+                    'SELECT id, name FROM hospitals WHERE LOWER(name) = LOWER($1)',
+                    [hospitalName.trim()]
+                );
+                if (existingHosp.rows.length > 0) {
+                    effectiveHospitalId = existingHosp.rows[0].id;
+                    effectiveHospitalName = existingHosp.rows[0].name;
+                } else {
+                    const hospRes = await client.query(
+                        `INSERT INTO hospitals (
+                            name, address, city, state, latitude, longitude,
+                            phone, emergency_phone, email,
+                            icu_beds_total, icu_beds_available, er_beds_total, er_beds_available,
+                            is_on_sers_network, is_active
+                         ) VALUES ($1, $2, $3, 'Karnataka', 12.9716, 77.5946, $4, $4, $5, $6, $7, $8, $9, TRUE, TRUE)
+                         RETURNING id, name, city, address, icu_beds_available, icu_beds_total, er_beds_available, er_beds_total`,
+                        [
+                            hospitalName.trim(),
+                            hospitalAddress ? hospitalAddress.trim() : 'Emergency Medical Center',
+                            hospitalCity ? hospitalCity.trim() : 'Bengaluru',
+                            hospitalPhone ? hospitalPhone.trim() : phone.trim(),
+                            email ? email.trim() : `emergency@${hospitalName.toLowerCase().replace(/[^a-z0-9]/g, '')}.sers.in`,
+                            parseInt(icuBedsTotal) || 15,
+                            parseInt(icuBedsAvailable) || 8,
+                            parseInt(erBedsTotal) || 25,
+                            parseInt(erBedsAvailable) || 12,
+                        ]
+                    );
+                    effectiveHospitalId = hospRes.rows[0].id;
+                    effectiveHospitalName = hospRes.rows[0].name;
+                }
+            }
+
             // Insert user
             const userResult = await client.query(
-                `INSERT INTO users (name, phone, email, password_hash, role, hospital_id, preferred_language, is_active, is_verified)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, FALSE)
-                 RETURNING id, name, phone, email, role, hospital_id, preferred_language, created_at`,
-                [name, phone, email || null, passwordHash, role, hospitalId, preferredLanguage]
+                `INSERT INTO users (
+                    name, phone, email, password_hash, role, hospital_id,
+                    staff_title, department, specialization,
+                    preferred_language, is_active, is_verified
+                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, TRUE)
+                 RETURNING id, name, phone, email, role, hospital_id, staff_title, department, specialization, preferred_language, created_at`,
+                [
+                    name.trim(), phone.trim(), email ? email.trim() : null, passwordHash,
+                    role, effectiveHospitalId,
+                    staffTitle ? staffTitle.trim() : null,
+                    department ? department.trim() : null,
+                    specialization ? specialization.trim() : null,
+                    preferredLanguage
+                ]
             );
             const newUser = userResult.rows[0];
 
@@ -64,11 +130,30 @@ const register = async (req, res, next) => {
                 [newUser.id, bloodGroup || null]
             );
 
+            // If doctor or hospital nurse, automatically record their initial duty shift check-in
+            if (role === 'hospital_staff' && department) {
+                await client.query(
+                    `INSERT INTO duty_attendance 
+                        (user_id, hospital_id, staff_type, name, phone, department, specialization, shift, status)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, 'Morning (08:00 - 16:00)', 'on_duty')`,
+                    [
+                        newUser.id, effectiveHospitalId, 'doctor', newUser.name,
+                        newUser.phone, department, specialization || staffTitle
+                    ]
+                ).catch(() => {});
+            }
+
             const tokens = generateTokens(newUser.id, newUser.role, newUser.hospital_id);
-            return { user: newUser, tokens };
+            return {
+                user: {
+                    ...newUser,
+                    hospitalName: effectiveHospitalName,
+                },
+                tokens
+            };
         });
 
-        logger.info('New user registered', { userId: user.id, role: user.role, phone: user.phone });
+        logger.info('New user registered', { userId: user.id, role: user.role, phone: user.phone, hospitalId: user.hospital_id });
 
         res.status(201).json({
             success: true,
@@ -81,6 +166,10 @@ const register = async (req, res, next) => {
                     email: user.email,
                     role: user.role,
                     hospitalId: user.hospital_id,
+                    hospitalName: user.hospitalName,
+                    staffTitle: user.staff_title,
+                    department: user.department,
+                    specialization: user.specialization,
                     preferredLanguage: user.preferred_language,
                 },
                 tokens,
@@ -105,8 +194,10 @@ const login = async (req, res, next) => {
 
         // Find user by phone OR email with joined hospital info
         const result = await query(
-            `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
-                    h.name AS hospital_name
+            `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.staff_title, u.department, u.specialization,
+                    u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
+                    h.name AS hospital_name, h.city AS hospital_city, h.address AS hospital_address,
+                    h.icu_beds_total, h.icu_beds_available, h.er_beds_total, h.er_beds_available
              FROM users u
              LEFT JOIN hospitals h ON u.hospital_id = h.id
              WHERE (u.phone = $1 OR u.email = $1) AND u.deleted_at IS NULL`,
@@ -145,6 +236,15 @@ const login = async (req, res, next) => {
                     role: user.role,
                     hospitalId: user.hospital_id,
                     hospitalName: user.hospital_name,
+                    hospitalCity: user.hospital_city,
+                    hospitalAddress: user.hospital_address,
+                    staffTitle: user.staff_title,
+                    department: user.department,
+                    specialization: user.specialization,
+                    icuBedsAvailable: user.icu_beds_available,
+                    icuBedsTotal: user.icu_beds_total,
+                    erBedsAvailable: user.er_beds_available,
+                    erBedsTotal: user.er_beds_total,
                     preferredLanguage: user.preferred_language,
                 },
                 tokens,

@@ -231,15 +231,29 @@ const autoAssignAmbulance = async (incidentId, latitude, longitude) => {
 
         if (!ambulance) return;
 
-        // Notify assigned responder via Socket.io
+        // Notify assigned responder & assigned hospital via Socket.io
         const io = getSocketIO();
-        if (io && ambulance.driver_id) {
-            io.to(`user:${ambulance.driver_id}`).emit('incident:assigned', {
-                incidentId,
-                latitude,
-                longitude,
-                hospital: hospital ? { id: hospital.id, name: hospital.name, lat: hospital.latitude, lng: hospital.longitude } : null,
-            });
+        if (io) {
+            if (ambulance.driver_id) {
+                io.to(`user:${ambulance.driver_id}`).emit('incident:assigned', {
+                    incidentId,
+                    latitude,
+                    longitude,
+                    hospital: hospital ? { id: hospital.id, name: hospital.name, lat: hospital.latitude, lng: hospital.longitude } : null,
+                });
+            }
+            if (hospital?.id) {
+                io.to(`hospital:${hospital.id}`).emit('incident:new', {
+                    id: incidentId,
+                    status: 'assigned',
+                    latitude,
+                    longitude,
+                    assigned_hospital_id: hospital.id,
+                    hospital_name: hospital.name,
+                    ambulance_reg: ambulance.registration_number,
+                    timestamp: new Date().toISOString(),
+                });
+            }
         }
 
         logger.info('Ambulance auto-assigned', {

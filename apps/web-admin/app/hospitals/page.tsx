@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * SERS Admin — Hospital Management Page (100% Real Live Database Data)
+ * SERS Admin — My Hospital Bed & Emergency Capacity Manager
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   Hospital as HospitalIcon, Plus, Search, RefreshCw,
-  Edit3, MapPin, X, Save, ArrowLeft
+  Edit3, MapPin, X, Save, ArrowLeft, Bed, HeartPulse,
+  Activity, Phone, Shield, CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +28,7 @@ interface Hospital {
   id: string;
   name: string;
   address: string;
+  city?: string;
   phone: string;
   emergency_phone?: string;
   is_active: boolean;
@@ -35,31 +37,60 @@ interface Hospital {
   icu_beds_available: number;
   er_beds_total: number;
   er_beds_available: number;
+  blood_inventory?: Record<string, number>;
   specialties: string[];
   latitude: number;
   longitude: number;
 }
 
-const EMPTY_HOSPITAL: Partial<Hospital> = {
-  name: '', address: '', phone: '',
-  icu_beds_total: 10, icu_beds_available: 5,
-  er_beds_total: 20, er_beds_available: 10,
-  specialties: ['Emergency'], is_active: true, is_on_sers_network: true,
-};
-
 export default function HospitalsPage() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing]     = useState<Partial<Hospital>>(EMPTY_HOSPITAL);
   const [saving, setSaving]       = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [msg, setMsg]             = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // My Hospital Capacity Form State
+  const [myHosp, setMyHosp] = useState<Partial<Hospital>>({
+    name: '',
+    address: '',
+    phone: '',
+    icu_beds_total: 15,
+    icu_beds_available: 8,
+    er_beds_total: 25,
+    er_beds_available: 12,
+  });
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('sers_user');
+      if (u) setCurrentUser(JSON.parse(u));
+    } catch {}
+  }, []);
 
   const fetchHospitals = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiFetch('/api/hospitals?limit=100');
-      setHospitals(res.data || []);
+      const list = res.data || [];
+      setHospitals(list);
+
+      const uStr = typeof window !== 'undefined' ? localStorage.getItem('sers_user') : null;
+      const u = uStr ? JSON.parse(uStr) : null;
+      
+      const found = list.find((h: Hospital) => h.id === u?.hospitalId || h.name === u?.hospitalName || h.name === u?.hospital);
+      if (found) {
+        setMyHosp(found);
+      } else if (u?.hospitalName || u?.hospital) {
+        setMyHosp(prev => ({
+          ...prev,
+          name: u.hospitalName || u.hospital,
+          icu_beds_total: u.icuBedsTotal || 15,
+          icu_beds_available: u.icuBedsAvailable || 8,
+          er_beds_total: u.erBedsTotal || 25,
+          er_beds_available: u.erBedsAvailable || 12,
+        }));
+      }
     } catch (e) {
       console.error('Hospitals fetch error:', e);
       setHospitals([]);
@@ -70,237 +101,240 @@ export default function HospitalsPage() {
 
   useEffect(() => { fetchHospitals(); }, [fetchHospitals]);
 
-  const openAdd = () => { setEditing(EMPTY_HOSPITAL); setModalOpen(true); };
-  const openEdit = (h: Hospital) => { setEditing(h); setModalOpen(true); };
-
-  const saveHospital = async () => {
+  const handleSaveCapacity = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSaving(true);
+    setMsg(null);
     try {
-      if (editing.id) {
-        await apiFetch(`/api/hospitals/${editing.id}/capacity`, {
+      if (myHosp.id) {
+        await apiFetch(`/api/hospitals/${myHosp.id}/capacity`, {
           method: 'PUT',
           body: JSON.stringify({
-            icuBedsAvailable: editing.icu_beds_available,
-            erBedsAvailable: editing.er_beds_available,
+            icuBedsAvailable: parseInt(String(myHosp.icu_beds_available)),
+            erBedsAvailable: parseInt(String(myHosp.er_beds_available)),
           }),
         });
       } else {
-        await apiFetch('/api/hospitals', { method: 'POST', body: JSON.stringify(editing) });
+        const createRes = await apiFetch('/api/hospitals', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...myHosp,
+            is_active: true,
+            is_on_sers_network: true,
+          }),
+        });
+        if (createRes.success && createRes.data) {
+          setMyHosp(createRes.data);
+        }
       }
-      setModalOpen(false);
+      setMsg({ type: 'success', text: 'Hospital bed capacity & triage availability updated live!' });
       await fetchHospitals();
     } catch (e: any) {
-      alert('Failed to update hospital: ' + e.message);
+      setMsg({ type: 'error', text: 'Failed to update capacity: ' + e.message });
     } finally {
       setSaving(false);
     }
   };
 
-  const filtered = hospitals.filter(h =>
-    h.name?.toLowerCase().includes(search.toLowerCase()) ||
-    h.address?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const bedPct = (avail: number, total: number) =>
-    total > 0 ? Math.round((avail / total) * 100) : 0;
-
-  const bedColor = (pct: number) =>
-    pct > 50 ? '#16a34a' : pct > 20 ? '#ea580c' : '#dc2626';
+  const bedPct = (avail?: number, total?: number) => {
+    const a = avail || 0;
+    const t = total || 1;
+    return Math.round((a / t) * 100);
+  };
 
   return (
-    <div className="min-h-screen bg-[#f0f7ff] text-slate-900 p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-[#f0f7ff] text-slate-900 p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
+        
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs transition-colors">
+            <Link href="/" className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs transition-colors cursor-pointer">
               <ArrowLeft size={18} />
             </Link>
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-              <HospitalIcon size={22} className="text-emerald-600" />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/25">
+              <HospitalIcon size={22} />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">Hospital ICU & ER Bed Manager</h1>
-              <p className="text-xs text-slate-500 font-semibold">{hospitals.length} partner hospitals registered on SERS Network</p>
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                {currentUser?.hospitalName || myHosp.name || 'Hospital Emergency Bed Capacity'}
+              </h1>
+              <p className="text-xs text-slate-500 font-semibold">
+                Manage ICU beds, ER trauma capacity, and emergency telemetry
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2.5">
             <button onClick={fetchHospitals} className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
-            <button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
-              <Plus size={15} /> Add Hospital
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('sers_token');
-                localStorage.removeItem('sers_user');
-                window.location.href = '/login';
-              }}
-              className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
-              <X size={14} /> Log Out
-            </button>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Hospitals', value: hospitals.length, color: '#2563eb' },
-            { label: 'On SERS Network', value: hospitals.filter(h => h.is_on_sers_network).length, color: '#16a34a' },
-            { label: 'Total ICU Beds', value: hospitals.reduce((a, h) => a + (parseInt(String(h.icu_beds_total)) || 0), 0), color: '#ea580c' },
-            { label: 'Available ICU Beds', value: hospitals.reduce((a, h) => a + (parseInt(String(h.icu_beds_available)) || 0), 0), color: '#0891b2' },
-          ].map(s => (
-            <div key={s.label} className="glass-card p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{s.label}</p>
-              <p className="text-2xl font-black" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
+        {/* Message */}
+        {msg && (
+          <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between gap-2.5 ${
+            msg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-600" />
+              <span>{msg.text}</span>
             </div>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search hospitals by name, trauma specialty, or location..."
-            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs"
-          />
-        </div>
-
-        {/* Hospital List */}
-        {loading ? (
-          <div className="text-center py-16 text-slate-500 font-semibold">Loading live hospital telemetry from database...</div>
-        ) : filtered.length === 0 ? (
-          <div className="glass-card p-12 text-center bg-white border border-slate-200 rounded-3xl space-y-3">
-            <p className="text-base font-extrabold text-slate-800">No partner hospitals registered yet</p>
-            <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">When hospitals join the SERS emergency response grid, their live ICU/ER beds and triage capacity will appear here automatically.</p>
-            <button onClick={openAdd} className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
-              <Plus size={15} /> Register Hospital
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map(h => {
-              const icuAvail = parseInt(String(h.icu_beds_available)) || 0;
-              const icuTotal = parseInt(String(h.icu_beds_total)) || 0;
-              const erAvail  = parseInt(String(h.er_beds_available)) || 0;
-              const erTotal  = parseInt(String(h.er_beds_total)) || 0;
-              const icuPct   = bedPct(icuAvail, icuTotal);
-              const erPct    = bedPct(erAvail, erTotal);
-
-              return (
-                <div key={h.id} className="glass-card p-5 rounded-2xl bg-white border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-slate-300 transition-all">
-                  <div className="space-y-2 min-w-0 flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-extrabold text-base text-slate-900">{h.name}</h3>
-                      <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                        h.is_on_sers_network
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        {h.is_on_sers_network ? '● SERS CONNECTED' : '○ OFF-NETWORK'}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 truncate">
-                      <MapPin size={13} className="text-slate-400 shrink-0" />
-                      {h.address} · 📞 {h.emergency_phone || h.phone}
-                    </p>
-
-                    {/* Bed Gauges */}
-                    <div className="flex items-center gap-6 pt-1 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 font-bold">ICU Beds:</span>
-                        <span className="text-xs font-black" style={{ color: bedColor(icuPct) }}>
-                          {icuAvail} / {icuTotal} ({icuPct}% free)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 font-bold">ER Beds:</span>
-                        <span className="text-xs font-black" style={{ color: bedColor(erPct) }}>
-                          {erAvail} / {erTotal} ({erPct}% free)
-                        </span>
-                      </div>
-                      {Array.isArray(h.specialties) && h.specialties.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {h.specialties.map(s => (
-                            <span key={s} className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <button
-                      onClick={() => openEdit(h)}
-                      className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-extrabold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
-                      <Edit3 size={13} /> Edit Beds
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            <button onClick={() => setMsg(null)} className="text-slate-400 hover:text-slate-700"><X size={14} /></button>
           </div>
         )}
-      </div>
 
-      {/* Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="glass-card max-w-lg w-full p-6 space-y-4 bg-white border border-slate-200 shadow-2xl rounded-3xl">
+        {/* Live Hospital Node Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-card p-5 bg-gradient-to-br from-emerald-50/80 to-white border border-emerald-200 rounded-3xl space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900">{editing.id ? 'Update Bed Availability' : 'Add Hospital to Network'}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={18} /></button>
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-800">Available ICU Beds</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                🛏️
+              </div>
             </div>
+            <p className="text-3xl font-black text-emerald-950">{myHosp.icu_beds_available ?? 0}</p>
+            <p className="text-[11px] text-emerald-700 font-bold">
+              Total Capacity: {myHosp.icu_beds_total ?? 15} ({bedPct(myHosp.icu_beds_available, myHosp.icu_beds_total)}% Available)
+            </p>
+          </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Hospital Name</label>
+          <div className="glass-card p-5 bg-gradient-to-br from-blue-50/80 to-white border border-blue-200 rounded-3xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-800">Available ER Beds</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black">
+                🏥
+              </div>
+            </div>
+            <p className="text-3xl font-black text-blue-950">{myHosp.er_beds_available ?? 0}</p>
+            <p className="text-[11px] text-blue-700 font-bold">
+              Total Capacity: {myHosp.er_beds_total ?? 25} ({bedPct(myHosp.er_beds_available, myHosp.er_beds_total)}% Available)
+            </p>
+          </div>
+
+          <div className="glass-card p-5 bg-gradient-to-br from-purple-50/80 to-white border border-purple-200 rounded-3xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-purple-800">SERS Emergency Network</span>
+              <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
+                ⚡
+              </div>
+            </div>
+            <p className="text-xl font-black text-purple-950">Active & Online</p>
+            <p className="text-[11px] text-purple-700 font-bold">
+              Auto-Routing Incoming Ambulances
+            </p>
+          </div>
+        </div>
+
+        {/* Live Capacity Editor Form */}
+        <div className="glass-card bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
+          <div>
+            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <Edit3 size={18} className="text-emerald-600" />
+              Update Real-Time Emergency Capacity
+            </h2>
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">
+              When you adjust your available ICU or ER beds, the SERS AI dispatch engine uses this live data to route incoming trauma cases to your facility.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveCapacity} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Hospital / Node Name</label>
                 <input
-                  value={editing.name || ''}
-                  onChange={e => setEditing(prev => ({ ...prev, name: e.target.value }))}
-                  disabled={!!editing.id}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
+                  type="text"
+                  required
+                  value={myHosp.name || ''}
+                  onChange={e => setMyHosp({ ...myHosp, name: e.target.value })}
+                  placeholder="e.g. City Life Emergency Care"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-900"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-500 font-bold mb-1 block">Available ICU Beds</label>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Emergency Phone / Triage Desk Hotline</label>
+                <input
+                  type="text"
+                  value={myHosp.phone || ''}
+                  onChange={e => setMyHosp({ ...myHosp, phone: e.target.value })}
+                  placeholder="+919876543210"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-900"
+                />
+              </div>
+            </div>
+
+            {/* Bed Adjusters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-800">ICU Beds (Available / Total)</label>
+                  <span className="text-xs font-black text-emerald-700">
+                    {myHosp.icu_beds_available} / {myHosp.icu_beds_total}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 w-24">Available:</span>
                   <input
                     type="number"
-                    value={editing.icu_beds_available || 0}
-                    onChange={e => setEditing(prev => ({ ...prev, icu_beds_available: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
+                    min="0"
+                    max={myHosp.icu_beds_total || 50}
+                    value={myHosp.icu_beds_available ?? 0}
+                    onChange={e => setMyHosp({ ...myHosp, icu_beds_available: parseInt(e.target.value) || 0 })}
+                    className="flex-1 bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-black text-emerald-800"
+                  />
+                  <span className="text-xs font-bold text-slate-500 w-16">Total:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={myHosp.icu_beds_total ?? 15}
+                    onChange={e => setMyHosp({ ...myHosp, icu_beds_total: parseInt(e.target.value) || 1 })}
+                    className="w-20 bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-800"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold mb-1 block">Available ER Beds</label>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-800">ER Beds (Available / Total)</label>
+                  <span className="text-xs font-black text-blue-700">
+                    {myHosp.er_beds_available} / {myHosp.er_beds_total}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 w-24">Available:</span>
                   <input
                     type="number"
-                    value={editing.er_beds_available || 0}
-                    onChange={e => setEditing(prev => ({ ...prev, er_beds_available: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-900 font-semibold"
+                    min="0"
+                    max={myHosp.er_beds_total || 50}
+                    value={myHosp.er_beds_available ?? 0}
+                    onChange={e => setMyHosp({ ...myHosp, er_beds_available: parseInt(e.target.value) || 0 })}
+                    className="flex-1 bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-black text-blue-800"
+                  />
+                  <span className="text-xs font-bold text-slate-500 w-16">Total:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={myHosp.er_beds_total ?? 25}
+                    onChange={e => setMyHosp({ ...myHosp, er_beds_total: parseInt(e.target.value) || 1 })}
+                    className="w-20 bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-800"
                   />
                 </div>
               </div>
             </div>
 
             <button
-              onClick={saveHospital}
+              type="submit"
               disabled={saving}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors mt-2">
-              <Save size={16} /> {saving ? 'Saving...' : 'Save Hospital Capacity'}
+              className="py-3 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all">
+              <Save size={16} />
+              {saving ? 'Saving Live Capacity...' : 'Save & Publish Live Bed Capacity'}
             </button>
-          </div>
+          </form>
         </div>
-      )}
+
+      </div>
     </div>
   );
 }

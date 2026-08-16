@@ -7,27 +7,47 @@ const router = express.Router();
 const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { query } = require('../config/database');
 
-// GET /api/analytics/summary — Public stats
+// GET /api/analytics/summary — Hospital / Public stats
 router.get('/summary', optionalAuth, async (req, res, next) => {
     try {
-        const [incidentStats, hospitalStats, ambulanceStats] = await Promise.all([
-            query(`SELECT
-                COUNT(*) AS total_incidents,
-                COUNT(*) FILTER (WHERE status = 'resolved') AS resolved,
-                COUNT(*) FILTER (WHERE status NOT IN ('resolved','cancelled','false_alarm')) AS active,
-                COUNT(*) FILTER (WHERE ai_crash_detected = TRUE) AS ai_detected,
-                ROUND(AVG(EXTRACT(EPOCH FROM (responder_arrived_at - created_at))/60)::NUMERIC, 1) AS avg_response_mins
-             FROM incidents WHERE created_at >= NOW() - INTERVAL '30 days'`),
-            query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_on_sers_network) AS on_network FROM hospitals`),
-            query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'available') AS available FROM ambulances WHERE is_active = TRUE`),
+        const hospitalId = req.query.hospitalId || req.user?.hospitalId || null;
+
+        let incidentSql = `SELECT
+            COUNT(*) AS total_incidents,
+            COUNT(*) FILTER (WHERE status = 'resolved') AS resolved,
+            COUNT(*) FILTER (WHERE status NOT IN ('resolved','cancelled','false_alarm')) AS active,
+            COUNT(*) FILTER (WHERE severity = 'critical' AND status NOT IN ('resolved','cancelled','false_alarm')) AS critical_active,
+            COUNT(*) FILTER (WHERE ai_crash_detected = TRUE) AS ai_detected,
+            ROUND(AVG(EXTRACT(EPOCH FROM (responder_arrived_at - created_at))/60)::NUMERIC, 1) AS avg_response_mins
+         FROM incidents WHERE created_at >= NOW() - INTERVAL '30 days'`;
+
+        const incidentParams = [];
+        if (hospitalId) {
+            incidentSql += ` AND assigned_hospital_id = $1`;
+            incidentParams.push(hospitalId);
+        }
+
+        const [incidentStats, hospitalStats, ambulanceStats, staffStats] = await Promise.all([
+            query(incidentSql, incidentParams),
+            hospitalId
+                ? query(`SELECT id, name, city, address, icu_beds_total, icu_beds_available, er_beds_total, er_beds_available, blood_inventory, is_on_sers_network FROM hospitals WHERE id = $1`, [hospitalId])
+                : query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_on_sers_network) AS on_network, SUM(icu_beds_available) AS total_icu_avail FROM hospitals`),
+            hospitalId
+                ? query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'available') AS available, COUNT(*) FILTER (WHERE status = 'en_route') AS en_route FROM ambulances WHERE hospital_id = $1 AND is_active = TRUE`, [hospitalId])
+                : query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'available') AS available, COUNT(*) FILTER (WHERE status = 'en_route') AS en_route FROM ambulances WHERE is_active = TRUE`),
+            hospitalId
+                ? query(`SELECT COUNT(*) FILTER (WHERE status = 'on_duty') AS on_duty, COUNT(*) FILTER (WHERE status = 'in_ot') AS in_ot, COUNT(*) FILTER (WHERE status = 'on_call') AS on_call, COUNT(*) AS total FROM duty_attendance WHERE hospital_id = $1 AND duty_date = CURRENT_DATE`, [hospitalId])
+                : query(`SELECT COUNT(*) FILTER (WHERE status = 'on_duty') AS on_duty, COUNT(*) AS total FROM duty_attendance WHERE duty_date = CURRENT_DATE`),
         ]);
 
         res.json({
             success: true,
             data: {
                 incidents: incidentStats.rows[0],
-                hospitals: hospitalStats.rows[0],
+                hospitals: hospitalId ? hospitalStats.rows[0] : hospitalStats.rows[0],
+                hospitalProfile: hospitalId ? hospitalStats.rows[0] : null,
                 ambulances: ambulanceStats.rows[0],
+                onDutyStaff: staffStats.rows[0],
             },
         });
     } catch (error) { next(error); }

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   AlertTriangle, Activity, Ambulance, Hospital, Zap,
   MapPin, Clock, ChevronRight, Radio, TrendingUp, Volume2, VolumeX,
-  Shield, Menu, X, BarChart3, RefreshCw, LogOut, LogIn, UserCheck
+  Shield, Menu, X, BarChart3, RefreshCw, LogOut, LogIn, UserCheck,
+  Stethoscope, Bed, HeartPulse, Edit3, CheckCircle2, Phone, Save
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -76,12 +78,12 @@ function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`shimmer rounded-xl ${className}`} />;
 }
 
-function StatCard({ label, value, sub, icon: Icon, color, bgGradient, pulse, loading }: {
+function StatCard({ label, value, sub, icon: Icon, color, bgGradient, pulse, loading, action }: {
   label: string; value: string | number | null; sub?: string; icon: any;
-  color: string; bgGradient: string; pulse?: string; loading?: boolean;
+  color: string; bgGradient: string; pulse?: string; loading?: boolean; action?: () => void;
 }) {
   return (
-    <div className={`glass-card glass-card-hover p-5 bg-gradient-to-br ${bgGradient} border border-slate-200/80`}>
+    <div className={`glass-card glass-card-hover p-5 bg-gradient-to-br ${bgGradient} border border-slate-200/80 relative`}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-black uppercase tracking-wider text-slate-500">{label}</span>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${pulse || ''}`}
@@ -93,7 +95,16 @@ function StatCard({ label, value, sub, icon: Icon, color, bgGradient, pulse, loa
         <Skeleton className="h-9 w-16" />
       ) : (
         <div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{value ?? '—'}</p>
+          <div className="flex items-baseline justify-between">
+            <p className="text-3xl font-black text-slate-900 tracking-tight">{value ?? '—'}</p>
+            {action && (
+              <button
+                onClick={action}
+                className="text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white/80 hover:bg-white border border-slate-200 px-2 py-1 rounded-lg cursor-pointer transition-all shadow-xs">
+                ✏️ Update
+              </button>
+            )}
+          </div>
           {sub && <p className="text-[11px] font-bold text-slate-500 mt-1 flex items-center gap-1">{sub}</p>}
         </div>
       )}
@@ -156,12 +167,12 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
 
 const navItems = [
   { icon: Activity, label: 'Command Center', href: '/', active: true },
-  { icon: MapPin, label: 'Live Map', href: '/map' },
-  { icon: Ambulance, label: 'Fleet Dispatcher', href: '/fleet' },
-  { icon: Hospital, label: 'Partner Hospitals', href: '/hospitals' },
+  { icon: UserCheck, label: 'Doctor & Staff Attendance', href: '/attendance' },
+  { icon: Hospital, label: 'My Hospital Bed Capacity', href: '/hospitals' },
   { icon: AlertTriangle, label: 'Emergency Incidents', href: '/incidents' },
-  { icon: BarChart3, label: 'Analytics', href: '/analytics' },
-  { icon: UserCheck, label: 'Duty Attendance', href: '/attendance' },
+  { icon: Ambulance, label: 'Fleet Dispatcher', href: '/fleet' },
+  { icon: MapPin, label: 'Live Dispatch Radar', href: '/map' },
+  { icon: BarChart3, label: 'Hospital Analytics', href: '/analytics' },
 ];
 
 function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () => void; activeCount: number }) {
@@ -203,7 +214,12 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
         {/* Gateway Status Badge */}
         <div className="mx-4 mt-4 px-3.5 py-2.5 rounded-xl flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/80">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 status-pulse-green" />
-          <span className="text-xs text-emerald-900 font-black">SERS Hospital Node Connected</span>
+          <div className="min-w-0">
+            <p className="text-xs text-emerald-900 font-black truncate">
+              {currentUser?.hospitalName || currentUser?.hospital || 'Hospital Node Active'}
+            </p>
+            <p className="text-[10px] text-emerald-700 font-semibold">Triage Live & Telemetry Active</p>
+          </div>
         </div>
 
         {/* Navigation Items */}
@@ -215,7 +231,7 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
                   ? 'bg-rose-50 text-rose-700 border border-rose-200/80 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
               <item.icon size={18} className={item.active ? 'text-rose-600' : 'text-slate-400 group-hover:text-slate-700'} />
-              <span>{item.label}</span>
+              <span className="truncate">{item.label}</span>
               {item.label === 'Command Center' && activeCount > 0 && (
                 <span className="ml-auto text-[11px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-black">
                   {activeCount}
@@ -224,7 +240,7 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
             </a>
           ))}
 
-          {/* Log Out Button below Analytics */}
+          {/* Log Out Button */}
           <div className="pt-2 border-t border-slate-100">
             <button
               onClick={handleLogout}
@@ -238,7 +254,7 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
         {/* User Identity Footer */}
         <div className="p-4 border-t border-slate-100">
           <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-xs">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-xs shrink-0">
               <Shield size={16} />
             </div>
             <div className="flex-1 min-w-0">
@@ -246,7 +262,7 @@ function Sidebar({ open, onClose, activeCount }: { open: boolean; onClose: () =>
                 {currentUser?.name || 'Hospital Triage Staff'}
               </p>
               <p className="text-[11px] text-slate-500 font-bold truncate">
-                {currentUser?.hospital || (currentUser?.role ? `${currentUser.role.replace('_', ' ').toUpperCase()}` : 'Level-1 Emergency Node')}
+                {currentUser?.staffTitle || currentUser?.department || (currentUser?.role ? `${currentUser.role.replace('_', ' ').toUpperCase()}` : 'Level-1 Emergency Node')}
               </p>
             </div>
           </div>
@@ -267,17 +283,33 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState<any[]>([]);
   const [hospitals, setHospitals] = useState<any[]>([]);
   const [ambulances, setAmbulances] = useState<any[]>([]);
+  const [onDutyDoctors, setOnDutyDoctors] = useState<any[]>([]);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [typeData, setTypeData]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  // Doctor Quick Status State
+  const [myDutyStatus, setMyDutyStatus] = useState<string>('on_duty');
+  const [dutyUpdating, setDutyUpdating] = useState<boolean>(false);
+
+  // Bed Capacity Quick Modal
+  const [bedModalOpen, setBedModalOpen] = useState(false);
+  const [editIcuAvail, setEditIcuAvail] = useState(8);
+  const [editErAvail, setEditErAvail] = useState(12);
+  const [savingBeds, setSavingBeds] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
     try {
       const u = localStorage.getItem('sers_user');
-      if (u) setCurrentUser(JSON.parse(u));
+      if (u) {
+        const parsed = JSON.parse(u);
+        setCurrentUser(parsed);
+        if (parsed.icuBedsAvailable !== undefined) setEditIcuAvail(parsed.icuBedsAvailable);
+        if (parsed.erBedsAvailable !== undefined) setEditErAvail(parsed.erBedsAvailable);
+      }
     } catch {}
   }, []);
 
@@ -286,18 +318,24 @@ export default function DashboardPage() {
       const uStr = typeof window !== 'undefined' ? localStorage.getItem('sers_user') : null;
       const u = uStr ? JSON.parse(uStr) : null;
       const hospParam = u?.hospitalId ? `&hospitalId=${u.hospitalId}` : '';
+      const hospQueryParam = u?.hospitalId ? `?hospital_id=${u.hospitalId}` : '';
 
-      const [summaryRes, incidentsRes, hourlyRes, typeRes, hospRes, ambRes] = await Promise.allSettled([
-        apiFetch('/api/analytics/summary'),
+      const [summaryRes, incidentsRes, hourlyRes, typeRes, hospRes, ambRes, attendRes] = await Promise.allSettled([
+        apiFetch(`/api/analytics/summary${u?.hospitalId ? `?hospitalId=${u.hospitalId}` : ''}`),
         apiFetch(`/api/incidents?limit=50${hospParam}`),
         apiFetch('/api/analytics/incidents-by-hour'),
         apiFetch('/api/analytics/incidents-by-type'),
         apiFetch('/api/hospitals?limit=50'),
-        apiFetch('/api/ambulances'),
+        apiFetch(`/api/ambulances${u?.hospitalId ? `?hospitalId=${u.hospitalId}` : ''}`),
+        apiFetch(`/api/attendance${hospQueryParam}`),
       ]);
 
       if (summaryRes.status === 'fulfilled' && summaryRes.value?.success) {
         setStats(summaryRes.value.data);
+        if (summaryRes.value.data?.hospitalProfile) {
+          setEditIcuAvail(summaryRes.value.data.hospitalProfile.icu_beds_available ?? 8);
+          setEditErAvail(summaryRes.value.data.hospitalProfile.er_beds_available ?? 12);
+        }
       }
 
       if (incidentsRes.status === 'fulfilled' && incidentsRes.value?.success) {
@@ -310,6 +348,10 @@ export default function DashboardPage() {
 
       if (ambRes.status === 'fulfilled' && ambRes.value?.success) {
         setAmbulances(ambRes.value.data || []);
+      }
+
+      if (attendRes.status === 'fulfilled' && attendRes.value?.success) {
+        setOnDutyDoctors(attendRes.value.data || []);
       }
 
       if (hourlyRes.status === 'fulfilled' && hourlyRes.value?.success) {
@@ -342,6 +384,21 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
+  // Load current doctor's duty status if logged in as doctor
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (token) {
+      apiFetch('/api/attendance/my-status')
+        .then(res => {
+          if (res.success && res.data?.status) {
+            setMyDutyStatus(res.data.status);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  // WebSocket Live Updates
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
     const socket: Socket = io(WS, {
@@ -352,16 +409,18 @@ export default function DashboardPage() {
 
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
+    
     socket.on('incident:new', (newInc) => {
-      // If user is hospital staff, only add alert if assigned to this hospital
       const uStr = typeof window !== 'undefined' ? localStorage.getItem('sers_user') : null;
       const u = uStr ? JSON.parse(uStr) : null;
+      // Scoped alerting: If user has a hospitalId, only notify if assigned to this hospital
       if (u?.hospitalId && newInc.assigned_hospital_id && newInc.assigned_hospital_id !== u.hospitalId) {
-        return; // Ignore alerts for other hospitals
+        return;
       }
       setIncidents(prev => [newInc, ...prev.filter(i => i.id !== newInc.id)]);
       setNewAlertCount(n => n + 1);
     });
+
     socket.on('incident:status', ({ incidentId, status }) => {
       setIncidents(prev => prev.map(i => i.id === incidentId ? { ...i, status } : i));
     });
@@ -369,27 +428,54 @@ export default function DashboardPage() {
     return () => { socket.disconnect(); };
   }, []);
 
-  const dispatchAmbulance = async (incId: string) => {
+  const handleToggleDoctorDuty = async (newStatus: string) => {
+    setDutyUpdating(true);
     try {
-      await apiFetch(`/api/incidents/${incId}/dispatch`, {
+      const res = await apiFetch('/api/attendance/toggle-my-status', {
         method: 'POST',
-        body: JSON.stringify({ notes: 'Dispatched from Hospital Command Center' }),
+        body: JSON.stringify({ status: newStatus }),
       });
-      setIncidents(prev => prev.map(i => i.id === incId ? { ...i, status: 'assigned' } : i));
-      if (selectedIncident?.id === incId) {
-        setSelectedIncident((prev: any) => prev ? { ...prev, status: 'assigned' } : null);
+      if (res.success) {
+        setMyDutyStatus(newStatus);
+        await fetchAll();
       }
+    } catch (err) {
+      console.error('Failed to update doctor duty status:', err);
+    } finally {
+      setDutyUpdating(false);
+    }
+  };
+
+  const handleSaveBedCapacity = async () => {
+    setSavingBeds(true);
+    try {
+      const hospId = currentUser?.hospitalId || stats?.hospitalProfile?.id;
+      if (hospId) {
+        await apiFetch(`/api/hospitals/${hospId}/capacity`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            icuBedsAvailable: editIcuAvail,
+            erBedsAvailable: editErAvail,
+          }),
+        });
+      }
+      setBedModalOpen(false);
       await fetchAll();
-    } catch (e) {
-      console.error('Dispatch error:', e);
+    } catch (err: any) {
+      alert('Error updating bed capacity: ' + err.message);
+    } finally {
+      setSavingBeds(false);
     }
   };
 
   const activeIncidents = incidents.filter(i => !['resolved', 'cancelled', 'false_alarm'].includes(i.status));
-  const myHospital = hospitals.find(h => h.id === currentUser?.hospitalId || h.name === currentUser?.hospital);
-  const availableIcuBeds = myHospital ? parseInt(myHospital.icu_beds_available) || 0 : hospitals.reduce((acc, h) => acc + (parseInt(h.icu_beds_available) || 0), 0);
+  const activeDoctorsOnDuty = onDutyDoctors.filter(d => d.status === 'on_duty' || d.status === 'in_ot');
+  const myHospitalProfile = stats?.hospitalProfile || hospitals.find(h => h.id === currentUser?.hospitalId);
+  const availableIcuBeds = myHospitalProfile?.icu_beds_available ?? (currentUser?.icuBedsAvailable ?? 8);
+  const availableErBeds = myHospitalProfile?.er_beds_available ?? (currentUser?.erBedsAvailable ?? 12);
   const activeDispatchedAmbulances = ambulances.filter(a => ['en_route', 'dispatched', 'transporting', 'on_scene'].includes(a.status)).length;
-  const avgResponse = stats?.incidents?.avg_response_mins ? `${stats.incidents.avg_response_mins} min` : '—';
+
+  const isDoctorRole = currentUser?.staffTitle || currentUser?.department || currentUser?.role === 'doctor';
 
   return (
     <div className="min-h-screen bg-[#f0f7ff] text-slate-900 flex font-sans">
@@ -399,15 +485,18 @@ export default function DashboardPage() {
         {/* Top Header */}
         <header className="h-16 border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-20 shadow-xs">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-600 hover:text-slate-900">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-600 hover:text-slate-900 cursor-pointer">
               <Menu size={20} />
             </button>
             <div className="hidden sm:block">
-              <h1 className="text-base font-black text-slate-900 tracking-tight">
-                {currentUser?.hospital || 'Hospital Emergency Command Center'}
+              <h1 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
+                🏥 {currentUser?.hospitalName || currentUser?.hospital || 'Hospital Emergency Command Center'}
+                <span className="text-[10px] bg-rose-100 text-rose-700 font-extrabold px-2 py-0.5 rounded-md border border-rose-200">
+                  LIVE DESK
+                </span>
               </h1>
               <p className="text-[11px] text-slate-500 font-bold">
-                {currentUser?.name ? `Staff Desk: ${currentUser.name} (${currentUser.roleTitle || 'Triage Coordinator'})` : 'Hospital Command & Triage Portal'}
+                {currentUser?.name ? `Logged in: ${currentUser.name} (${currentUser.staffTitle || currentUser.role?.replace('_', ' ').toUpperCase() || 'Desk Officer'})` : 'Hospital Command & Triage Portal'}
               </p>
             </div>
           </div>
@@ -417,21 +506,21 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80">
               <Radio size={14} className={socketConnected ? 'text-emerald-600 animate-pulse' : 'text-slate-400'} />
               <span className="text-xs text-slate-700 font-extrabold hidden sm:inline">
-                {socketConnected ? 'WebSocket Online' : 'Connecting API...'}
+                {socketConnected ? 'Alert Stream Active' : 'Connecting API...'}
               </span>
             </div>
 
             {/* Sound toggle */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 transition-colors">
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">
               {soundEnabled ? <Volume2 size={16} className="text-amber-600" /> : <VolumeX size={16} />}
             </button>
 
             {/* Refresh */}
             <button
               onClick={fetchAll}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 transition-colors">
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 transition-colors cursor-pointer">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -439,12 +528,87 @@ export default function DashboardPage() {
 
         {/* Main Content Area */}
         <div className="p-6 space-y-6 flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
-          {/* Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Doctor / Medical Personnel Shift Status Quick Bar */}
+          {isDoctorRole && (
+            <div className="glass-card p-4 bg-gradient-to-r from-indigo-50/90 via-white to-blue-50/90 border border-indigo-200/80 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 shrink-0">
+                  <Stethoscope size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-black text-slate-900">Dr. {currentUser?.name || 'Physician'} — Live Duty Status</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
+                      {currentUser?.department || 'Emergency & Trauma'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                    Your availability is broadcast to the trauma desk for incoming emergency cases.
+                  </p>
+                </div>
+              </div>
+
+              {/* 1-Tap Toggle Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  disabled={dutyUpdating}
+                  onClick={() => handleToggleDoctorDuty('on_duty')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border ${
+                    myDutyStatus === 'on_duty'
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                      : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                  }`}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                  🟢 On-Duty / Ready
+                </button>
+
+                <button
+                  type="button"
+                  disabled={dutyUpdating}
+                  onClick={() => handleToggleDoctorDuty('in_ot')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border ${
+                    myDutyStatus === 'in_ot'
+                      ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                      : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
+                  }`}>
+                  🟡 In OT / Surgery
+                </button>
+
+                <button
+                  type="button"
+                  disabled={dutyUpdating}
+                  onClick={() => handleToggleDoctorDuty('on_call')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border ${
+                    myDutyStatus === 'on_call'
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
+                      : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'
+                  }`}>
+                  🔵 On-Call
+                </button>
+
+                <button
+                  type="button"
+                  disabled={dutyUpdating}
+                  onClick={() => handleToggleDoctorDuty('off_duty')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border ${
+                    myDutyStatus === 'off_duty'
+                      ? 'bg-slate-700 text-white border-slate-800 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}>
+                  ⚪ Off-Duty
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Hospital Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              label="Active Emergency Alerts"
+              label="Incoming Emergency Alerts"
               value={activeIncidents.length}
-              sub={`${incidents.filter(i => i.severity === 'critical' && !['resolved','cancelled','false_alarm'].includes(i.status)).length} Critical Severity`}
+              sub={`${incidents.filter(i => i.severity === 'critical' && !['resolved','cancelled','false_alarm'].includes(i.status)).length} Critical Trauma Cases`}
               icon={AlertTriangle}
               color="#e11d48"
               bgGradient="from-rose-50/50 to-white"
@@ -452,21 +616,32 @@ export default function DashboardPage() {
               loading={loading}
             />
             <StatCard
-              label="Available ICU Beds"
+              label="My Hospital ICU Beds"
               value={availableIcuBeds}
-              sub={`🏥 Across ${hospitals.length} Network Hospitals`}
+              sub={`🛏️ Available for Trauma`}
               icon={Hospital}
               color="#059669"
               bgGradient="from-emerald-50/50 to-white"
               loading={loading}
+              action={() => setBedModalOpen(true)}
             />
             <StatCard
-              label="Ambulances Dispatched"
-              value={activeDispatchedAmbulances}
-              sub={`🚑 ${ambulances.length} Units in Fleet`}
-              icon={Ambulance}
-              color="#3b82f6"
+              label="My Hospital ER Beds"
+              value={availableErBeds}
+              sub={`🏥 Emergency Triage Ready`}
+              icon={Bed}
+              color="#2563eb"
               bgGradient="from-blue-50/50 to-white"
+              loading={loading}
+              action={() => setBedModalOpen(true)}
+            />
+            <StatCard
+              label="On-Duty Medical Staff"
+              value={activeDoctorsOnDuty.length}
+              sub={`👨‍⚕️ Doctors & Surgeons Active`}
+              icon={UserCheck}
+              color="#7c3aed"
+              bgGradient="from-purple-50/50 to-white"
               loading={loading}
             />
           </div>
@@ -478,18 +653,20 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 tracking-tight uppercase">
                   <Activity size={16} className="text-rose-600" />
-                  Live Incident Stream
+                  Live Incoming Emergency Stream
                 </h2>
                 <span className="text-[11px] font-mono font-extrabold text-slate-600 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
-                  {incidents.length} Total Logged
+                  {incidents.length} Logged
                 </span>
               </div>
 
               <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
                 {incidents.length === 0 ? (
-                  <div className="glass-card p-10 text-center text-slate-500 font-bold bg-white border border-slate-200 rounded-2xl">
-                    <p className="text-sm font-black text-slate-800">No active emergency incidents</p>
-                    <p className="text-xs text-slate-400 mt-1 font-semibold">Incoming SOS alerts, AI crash detections, and medical distress calls will stream here automatically.</p>
+                  <div className="glass-card p-10 text-center text-slate-500 font-bold bg-white border border-slate-200 rounded-2xl space-y-2">
+                    <p className="text-sm font-black text-slate-800">No active alerts routed to this hospital</p>
+                    <p className="text-xs text-slate-400 font-semibold">
+                      When a citizen SOS, road crash, or cardiac distress alert is dispatched to {currentUser?.hospitalName || 'your hospital'}, it will appear here in real-time.
+                    </p>
                   </div>
                 ) : (
                   incidents.map((inc) => (
@@ -503,147 +680,156 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Live Map Dispatch Radar */}
+            {/* Live Map Radar */}
             <div className="lg:col-span-7 space-y-3.5">
-              <div className="glass-card p-4 h-[580px] flex flex-col bg-white border border-slate-200/90 shadow-xs">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={17} className="text-blue-600" />
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Live Regional Dispatch Radar</h3>
-                  </div>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-black">
-                    Realtime PostGIS Telemetry
-                  </span>
-                </div>
-                <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200">
-                  {isMounted && (
-                    <LiveMap
-                      incidents={incidents}
-                      onSelectIncident={(inc) => setSelectedIncident(inc)}
-                    />
-                  )}
-                </div>
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 tracking-tight uppercase">
+                  <MapPin size={16} className="text-rose-600" />
+                  Live Regional Emergency Radar
+                </h2>
+                <span className="text-[11px] font-bold text-slate-500">
+                  {ambulances.length} Ambulances Tracked
+                </span>
+              </div>
+
+              <div className="glass-card bg-white border border-slate-200 rounded-2xl overflow-hidden h-[580px] relative shadow-sm">
+                <LiveMap
+                  incidents={incidents}
+                  hospitals={hospitals}
+                  ambulances={ambulances}
+                  selectedIncident={selectedIncident}
+                  onSelectIncident={(inc) => setSelectedIncident(inc)}
+                />
               </div>
             </div>
           </div>
 
-          {/* Analytics Charts Row */}
-          <div className="grid md:grid-cols-12 gap-6">
-            <div className="md:col-span-8 glass-card p-5 bg-white border border-slate-200/90 shadow-xs">
-              <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2 uppercase tracking-tight">
-                <TrendingUp size={17} className="text-cyan-600" />
-                24-Hour Emergency Distribution
-              </h3>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={hourlyData}>
-                    <defs>
-                      <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#e11d48" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="hour" stroke="#64748b" fontSize={11} fontWeight={700} />
-                    <YAxis stroke="#64748b" fontSize={11} fontWeight={700} />
-                    <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(15,23,42,0.08)' }} />
-                    <Area type="monotone" dataKey="incidents" stroke="#e11d48" strokeWidth={2.5} fillOpacity={1} fill="url(#colorInc)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+          {/* On-Duty Doctors & Emergency Duty Roster Summary */}
+          <div className="glass-card p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Stethoscope size={18} className="text-indigo-600" />
+                  Hospital Emergency Medical Roster
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  Real-time duty availability of Doctors, Trauma Surgeons, and Nurses ready for emergency intake.
+                </p>
               </div>
+
+              <Link
+                href="/attendance"
+                className="text-xs font-black px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1.5 transition-all">
+                View Full Department Attendance <ChevronRight size={14} />
+              </Link>
             </div>
 
-            <div className="md:col-span-4 glass-card p-5 bg-white border border-slate-200/90 shadow-xs">
-              <h3 className="text-sm font-black text-slate-900 mb-4 uppercase tracking-tight">Incident Category Breakup</h3>
-              <div className="h-48 flex items-center justify-center">
-                {typeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={35} paddingAngle={4} label>
-                        {typeData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, color: '#0f172a', fontWeight: 800 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-xs text-slate-400 font-bold">No incident categories recorded yet</p>
-                )}
+            {onDutyDoctors.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl">
+                <p className="text-xs font-bold text-slate-700">No medical personnel attendance logged today yet.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Doctors & staff can mark shift check-in from the Attendance tab.</p>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {onDutyDoctors.slice(0, 8).map((doc) => (
+                  <div key={doc.id} className="p-3 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-white transition-all space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-black text-slate-900 truncate">Dr. {doc.name}</p>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        doc.status === 'on_duty' ? 'bg-emerald-100 text-emerald-800' :
+                        doc.status === 'in_ot' ? 'bg-amber-100 text-amber-800' :
+                        doc.status === 'on_call' ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {doc.status?.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-indigo-700 truncate">{doc.department || 'Trauma & ER'}</p>
+                    <p className="text-[10px] text-slate-500 font-semibold truncate">{doc.specialization || doc.shift}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      {/* Incident Detail Modal */}
-      {selectedIncident && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="glass-card max-w-xl w-full p-6 space-y-5 bg-white border border-slate-300 shadow-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl">{incidentTypeIcon(selectedIncident.type)}</span>
-                  <h3 className="text-lg font-black text-slate-900">
-                    {selectedIncident.incident_number || selectedIncident.id}
-                  </h3>
-                  <span className={severityBadge(selectedIncident.severity)}>
-                    {selectedIncident.severity?.toUpperCase()}
-                  </span>
+      {/* Bed Capacity Quick Editor Modal */}
+      {bedModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="glass-card bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Bed size={18} />
                 </div>
-                <p className="text-xs text-slate-500 font-bold mt-1">
-                  Reported at {new Date(selectedIncident.created_at).toLocaleString('en-IN')}
-                </p>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">Update Hospital Bed Capacity</h4>
+                  <p className="text-[11px] text-slate-500 font-bold">{currentUser?.hospitalName || 'Hospital Node'}</p>
+                </div>
               </div>
-              <button
-                onClick={() => setSelectedIncident(null)}
-                className="text-slate-400 hover:text-slate-900 p-1.5 rounded-xl hover:bg-slate-100 transition-colors">
-                <X size={20} />
+              <button onClick={() => setBedModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={18} />
               </button>
             </div>
 
-            {/* Location & Profile */}
-            <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Incident Location & Details</p>
-              <p className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <MapPin size={16} className="text-rose-600 shrink-0" />
-                {selectedIncident.address || selectedIncident.landmark || `${selectedIncident.latitude}, ${selectedIncident.longitude}`}
-              </p>
-              {selectedIncident.description && (
-                <p className="text-xs text-slate-700 font-medium pt-1">
-                  {selectedIncident.description}
-                </p>
-              )}
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Available ICU Beds (Trauma Ready)</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditIcuAvail(prev => Math.max(0, prev - 1))}
+                    className="w-10 h-10 rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200">-</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editIcuAvail}
+                    onChange={e => setEditIcuAvail(parseInt(e.target.value) || 0)}
+                    className="flex-1 text-center font-black text-lg p-2 bg-slate-50 border border-slate-200 rounded-xl text-emerald-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditIcuAvail(prev => prev + 1)}
+                    className="w-10 h-10 rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200">+</button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Available ER / Triage Beds</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditErAvail(prev => Math.max(0, prev - 1))}
+                    className="w-10 h-10 rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200">-</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editErAvail}
+                    onChange={e => setEditErAvail(parseInt(e.target.value) || 0)}
+                    className="flex-1 text-center font-black text-lg p-2 bg-slate-50 border border-slate-200 rounded-xl text-blue-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditErAvail(prev => prev + 1)}
+                    className="w-10 h-10 rounded-xl bg-slate-100 font-black text-slate-700 hover:bg-slate-200">+</button>
+                </div>
+              </div>
             </div>
 
-            {/* Status & Telemetry */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <p className="text-xs text-slate-500 font-bold">Status</p>
-                <p className="text-sm font-black text-slate-900 uppercase">{selectedIncident.status?.replace('_', ' ')}</p>
-              </div>
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <p className="text-xs text-slate-500 font-bold">AI Severity Rating</p>
-                <p className="text-sm font-black text-rose-700">{selectedIncident.ai_severity_score ? `${selectedIncident.ai_severity_score}/10` : 'Verified Alert'}</p>
-              </div>
-            </div>
-
-            {/* Action buttons */}
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => dispatchAmbulance(selectedIncident.id)}
-                disabled={selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route'}
-                className={`flex-1 py-3 px-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
-                  selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route'
-                    ? 'bg-indigo-100 text-indigo-900 border border-indigo-200 cursor-default'
-                    : 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-md shadow-rose-600/20'
-                }`}>
-                <Ambulance size={16} />
-                {selectedIncident.status === 'assigned' || selectedIncident.status === 'en_route' ? 'Ambulance Dispatched' : 'Dispatch Nearest Ambulance'}
+                type="button"
+                onClick={() => setBedModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer">
+                Cancel
               </button>
               <button
-                onClick={() => setSelectedIncident(null)}
-                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold rounded-xl text-sm border border-slate-200">
-                Close
+                type="button"
+                disabled={savingBeds}
+                onClick={handleSaveBedCapacity}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-2">
+                <Save size={14} />
+                {savingBeds ? 'Saving...' : 'Update Live Capacity'}
               </button>
             </div>
           </div>
