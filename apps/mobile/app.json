@@ -23,7 +23,6 @@
         "NSLocationWhenInUseUsageDescription": "SERS needs location to find nearest hospitals and dispatch ambulances.",
         "NSMotionUsageDescription": "SERS needs motion sensor access for AI crash detection.",
         "NSMicrophoneUsageDescription": "SERS needs microphone for Voice SOS feature.",
-        "NSCameraUsageDescription": "SERS needs camera for scene assessment during emergencies.",
         "UIBackgroundModes": [
           "location",
           "audio",
@@ -42,7 +41,6 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "CAMERA",
         "RECORD_AUDIO",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"
