@@ -564,31 +564,6 @@ export default function LoginPage() {
                     {loading ? 'Dispatched Code...' : 'Send Free 6-Digit OTP Code'}
                     <ArrowRight size={16} />
                   </button>
-
-                  {/* Quick Preset Buttons */}
-                  <div className="pt-3 border-t border-slate-100 space-y-2">
-                    <p className="text-[11px] font-bold text-slate-500">Quick Test Mobile / Gmail:</p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOtpIdentifier('admin@sers.in')}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
-                        📧 admin@sers.in
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOtpIdentifier('drmeera@demo.sers.in')}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
-                        🏥 drmeera@demo.sers.in
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOtpIdentifier('+919876500001')}
-                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
-                        📱 +919876500001
-                      </button>
-                    </div>
-                  </div>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">

@@ -239,25 +239,6 @@ export default function AuthScreen() {
                       : <Text style={styles.btnText}>Send 6-Digit OTP Code →</Text>
                     }
                   </TouchableOpacity>
-
-                  {/* Preset Buttons */}
-                  <View style={styles.demoHelper}>
-                    <Text style={styles.demoHelperText}>Quick Test Identifiers</Text>
-                    <View style={styles.demoChips}>
-                      <TouchableOpacity
-                        style={styles.demoChip}
-                        onPress={() => setOtpIdentifier('+919876500001')}
-                      >
-                        <Text style={styles.demoChipText}>📱 +919876500001</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.demoChip}
-                        onPress={() => setOtpIdentifier('admin@sers.in')}
-                      >
-                        <Text style={styles.demoChipText}>📧 admin@sers.in</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
                 </>
               ) : (
                 <>
