@@ -321,24 +321,25 @@ export default function AuthScreen() {
                   </View>
 
                   {previewOtpHint && (
-                    <View style={{ marginTop: 10, alignItems: 'center' }}>
+                    <View style={styles.previewWrapper}>
                       {!showOtpPreview ? (
                         <TouchableOpacity
                           style={styles.showOtpBtn}
                           onPress={() => setShowOtpPreview(true)}
                         >
-                          <Text style={styles.showOtpBtnText}>👁️ Show Verification Code (Preview)</Text>
+                          <Text style={styles.showOtpBtnText}>👁️ Tap to View OTP Code & Auto-Fill</Text>
                         </TouchableOpacity>
                       ) : (
                         <View style={styles.previewBox}>
-                          <Text style={styles.previewText}>
-                            🔑 Code: <Text style={styles.previewCode}>{previewOtpHint}</Text>
-                          </Text>
+                          <View>
+                            <Text style={styles.previewLabel}>SECURE VERIFICATION CODE</Text>
+                            <Text style={styles.previewCode}>{previewOtpHint}</Text>
+                          </View>
                           <TouchableOpacity
                             style={styles.autoFillBtn}
                             onPress={() => setOtpCode(previewOtpHint)}
                           >
-                            <Text style={styles.autoFillText}>Auto-Fill</Text>
+                            <Text style={styles.autoFillText}>⚡ Auto-Fill</Text>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -609,13 +610,15 @@ const styles = StyleSheet.create({
   demoChips:      { flexDirection: 'column', gap: 6, width: '100%' },
   demoChip:       { backgroundColor: '#f8fafc', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
   demoChipText:   { color: '#475569', fontWeight: '700', fontSize: 12 },
-  showOtpBtn:     { paddingVertical: 6, paddingHorizontal: 12 },
-  showOtpBtnText: { color: '#64748b', fontSize: 11, fontWeight: '700', textDecorationLine: 'underline' },
-  previewBox:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fef3c7', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#fde68a', width: '100%' },
+  showOtpBtn:     { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#f1f5f9', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  showOtpBtnText: { color: '#e11d48', fontSize: 12, fontWeight: '800' },
+  previewWrapper: { marginTop: 12, marginBottom: 6, alignItems: 'center', width: '100%' },
+  previewBox:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fef3c7', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#fde68a', width: '100%' },
+  previewLabel:   { color: '#92400e', fontSize: 9, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
   previewText:    { color: '#92400e', fontSize: 12, fontWeight: '700' },
-  previewCode:    { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 14, fontWeight: '900', color: '#78350f', letterSpacing: 1 },
-  autoFillBtn:    { backgroundColor: '#fde68a', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
-  autoFillText:   { color: '#78350f', fontSize: 11, fontWeight: '800' },
+  previewCode:    { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 18, fontWeight: '900', color: '#78350f', letterSpacing: 3 },
+  autoFillBtn:    { backgroundColor: '#fde68a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#f59e0b' },
+  autoFillText:   { color: '#78350f', fontSize: 12, fontWeight: '900' },
   passwordContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1' },
   passwordInput:  { flex: 1, padding: 14, color: '#0f172a', fontSize: 14, fontWeight: '600' },
   eyeBtn:         { paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', alignItems: 'center' },

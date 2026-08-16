@@ -444,6 +444,10 @@ const sendOTP = async (req, res, next) => {
             dispatchResult = await otpService.sendEmailOTP(cleanId, otp);
         } else {
             dispatchResult = await otpService.sendSmsOTP(cleanId, otp);
+            // If user account has a registered email, also dispatch live email OTP
+            if (user.email && user.email.includes('@') && !user.email.endsWith('@users.sers.in')) {
+                otpService.sendEmailOTP(user.email, otp).catch(e => logger.warn('Email fallback copy notice:', e.message));
+            }
         }
 
         if (!dispatchResult.sent) {
