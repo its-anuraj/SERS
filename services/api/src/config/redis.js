@@ -9,20 +9,34 @@ const logger = require('./logger');
 let redis;
 
 const connectRedis = async () => {
-    redis = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
-        password: process.env.REDIS_PASSWORD || undefined,
-        retryStrategy: (times) => {
-            if (times > 10) {
-                logger.error('Redis connection failed after 10 retries');
-                return null;
-            }
-            return Math.min(times * 100, 3000);
-        },
-        enableReadyCheck: true,
-        maxRetriesPerRequest: 3,
-    });
+    if (process.env.REDIS_URL) {
+        redis = new Redis(process.env.REDIS_URL, {
+            retryStrategy: (times) => {
+                if (times > 10) {
+                    logger.error('Redis connection failed after 10 retries');
+                    return null;
+                }
+                return Math.min(times * 100, 3000);
+            },
+            enableReadyCheck: true,
+            maxRetriesPerRequest: 3,
+        });
+    } else {
+        redis = new Redis({
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD || undefined,
+            retryStrategy: (times) => {
+                if (times > 10) {
+                    logger.error('Redis connection failed after 10 retries');
+                    return null;
+                }
+                return Math.min(times * 100, 3000);
+            },
+            enableReadyCheck: true,
+            maxRetriesPerRequest: 3,
+        });
+    }
 
     await redis.ping();
 

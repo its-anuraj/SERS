@@ -8,17 +8,27 @@ const logger = require('./logger');
 let pool;
 
 const connectDB = async () => {
-    pool = new Pool({
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT) || 5432,
-        database: process.env.DB_NAME || 'sers_db',
-        user: process.env.DB_USER || 'sers_user',
-        password: process.env.DB_PASSWORD || 'sers_secret_password',
-        max: 20,                  // max pool connections
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    });
+    const config = process.env.DATABASE_URL
+        ? {
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false },
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+        }
+        : {
+            host: process.env.DB_HOST || 'localhost',
+            port: parseInt(process.env.DB_PORT) || 5432,
+            database: process.env.DB_NAME || 'sers_db',
+            user: process.env.DB_USER || 'sers_user',
+            password: process.env.DB_PASSWORD || 'sers_secret_password',
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 5000,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        };
+
+    pool = new Pool(config);
 
     // Test the connection
     const client = await pool.connect();
