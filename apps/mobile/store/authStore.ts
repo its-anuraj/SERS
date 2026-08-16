@@ -22,6 +22,8 @@ interface AuthState {
   isLoading: boolean;
 
   login: (phone: string, password: string) => Promise<void>;
+  sendOTP: (identifier: string) => Promise<{ previewOtp?: string; message: string }>;
+  verifyOTP: (identifier: string, otp: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
@@ -87,6 +89,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, isAuthenticated: true, isLoading: false });
 
     // Store tokens in parallel
+    await Promise.all([
+      SecureStore.setItemAsync('sers_access_token', tokens.accessToken),
+      SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken),
+      SecureStore.setItemAsync('sers_user_profile', JSON.stringify(user)),
+    ]);
+  },
+
+  sendOTP: async (identifier) => {
+    const res = await api.post('/auth/send-otp', { identifier });
+    return res.data?.data || { message: res.data?.message || 'OTP code sent' };
+  },
+
+  verifyOTP: async (identifier, otp) => {
+    const res = await api.post('/auth/verify-otp', { identifier, otp });
+    const { user, tokens } = res.data.data;
+
+    set({ user, isAuthenticated: true, isLoading: false });
+
     await Promise.all([
       SecureStore.setItemAsync('sers_access_token', tokens.accessToken),
       SecureStore.setItemAsync('sers_refresh_token', tokens.refreshToken),

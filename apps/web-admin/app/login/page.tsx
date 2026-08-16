@@ -7,7 +7,7 @@ import {
   Hospital, Shield, Lock, Mail, Phone, User,
   CheckCircle2, ArrowRight, Activity, Building2,
   FileBadge, AlertCircle, Eye, EyeOff, Zap, Stethoscope,
-  Clock, HeartPulse, UserCheck
+  Clock, HeartPulse, UserCheck, KeyRound, RefreshCw, Smartphone
 } from 'lucide-react';
 import { getApiUrl } from '../../lib/config';
 
@@ -25,16 +25,23 @@ const DEPARTMENTS = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'login' | 'signup'>('login');
+  const [tab, setTab] = useState<'login' | 'otp' | 'signup'>('login');
   const [roleType, setRoleType] = useState<'hospital_admin' | 'doctor'>('hospital_admin');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Login form state
+  // Password Login state
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+
+  // OTP Login state
+  const [otpIdentifier, setOtpIdentifier] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [previewOtpHint, setPreviewOtpHint] = useState<string | null>(null);
 
   // Sign up form state — Hospital Desk / Admin
   const [adminName, setAdminName] = useState('');
@@ -73,6 +80,15 @@ export default function LoginPage() {
       })
       .catch(() => {});
   }, []);
+
+  // OTP Countdown timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (otpCountdown > 0) {
+      timer = setTimeout(() => setOtpCountdown(prev => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [otpCountdown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +131,86 @@ export default function LoginPage() {
     }
   };
 
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setPreviewOtpHint(null);
+
+    const clean = otpIdentifier.trim();
+    if (!clean) {
+      setError('Please enter a valid Phone number or Email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const API = getApiUrl();
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: clean }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || json.error || 'Failed to send OTP verification code.');
+      }
+
+      setOtpStep('verify');
+      setOtpCountdown(60);
+      setSuccess(`Verification code dispatched to ${clean}.`);
+      if (json.data?.previewOtp) {
+        setPreviewOtpHint(json.data.previewOtp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    const cleanOtp = otpCode.trim();
+    if (cleanOtp.length < 4) {
+      setError('Please enter the complete verification code.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const API = getApiUrl();
+      const res = await fetch(`${API}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: otpIdentifier.trim(),
+          otp: cleanOtp,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || json.error || 'Invalid or expired verification code.');
+      }
+
+      localStorage.setItem('sers_token', json.data.tokens.accessToken);
+      localStorage.setItem('sers_refresh_token', json.data.tokens.refreshToken);
+      localStorage.setItem('sers_user', JSON.stringify(json.data.user));
+
+      setSuccess(`✅ Verified! Welcome, ${json.data.user.name}. Redirecting to Emergency Command Center...`);
+      setTimeout(() => router.push('/'), 700);
+    } catch (err: any) {
+      setError(err.message || 'Verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignupHospitalAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -123,7 +219,7 @@ export default function LoginPage() {
 
     try {
       if (!adminPhone.startsWith('+91') || adminPhone.length < 13) {
-        throw new Error('Please enter a valid Indian mobile number starting with +91 (e.g. +919876543210)');
+        throw new Error('Please enter a valid mobile number starting with +91 (e.g. +919876543210)');
       }
       if (signupPassword.length < 6) {
         throw new Error('Password must be at least 6 characters long');
@@ -185,7 +281,6 @@ export default function LoginPage() {
         throw new Error('Password must be at least 6 characters long');
       }
 
-      // If user selected a hospital from list or entered hospital name
       const matchedHosp = hospitalsList.find(h => h.id === selectedHospital);
 
       const API = getApiUrl();
@@ -215,7 +310,7 @@ export default function LoginPage() {
       localStorage.setItem('sers_refresh_token', json.data.tokens.refreshToken);
       localStorage.setItem('sers_user', JSON.stringify(json.data.user));
 
-      setSuccess(`Dr. ${doctorName} registered & marked On-Duty! Redirecting to Duty Attendance Portal...`);
+      setSuccess(`Doctor profile for Dr. ${doctorName} created! Redirecting to Attendance Roster...`);
       setTimeout(() => router.push('/attendance'), 800);
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
@@ -243,19 +338,21 @@ export default function LoginPage() {
             </div>
           </Link>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 pt-2 tracking-tight">
-            {tab === 'login' ? 'Hospital Emergency Portal Login' : 'Hospital & Medical Staff Registration'}
+            {tab === 'login' ? 'Hospital Emergency Portal Login' : tab === 'otp' ? 'Instant 1-Click OTP Verification' : 'Hospital & Medical Staff Registration'}
           </h1>
           <p className="text-xs text-slate-500 font-semibold max-w-lg mx-auto">
             {tab === 'login'
               ? 'Multi-tenant emergency portal: Sign in to your hospital command desk or doctor attendance roster.'
+              : tab === 'otp'
+              ? 'Sign in securely using a 6-digit verification code sent directly to your Mobile Phone or Gmail inbox.'
               : 'Register your hospital emergency department or join as on-duty medical personnel.'}
           </p>
         </div>
 
         {/* Card Box */}
         <div className="glass-card p-6 md:p-8 bg-white border border-slate-200 shadow-xl rounded-3xl space-y-6">
-          {/* Main Tab Switcher (Login vs Register) */}
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+          {/* Main Tab Switcher (Password vs Free OTP vs Register) */}
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 gap-1">
             <button
               type="button"
               onClick={() => { setTab('login'); setError(''); setSuccess(''); }}
@@ -264,7 +361,17 @@ export default function LoginPage() {
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                   : 'text-slate-500 hover:text-slate-800'
               }`}>
-              🔐 Sign In to Portal
+              🔐 Password Login
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTab('otp'); setError(''); setSuccess(''); setOtpStep('input'); }}
+              className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                tab === 'otp'
+                  ? 'bg-white text-rose-700 shadow-sm border border-rose-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}>
+              ⚡ 1-Click OTP Login
             </button>
             <button
               type="button"
@@ -274,7 +381,7 @@ export default function LoginPage() {
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                   : 'text-slate-500 hover:text-slate-800'
               }`}>
-              🏥 Register Hospital / Doctor
+              🏥 Register Node
             </button>
           </div>
 
@@ -332,7 +439,7 @@ export default function LoginPage() {
           )}
 
           {/* ─────────────────────────────────────────────────── */}
-          {/* TAB 1: LOGIN FORM                                  */}
+          {/* TAB 1: PASSWORD LOGIN FORM                          */}
           {/* ─────────────────────────────────────────────────── */}
           {tab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -424,7 +531,147 @@ export default function LoginPage() {
           )}
 
           {/* ─────────────────────────────────────────────────── */}
-          {/* TAB 2A: REGISTER HOSPITAL COMMAND DESK             */}
+          {/* TAB 2: FREE 1-CLICK OTP LOGIN (PHONE & GMAIL)       */}
+          {/* ─────────────────────────────────────────────────── */}
+          {tab === 'otp' && (
+            <div className="space-y-4">
+              {otpStep === 'input' ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Enter Mobile Phone (+91) or Gmail Address
+                    </label>
+                    <div className="relative">
+                      <Smartphone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={otpIdentifier}
+                        onChange={e => setOtpIdentifier(e.target.value)}
+                        placeholder="e.g. yourname@gmail.com or +919876543210"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-semibold">
+                      💡 We will send a secure 6-digit verification code directly to your email inbox or phone.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
+                    {loading ? 'Dispatched Code...' : 'Send Free 6-Digit OTP Code'}
+                    <ArrowRight size={16} />
+                  </button>
+
+                  {/* Quick Preset Buttons */}
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <p className="text-[11px] font-bold text-slate-500">Quick Test Mobile / Gmail:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOtpIdentifier('admin@sers.in')}
+                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                        📧 admin@sers.in
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOtpIdentifier('drmeera@demo.sers.in')}
+                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                        🏥 drmeera@demo.sers.in
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOtpIdentifier('+919876500001')}
+                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+                        📱 +919876500001
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-black text-xs">
+                        OTP
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-900">{otpIdentifier}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold">Verification code requested</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOtpStep('input')}
+                      className="text-xs text-rose-600 font-black hover:underline cursor-pointer">
+                      Change
+                    </button>
+                  </div>
+
+                  {previewOtpHint && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-bold flex items-center justify-between">
+                      <span>🔑 Verification Code: <b className="font-mono text-sm tracking-widest text-amber-950">{previewOtpHint}</b></span>
+                      <button
+                        type="button"
+                        onClick={() => setOtpCode(previewOtpHint)}
+                        className="px-2 py-1 bg-amber-200 hover:bg-amber-300 rounded text-[10px] font-black cursor-pointer">
+                        Auto-Fill
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Enter 6-Digit Verification Code
+                    </label>
+                    <div className="relative">
+                      <KeyRound size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        required
+                        autoFocus
+                        value={otpCode}
+                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••••"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 text-center text-lg font-black tracking-widest font-mono text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-semibold text-center">
+                      (Demo Master OTP: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">123456</code>)
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || otpCode.length < 4}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50 text-white text-xs font-black rounded-xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
+                    {loading ? 'Verifying...' : 'Verify OTP & Sign In'}
+                    <CheckCircle2 size={16} />
+                  </button>
+
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 pt-2">
+                    <span>Didn't receive code?</span>
+                    {otpCountdown > 0 ? (
+                      <span className="text-slate-400">Resend in {otpCountdown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        className="text-rose-600 hover:underline cursor-pointer flex items-center gap-1">
+                        <RefreshCw size={12} /> Resend OTP
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────── */}
+          {/* TAB 3A: REGISTER HOSPITAL COMMAND DESK             */}
           {/* ─────────────────────────────────────────────────── */}
           {tab === 'signup' && roleType === 'hospital_admin' && (
             <form onSubmit={handleSignupHospitalAdmin} className="space-y-4">
@@ -452,80 +699,33 @@ export default function LoginPage() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Full Address</label>
-                <input
-                  type="text"
-                  required
-                  value={hospitalAddress}
-                  onChange={e => setHospitalAddress(e.target.value)}
-                  placeholder="e.g. 14, Main Ring Road, Koramangala, Bengaluru"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
-                />
-              </div>
-
-              {/* Initial Bed Capacity */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 block">Total ICU Beds</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={icuBedsTotal}
-                    onChange={e => setIcuBedsTotal(parseInt(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-black text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 block">Avail. ICU Beds</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={icuBedsAvailable}
-                    onChange={e => setIcuBedsAvailable(parseInt(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-black text-emerald-700"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 block">Total ER Beds</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={erBedsTotal}
-                    onChange={e => setErBedsTotal(parseInt(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-black text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 block">Avail. ER Beds</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={erBedsAvailable}
-                    onChange={e => setErBedsAvailable(parseInt(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-black text-blue-700"
-                  />
-                </div>
-              </div>
-
-              {/* Admin Staff Credentials */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2 border-t border-slate-100">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Desk Officer / Admin Name</label>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block">Full Physical Address</label>
                   <input
                     type="text"
                     required
-                    value={adminName}
-                    onChange={e => setAdminName(e.target.value)}
-                    placeholder="e.g. Dr. Rajesh Verma"
+                    value={hospitalAddress}
+                    onChange={e => setHospitalAddress(e.target.value)}
+                    placeholder="e.g. #42 Ring Road, Indiranagar, Bengaluru, 560038"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Emergency Mobile Number</label>
+                  <label className="text-xs font-bold text-slate-700 block">Chief Administrator Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={adminName}
+                    onChange={e => setAdminName(e.target.value)}
+                    placeholder="e.g. Dr. Rajesh Kumar"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">Official Contact Phone</label>
                   <input
                     type="text"
                     required
@@ -535,45 +735,91 @@ export default function LoginPage() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Hospital Email</label>
+                  <label className="text-xs font-bold text-slate-700 block">Official Desk Email</label>
                   <input
                     type="email"
                     value={adminEmail}
                     onChange={e => setAdminEmail(e.target.value)}
-                    placeholder="emergency@hospital.org"
+                    placeholder="emergency@hospital.com"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Set Password</label>
+                  <label className="text-xs font-bold text-slate-700 block">Portal Access Password</label>
                   <input
                     type="password"
                     required
                     value={signupPassword}
                     onChange={e => setSignupPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Min 6 characters"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
+                </div>
+              </div>
+
+              {/* Initial Bed Capacity */}
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-xs font-black text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Activity size={14} className="text-rose-600" /> Initial Live Emergency Capacity Setup
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <label className="text-[10px] font-black text-slate-600 block">Total ICU Beds</label>
+                    <input
+                      type="number"
+                      value={icuBedsTotal}
+                      onChange={e => setIcuBedsTotal(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
+                    />
+                  </div>
+
+                  <div className="bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    <label className="text-[10px] font-black text-rose-700 block">Available ICU</label>
+                    <input
+                      type="number"
+                      value={icuBedsAvailable}
+                      onChange={e => setIcuBedsAvailable(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-rose-200 rounded-lg p-1.5 text-xs font-black text-rose-700 text-center"
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <label className="text-[10px] font-black text-slate-600 block">Total ER Bays</label>
+                    <input
+                      type="number"
+                      value={erBedsTotal}
+                      onChange={e => setErBedsTotal(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
+                    />
+                  </div>
+
+                  <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                    <label className="text-[10px] font-black text-emerald-700 block">Available ER</label>
+                    <input
+                      type="number"
+                      value={erBedsAvailable}
+                      onChange={e => setErBedsAvailable(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-emerald-200 rounded-lg p-1.5 text-xs font-black text-emerald-700 text-center"
+                    />
+                  </div>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all">
-                {loading ? 'Creating Hospital Emergency Node...' : 'Register Hospital Emergency Node'}
+                className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
+                {loading ? 'Registering Node...' : 'Register Hospital & Open Command Center'}
                 <ArrowRight size={16} />
               </button>
             </form>
           )}
 
           {/* ─────────────────────────────────────────────────── */}
-          {/* TAB 2B: REGISTER DOCTOR / MEDICAL PERSONNEL        */}
+          {/* TAB 3B: REGISTER DOCTOR / MEDICAL ATTENDANCE       */}
           {/* ─────────────────────────────────────────────────── */}
           {tab === 'signup' && roleType === 'doctor' && (
             <form onSubmit={handleSignupDoctor} className="space-y-4">
@@ -585,13 +831,13 @@ export default function LoginPage() {
                     required
                     value={doctorName}
                     onChange={e => setDoctorName(e.target.value)}
-                    placeholder="e.g. Dr. Priya Sen"
+                    placeholder="e.g. Dr. Ananya Sharma"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Mobile Number (For Emergency Duty SMS)</label>
+                  <label className="text-xs font-bold text-slate-700 block">Mobile Number (Login ID)</label>
                   <input
                     type="text"
                     required
@@ -601,40 +847,13 @@ export default function LoginPage() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
-              </div>
 
-              {/* Hospital Affiliation */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Hospital Working At</label>
-                {hospitalsList.length > 0 ? (
-                  <select
-                    value={selectedHospital}
-                    onChange={e => setSelectedHospital(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600">
-                    {hospitalsList.map(h => (
-                      <option key={h.id} value={h.id}>{h.name} ({h.city})</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    required
-                    value={hospitalName}
-                    onChange={e => setHospitalName(e.target.value)}
-                    placeholder="Enter hospital name"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900"
-                  />
-                )}
-              </div>
-
-              {/* Department & Specialty */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Department / Specialty</label>
+                  <label className="text-xs font-bold text-slate-700 block">Medical Department</label>
                   <select
                     value={selectedDept}
                     onChange={e => setSelectedDept(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600">
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs cursor-pointer">
                     {DEPARTMENTS.map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
@@ -642,38 +861,58 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Designation / Role Title</label>
+                  <label className="text-xs font-bold text-slate-700 block">Designation / Title</label>
                   <input
                     type="text"
                     required
                     value={staffTitle}
                     onChange={e => setStaffTitle(e.target.value)}
-                    placeholder="e.g. Senior Trauma Surgeon / ER Nurse"
+                    placeholder="e.g. Senior Trauma Surgeon"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block">Hospital Node Affiliation</label>
+                  {hospitalsList.length > 0 ? (
+                    <select
+                      value={selectedHospital}
+                      onChange={e => setSelectedHospital(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs cursor-pointer">
+                      {hospitalsList.map(h => (
+                        <option key={h.id} value={h.id}>🏥 {h.name} — {h.city}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={hospitalName}
+                      onChange={e => setHospitalName(e.target.value)}
+                      placeholder="e.g. Apollo Trauma & Emergency Center"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
+                    />
+                  )}
+                </div>
+
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Email Address (Optional)</label>
+                  <label className="text-xs font-bold text-slate-700 block">Medical Council Reg. Number</label>
                   <input
-                    type="email"
-                    value={doctorEmail}
-                    onChange={e => setDoctorEmail(e.target.value)}
-                    placeholder="doctor@hospital.org"
+                    type="text"
+                    value={medicalLicense}
+                    onChange={e => setMedicalLicense(e.target.value)}
+                    placeholder="e.g. KMC-104892"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Password</label>
+                  <label className="text-xs font-bold text-slate-700 block">Portal Login Password</label>
                   <input
                     type="password"
                     required
                     value={signupPassword}
                     onChange={e => setSignupPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Min 6 characters"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
@@ -682,13 +921,17 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs font-black rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all">
-                {loading ? 'Registering Medical Personnel...' : 'Register as On-Duty Doctor / Nurse'}
+                className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-black rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
+                {loading ? 'Joining Roster...' : 'Complete Registration & Open Doctor Attendance'}
                 <ArrowRight size={16} />
               </button>
             </form>
           )}
         </div>
+
+        <p className="text-center text-[11px] text-slate-400 font-semibold">
+          Protected by SERS Multi-Tenant Encryption & Government ABDM Interoperability Protocol
+        </p>
       </div>
     </div>
   );
