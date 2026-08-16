@@ -6,6 +6,7 @@
 ---
 
 [![Download Android APK](https://img.shields.io/badge/Download-Android%20APK%20(v1.0.0)-E11D48?style=for-the-badge&logo=android&logoColor=white)](https://github.com/its-anuraj/SERS/releases/latest)
+[![Wiki Documentation](https://img.shields.io/badge/Docs-SERS%20Wiki-blueviolet?style=for-the-badge&logo=gitbook&logoColor=white)](docs/wiki/Home.md)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Hospital%20Portal-black?style=for-the-badge&logo=vercel)](https://sers-web-admin.vercel.app)
 [![Render Backend](https://img.shields.io/badge/Render-Backend%20API%20Live-46e3b7?style=for-the-badge&logo=render)](https://sers-backend-api.onrender.com)
 [![Render ML](https://img.shields.io/badge/Render-Python%20ML%20Live-46e3b7?style=for-the-badge&logo=render)](https://sers-09fb.onrender.com)
