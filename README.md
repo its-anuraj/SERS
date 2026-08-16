@@ -5,6 +5,7 @@
 
 ---
 
+[![Download Android APK](https://img.shields.io/badge/Download-Android%20APK%20(v1.0.0)-E11D48?style=for-the-badge&logo=android&logoColor=white)](https://github.com/its-anuraj/SERS/releases/latest)
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Hospital%20Portal-black?style=for-the-badge&logo=vercel)](https://sers-web-admin.vercel.app)
 [![Render Backend](https://img.shields.io/badge/Render-Backend%20API%20Live-46e3b7?style=for-the-badge&logo=render)](https://sers-backend-api.onrender.com)
 [![Render ML](https://img.shields.io/badge/Render-Python%20ML%20Live-46e3b7?style=for-the-badge&logo=render)](https://sers-09fb.onrender.com)
@@ -20,12 +21,12 @@ Experience the live system running on production cloud infrastructure:
 
 | Component | Platform | Live URL | Description |
 | :--- | :--- | :--- | :--- |
+| **📱 Mobile Application** | **GitHub Release** | [**Download SERS.apk (v1.0.0)**](https://github.com/its-anuraj/SERS/releases/latest) | Production Standalone Android APK for Citizens and First Responders |
 | **🏥 Hospital Command Portal** | **Vercel** | [**sers-web-admin.vercel.app**](https://sers-web-admin.vercel.app) | Live Hospital Emergency Desk, Bed Tracker, Doctor Attendance & Radar |
 | **⚡ REST & WebSocket API** | **Render** | [**sers-backend-api.onrender.com**](https://sers-backend-api.onrender.com) | Node.js/Express Real-time API Gateway & Socket.io Server |
 | **🧠 AI/ML Microservice** | **Render** | [**sers-09fb.onrender.com**](https://sers-09fb.onrender.com) | FastAPI Microservice for Crash Scoring, Severity & Route Optimization |
 | **🗄️ PostgreSQL + PostGIS** | **Neon Cloud** | `sers-database (ap-southeast-1)` | Spatial Geolocation Queries, 20+ Normalized Schemas |
 | **⚡ Telemetry Cache** | **Upstash Cloud** | `sers-redis (ap-south-1 Mumbai)` | Sub-millisecond Live GPS Telemetry, Rate Limiting & Pub/Sub |
-| **📱 Mobile Application** | **Expo EAS Cloud** | `in.sers.emergency` | React Native Android APK for Citizens and First Responders |
 
 ### 🔑 Demo Login Credentials
 
