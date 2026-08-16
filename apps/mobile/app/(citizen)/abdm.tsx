@@ -206,7 +206,7 @@ export default function AbdmHealthProfileScreen() {
           <View style={styles.addRow}>
             <TextInput
               style={styles.addInput}
-              placeholder="Add other allergy (e.g. Iodine, NSAIDs)"
+              placeholder="Specify known medication or food allergy"
               placeholderTextColor="#94a3b8"
               value={newAllergy}
               onChangeText={setNewAllergy}
@@ -236,7 +236,7 @@ export default function AbdmHealthProfileScreen() {
           <View style={styles.addRow}>
             <TextInput
               style={styles.addInput}
-              placeholder="e.g. Diabetes Type 2, Cardiac Stent (2020)"
+              placeholder="Enter diagnosed medical condition or surgical history"
               placeholderTextColor="#94a3b8"
               value={newCondition}
               onChangeText={setNewCondition}
@@ -254,7 +254,7 @@ export default function AbdmHealthProfileScreen() {
 
           <TextInput
             style={styles.notesInput}
-            placeholder="e.g. Diabetic on insulin. Daily blood pressure medication. Patient wears hearing aid."
+            placeholder="Enter clinical instructions, daily prescriptions, or critical considerations for paramedics and triage doctors..."
             placeholderTextColor="#94a3b8"
             multiline
             numberOfLines={4}

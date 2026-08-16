@@ -253,7 +253,7 @@ export default function HospitalsPage() {
                   required
                   value={myHosp.name || ''}
                   onChange={e => setMyHosp({ ...myHosp, name: e.target.value })}
-                  placeholder="e.g. City Life Emergency Care"
+                  placeholder="Enter hospital or facility name"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-900"
                 />
               </div>
@@ -264,7 +264,7 @@ export default function HospitalsPage() {
                   type="text"
                   value={myHosp.phone || ''}
                   onChange={e => setMyHosp({ ...myHosp, phone: e.target.value })}
-                  placeholder="+919876543210"
+                  placeholder="+91 Emergency contact number"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-900"
                 />
               </div>

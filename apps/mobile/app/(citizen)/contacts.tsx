@@ -108,7 +108,7 @@ export default function EmergencyContactsScreen() {
             <Text style={styles.inputLabel}>Contact Full Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Ramesh Kumar, Sunita Devi, Dr. Sharma"
+              placeholder="Enter contact person's full name"
               placeholderTextColor="#94a3b8"
               value={newName}
               onChangeText={setNewName}
@@ -117,7 +117,7 @@ export default function EmergencyContactsScreen() {
             <Text style={styles.inputLabel}>Phone Number (Mobile)</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. +91 98765 43210"
+              placeholder="+91 Mobile number"
               placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
               value={newPhone}

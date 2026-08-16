@@ -646,7 +646,7 @@ export default function LoginPage() {
           )}
 
           {/* ─────────────────────────────────────────────────── */}
-          {/* TAB 3A: REGISTER HOSPITAL COMMAND DESK             */}
+          {/* TAB 3: REGISTER NEW HOSPITAL NODE OR DOCTOR         */}
           {/* ─────────────────────────────────────────────────── */}
           {tab === 'signup' && roleType === 'hospital_admin' && (
             <form onSubmit={handleSignupHospitalAdmin} className="space-y-4">
@@ -658,7 +658,7 @@ export default function LoginPage() {
                     required
                     value={hospitalName}
                     onChange={e => setHospitalName(e.target.value)}
-                    placeholder="e.g. City Life Trauma Center"
+                    placeholder="Enter hospital or facility name"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -670,7 +670,7 @@ export default function LoginPage() {
                     required
                     value={hospitalCity}
                     onChange={e => setHospitalCity(e.target.value)}
-                    placeholder="e.g. Bengaluru"
+                    placeholder="Enter city / state"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -682,7 +682,7 @@ export default function LoginPage() {
                     required
                     value={hospitalAddress}
                     onChange={e => setHospitalAddress(e.target.value)}
-                    placeholder="e.g. #42 Ring Road, Indiranagar, Bengaluru, 560038"
+                    placeholder="Enter complete facility address & pincode"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -694,7 +694,7 @@ export default function LoginPage() {
                     required
                     value={adminName}
                     onChange={e => setAdminName(e.target.value)}
-                    placeholder="e.g. Dr. Rajesh Kumar"
+                    placeholder="Administrator full name"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -706,7 +706,7 @@ export default function LoginPage() {
                     required
                     value={adminPhone}
                     onChange={e => setAdminPhone(e.target.value)}
-                    placeholder="+919876543210"
+                    placeholder="+91 Mobile number"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -717,7 +717,7 @@ export default function LoginPage() {
                     type="email"
                     value={adminEmail}
                     onChange={e => setAdminEmail(e.target.value)}
-                    placeholder="emergency@hospital.com"
+                    placeholder="hospital@domain.org"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -729,7 +729,7 @@ export default function LoginPage() {
                     required
                     value={signupPassword}
                     onChange={e => setSignupPassword(e.target.value)}
-                    placeholder="Min 6 characters"
+                    placeholder="Choose a secure password"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -751,18 +751,8 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-                    <label className="text-[10px] font-black text-rose-700 block">Available ICU</label>
-                    <input
-                      type="number"
-                      value={icuBedsAvailable}
-                      onChange={e => setIcuBedsAvailable(Number(e.target.value))}
-                      className="w-full mt-1 bg-white border border-rose-200 rounded-lg p-1.5 text-xs font-black text-rose-700 text-center"
-                    />
-                  </div>
-
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <label className="text-[10px] font-black text-slate-600 block">Total ER Bays</label>
+                    <label className="text-[10px] font-black text-slate-600 block">Total ER Beds</label>
                     <input
                       type="number"
                       value={erBedsTotal}
@@ -771,13 +761,23 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-                    <label className="text-[10px] font-black text-emerald-700 block">Available ER</label>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <label className="text-[10px] font-black text-slate-600 block">Oxygen Points</label>
                     <input
                       type="number"
-                      value={erBedsAvailable}
-                      onChange={e => setErBedsAvailable(Number(e.target.value))}
-                      className="w-full mt-1 bg-white border border-emerald-200 rounded-lg p-1.5 text-xs font-black text-emerald-700 text-center"
+                      value={oxygenTotal}
+                      onChange={e => setOxygenTotal(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <label className="text-[10px] font-black text-slate-600 block">Ventilators</label>
+                    <input
+                      type="number"
+                      value={ventilatorsTotal}
+                      onChange={e => setVentilatorsTotal(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
                     />
                   </div>
                 </div>
@@ -787,15 +787,12 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
-                {loading ? 'Registering Node...' : 'Register Hospital & Open Command Center'}
-                <ArrowRight size={16} />
+                {loading ? 'Registering Facility...' : 'Provision Hospital Command Node →'}
               </button>
             </form>
           )}
 
-          {/* ─────────────────────────────────────────────────── */}
-          {/* TAB 3B: REGISTER DOCTOR / MEDICAL ATTENDANCE       */}
-          {/* ─────────────────────────────────────────────────── */}
+          {/* DOCTOR REGISTRATION */}
           {tab === 'signup' && roleType === 'doctor' && (
             <form onSubmit={handleSignupDoctor} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -806,7 +803,7 @@ export default function LoginPage() {
                     required
                     value={doctorName}
                     onChange={e => setDoctorName(e.target.value)}
-                    placeholder="e.g. Dr. Ananya Sharma"
+                    placeholder="Enter full legal name"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
@@ -818,7 +815,7 @@ export default function LoginPage() {
                     required
                     value={doctorPhone}
                     onChange={e => setDoctorPhone(e.target.value)}
-                    placeholder="+919876543210"
+                    placeholder="+91 Mobile number"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
@@ -842,7 +839,7 @@ export default function LoginPage() {
                     required
                     value={staffTitle}
                     onChange={e => setStaffTitle(e.target.value)}
-                    placeholder="e.g. Senior Trauma Surgeon"
+                    placeholder="Enter clinical title / specialty"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>
@@ -863,7 +860,7 @@ export default function LoginPage() {
                       type="text"
                       value={hospitalName}
                       onChange={e => setHospitalName(e.target.value)}
-                      placeholder="e.g. Apollo Trauma & Emergency Center"
+                      placeholder="Enter hospital name"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                     />
                   )}
@@ -875,7 +872,7 @@ export default function LoginPage() {
                     type="text"
                     value={medicalLicense}
                     onChange={e => setMedicalLicense(e.target.value)}
-                    placeholder="e.g. KMC-104892"
+                    placeholder="Registration number (optional)"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 shadow-xs"
                   />
                 </div>

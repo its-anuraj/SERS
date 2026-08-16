@@ -97,7 +97,7 @@ export default function CitizenSettingsScreen() {
             <Text style={styles.inputLabel}>Contact Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Ramesh Kumar, Sunita Devi, Dr. Sharma"
+              placeholder="Enter contact person's full name"
               placeholderTextColor="#94a3b8"
               value={newName}
               onChangeText={setNewName}
@@ -106,7 +106,7 @@ export default function CitizenSettingsScreen() {
             <Text style={styles.inputLabel}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. +91 98765 43210"
+              placeholder="+91 Mobile number"
               placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
               value={newPhone}

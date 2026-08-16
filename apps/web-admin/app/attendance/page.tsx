@@ -648,7 +648,7 @@ export default function AttendancePage() {
                   required
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
-                  placeholder={formType === 'doctor' ? 'e.g. Dr. Rohan Mehta' : 'e.g. Suresh Kumar'}
+                  placeholder="Staff member full name"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900"
                 />
               </div>
@@ -672,7 +672,7 @@ export default function AttendancePage() {
                       type="text"
                       value={formSpecialization}
                       onChange={e => setFormSpecialization(e.target.value)}
-                      placeholder="e.g. Chief Trauma Surgeon"
+                      placeholder="Clinical title / specialization"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900"
                     />
                   </div>
@@ -684,7 +684,7 @@ export default function AttendancePage() {
                     type="text"
                     value={formVehicleReg}
                     onChange={e => setFormVehicleReg(e.target.value)}
-                    placeholder="e.g. KA-01-AB-1234"
+                    placeholder="Vehicle registration number"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900"
                   />
                 </div>
