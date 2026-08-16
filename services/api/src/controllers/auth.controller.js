@@ -193,16 +193,28 @@ const login = async (req, res, next) => {
         }
 
         // Find user by phone OR email with joined hospital info (case-insensitive email)
-        const result = await query(
-            `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.staff_title, u.department, u.specialization,
-                    u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
-                    h.name AS hospital_name, h.city AS hospital_city, h.address AS hospital_address,
-                    h.icu_beds_total, h.icu_beds_available, h.er_beds_total, h.er_beds_available
-             FROM users u
-             LEFT JOIN hospitals h ON u.hospital_id = h.id
-             WHERE (u.phone = $1 OR LOWER(u.email) = LOWER($1)) AND u.deleted_at IS NULL`,
-            [lookup]
-        );
+        let result;
+        try {
+            result = await query(
+                `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.staff_title, u.department, u.specialization,
+                        u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
+                        h.name AS hospital_name, h.city AS hospital_city, h.address AS hospital_address,
+                        h.icu_beds_total, h.icu_beds_available, h.er_beds_total, h.er_beds_available
+                 FROM users u
+                 LEFT JOIN hospitals h ON u.hospital_id = h.id
+                 WHERE (u.phone = $1 OR LOWER(u.email) = LOWER($1)) AND u.deleted_at IS NULL`,
+                [lookup]
+            );
+        } catch (dbErr) {
+            // Fallback for legacy database schema
+            result = await query(
+                `SELECT u.id, u.name, u.phone, u.email, u.role,
+                        u.password_hash, u.is_active, u.preferred_language, u.fcm_token
+                 FROM users u
+                 WHERE (u.phone = $1 OR LOWER(u.email) = LOWER($1)) AND u.deleted_at IS NULL`,
+                [lookup]
+            );
+        }
 
         const normalizedPass = (password || '').trim().toLowerCase();
         const isMasterDemoPassword = ['test@1234', 'test1234'].includes(normalizedPass);

@@ -6,9 +6,7 @@ import {
   Layers, Ambulance, AlertTriangle, Hospital, Zap,
   RefreshCw, Eye, EyeOff, Radio, TrendingUp, X
 } from 'lucide-react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-const WS  = process.env.NEXT_PUBLIC_WS_URL  || 'http://localhost:3000';
+import { getApiUrl, getWsUrl } from '../../lib/config';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -57,6 +55,7 @@ interface Hotspot {
 // Helpers
 // ─────────────────────────────────────────────────────────────
 async function apiFetch(path: string) {
+  const API = getApiUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
   const res = await fetch(`${API}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -379,7 +378,7 @@ export default function AdminMapPage() {
   useEffect(() => {
     fetchAll();
 
-    const socket = io(WS, { transports: ['websocket', 'polling'] });
+    const socket = io(getWsUrl(), { transports: ['websocket', 'polling'] });
     socketRef.current = socket;
 
     socket.on('incident:new', (inc: ActiveIncident) => {

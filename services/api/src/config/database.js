@@ -66,6 +66,35 @@ const autoSeedDatabase = async () => {
             await pool.query(schemaSql).catch(e => logger.warn('Schema migration notice:', e.message));
         }
 
+        // Auto-migrate missing columns for existing users & hospitals tables
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS hospital_id UUID;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_title VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS specialization TEXT;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token TEXT;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(10) DEFAULT 'en';
+
+            CREATE TABLE IF NOT EXISTS staff_attendance (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                hospital_id UUID,
+                role VARCHAR(50) DEFAULT 'doctor',
+                staff_name VARCHAR(150),
+                staff_phone VARCHAR(20),
+                department VARCHAR(100),
+                specialization VARCHAR(255),
+                vehicle_reg_number VARCHAR(50),
+                status VARCHAR(50) DEFAULT 'on_duty',
+                shift VARCHAR(100) DEFAULT 'Morning (08:00 - 16:00)',
+                notes TEXT,
+                check_in TIMESTAMP DEFAULT NOW(),
+                check_out TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `).catch(e => logger.warn('Column auto-migration notice:', e.message));
+
         // Ensure default admin & hospital staff seed accounts exist with verified password hash
         const userCheck = await pool.query("SELECT id FROM users WHERE email = 'admin@sers.in'");
         if (userCheck.rows.length === 0) {

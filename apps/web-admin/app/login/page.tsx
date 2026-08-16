@@ -9,8 +9,7 @@ import {
   FileBadge, AlertCircle, Eye, EyeOff, Zap, Stethoscope,
   Clock, HeartPulse, UserCheck
 } from 'lucide-react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { getApiUrl } from '../../lib/config';
 
 const DEPARTMENTS = [
   'Emergency & Trauma',
@@ -63,6 +62,7 @@ export default function LoginPage() {
   const [hospitalsList, setHospitalsList] = useState<{ id: string; name: string; city: string }[]>([]);
 
   useEffect(() => {
+    const API = getApiUrl();
     fetch(`${API}/api/hospitals?limit=100`)
       .then(res => res.json())
       .then(data => {
@@ -81,6 +81,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const API = getApiUrl();
       const res = await fetch(`${API}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,7 +90,7 @@ export default function LoginPage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Invalid email/phone or password');
+        throw new Error(json.message || json.error || 'Invalid email/phone or password');
       }
 
       // Store auth tokens & user info
@@ -131,6 +132,7 @@ export default function LoginPage() {
         throw new Error('Please enter your hospital name');
       }
 
+      const API = getApiUrl();
       const res = await fetch(`${API}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +155,7 @@ export default function LoginPage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Hospital registration failed');
+        throw new Error(json.message || json.error || 'Hospital registration failed');
       }
 
       localStorage.setItem('sers_token', json.data.tokens.accessToken);
@@ -186,6 +188,7 @@ export default function LoginPage() {
       // If user selected a hospital from list or entered hospital name
       const matchedHosp = hospitalsList.find(h => h.id === selectedHospital);
 
+      const API = getApiUrl();
       const res = await fetch(`${API}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +208,7 @@ export default function LoginPage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Medical staff registration failed');
+        throw new Error(json.message || json.error || 'Medical staff registration failed');
       }
 
       localStorage.setItem('sers_token', json.data.tokens.accessToken);

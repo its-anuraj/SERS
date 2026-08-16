@@ -14,11 +14,9 @@ import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { getApiUrl, getWsUrl } from '../lib/config';
 
 const LiveMap = dynamic(() => import('../components/LiveMap'), { ssr: false });
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-const WS  = process.env.NEXT_PUBLIC_WS_URL  || 'http://localhost:3000';
 
 const PIE_COLORS: Record<string, string> = {
   accident: '#e11d48', cardiac: '#f59e0b', medical: '#3b82f6',
@@ -27,6 +25,7 @@ const PIE_COLORS: Record<string, string> = {
 };
 
 async function apiFetch(path: string, options?: RequestInit) {
+  const API = getApiUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
   const res = await fetch(`${API}${path}`, {
     headers: {
@@ -406,7 +405,7 @@ export default function DashboardPage() {
   // WebSocket Live Updates
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
-    const socket: Socket = io(WS, {
+    const socket: Socket = io(getWsUrl(), {
       auth: { token: token || 'guest' },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,

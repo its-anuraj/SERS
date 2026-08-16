@@ -11,10 +11,10 @@ import {
   Activity, Phone, Shield, CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { getApiUrl } from '../../lib/config';
 
 async function apiFetch(path: string, opts?: RequestInit) {
+  const API = getApiUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
   const res = await fetch(`${API}${path}`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

@@ -9,8 +9,7 @@ import {
   ChevronRight, Sparkles, Trash2, Edit3, HeartPulse, Brain,
   Bone, Baby, Syringe, Eye, LogOut, Bed
 } from 'lucide-react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { getApiUrl } from '../../lib/config';
 
 interface AttendanceRecord {
   id: string;
@@ -58,6 +57,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; text: string; bord
 };
 
 export default function AttendancePage() {
+  const API = getApiUrl();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'doctors' | 'drivers'>('doctors');

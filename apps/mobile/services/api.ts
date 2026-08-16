@@ -16,7 +16,7 @@ export const getApiBaseUrl = (): string => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // Auto-detect host IP from Expo Metro bundler URI (works seamlessly on physical phones & emulators)
+  // Auto-detect host IP from Expo Metro bundler URI (works seamlessly in local development mode)
   const hostUri =
     Constants.expoConfig?.hostUri ||
     (Constants as any)?.manifest?.debuggerHost ||
@@ -29,11 +29,8 @@ export const getApiBaseUrl = (): string => {
     }
   }
 
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
-  }
-
-  return 'http://localhost:3000';
+  // Standalone APK / Production Cloud fallback
+  return 'https://sers-backend-api.onrender.com';
 };
 
 const API_BASE = getApiBaseUrl();

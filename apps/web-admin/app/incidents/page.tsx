@@ -11,8 +11,7 @@ import {
   MapPin, User, Zap, Activity, ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { getApiUrl } from '../../lib/config';
 
 interface Incident {
   id: string;
@@ -69,6 +68,7 @@ function timeAgo(dateStr: string) {
 }
 
 async function apiFetch(path: string, options?: RequestInit) {
+  const API = getApiUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
   const res = await fetch(`${API}${path}`, {
     ...options,
