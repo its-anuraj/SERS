@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0a0e1a"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "in.sers.emergency",
@@ -22,7 +24,11 @@
         "NSMotionUsageDescription": "SERS needs motion sensor access for AI crash detection.",
         "NSMicrophoneUsageDescription": "SERS needs microphone for Voice SOS feature.",
         "NSCameraUsageDescription": "SERS needs camera for scene assessment during emergencies.",
-        "UIBackgroundModes": ["location", "audio", "fetch"]
+        "UIBackgroundModes": [
+          "location",
+          "audio",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -31,7 +37,6 @@
         "backgroundColor": "#0a0e1a"
       },
       "package": "in.sers.emergency",
-      "usesCleartextTraffic": true,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -62,6 +67,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "2ed66ad3-fc5a-4676-92dd-681cba55a806"
+      }
     }
   }
 }
