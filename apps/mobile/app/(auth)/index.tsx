@@ -26,6 +26,8 @@ export default function AuthScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [otpCountdown, setOtpCountdown] = useState(0);
+  const [previewOtpHint, setPreviewOtpHint] = useState<string | null>(null);
+  const [showOtpPreview, setShowOtpPreview] = useState(false);
 
   // Registration Common fields
   const [name, setName]         = useState('');
@@ -83,10 +85,14 @@ export default function AuthScreen() {
       return;
     }
     setLoading(true);
+    setShowOtpPreview(false);
     try {
-      await sendOTP(clean);
+      const res = await sendOTP(clean);
       setOtpStep('verify');
       setOtpCountdown(60);
+      if (res?.previewOtp) {
+        setPreviewOtpHint(res.previewOtp);
+      }
       Alert.alert('Verification Code Sent', `A 6-digit verification code has been dispatched to ${clean}. Please check your phone or inbox.`);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message;
@@ -292,6 +298,31 @@ export default function AuthScreen() {
                       <Text style={styles.changeText}>Change</Text>
                     </TouchableOpacity>
                   </View>
+
+                  {previewOtpHint && (
+                    <View style={{ marginTop: 10, alignItems: 'center' }}>
+                      {!showOtpPreview ? (
+                        <TouchableOpacity
+                          style={styles.showOtpBtn}
+                          onPress={() => setShowOtpPreview(true)}
+                        >
+                          <Text style={styles.showOtpBtnText}>👁️ Show Verification Code (Preview)</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.previewBox}>
+                          <Text style={styles.previewText}>
+                            🔑 Code: <Text style={styles.previewCode}>{previewOtpHint}</Text>
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.autoFillBtn}
+                            onPress={() => setOtpCode(previewOtpHint)}
+                          >
+                            <Text style={styles.autoFillText}>Auto-Fill</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  )}
 
                   <Text style={styles.label}>Enter 6-Digit Verification Code</Text>
                   <TextInput
@@ -549,4 +580,11 @@ const styles = StyleSheet.create({
   demoChips:      { flexDirection: 'column', gap: 6, width: '100%' },
   demoChip:       { backgroundColor: '#f8fafc', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
   demoChipText:   { color: '#475569', fontWeight: '700', fontSize: 12 },
+  showOtpBtn:     { paddingVertical: 6, paddingHorizontal: 12 },
+  showOtpBtnText: { color: '#64748b', fontSize: 11, fontWeight: '700', textDecorationLine: 'underline' },
+  previewBox:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fef3c7', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#fde68a', width: '100%' },
+  previewText:    { color: '#92400e', fontSize: 12, fontWeight: '700' },
+  previewCode:    { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 14, fontWeight: '900', color: '#78350f', letterSpacing: 1 },
+  autoFillBtn:    { backgroundColor: '#fde68a', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
+  autoFillText:   { color: '#78350f', fontSize: 11, fontWeight: '800' },
 });

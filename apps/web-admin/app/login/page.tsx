@@ -42,6 +42,7 @@ export default function LoginPage() {
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [previewOtpHint, setPreviewOtpHint] = useState<string | null>(null);
+  const [showOtpPreview, setShowOtpPreview] = useState(false);
 
   // Sign up form state — Hospital Desk / Admin
   const [adminName, setAdminName] = useState('');
@@ -159,6 +160,9 @@ export default function LoginPage() {
 
       setOtpStep('verify');
       setOtpCountdown(60);
+      if (json.data?.previewOtp) {
+        setPreviewOtpHint(json.data.previewOtp);
+      }
       setSuccess(`Verification code dispatched to ${clean}. Please check your inbox or mobile.`);
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP.');
@@ -582,6 +586,29 @@ export default function LoginPage() {
                       Change
                     </button>
                   </div>
+
+                  {previewOtpHint && (
+                    <div className="pt-0.5">
+                      {!showOtpPreview ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowOtpPreview(true)}
+                          className="text-[11px] text-slate-500 hover:text-rose-600 font-bold flex items-center justify-center gap-1 mx-auto cursor-pointer">
+                          👁️ Show Verification Code (Preview)
+                        </button>
+                      ) : (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-bold flex items-center justify-between">
+                          <span>🔑 Verification Code: <b className="font-mono text-sm tracking-widest text-amber-950">{previewOtpHint}</b></span>
+                          <button
+                            type="button"
+                            onClick={() => setOtpCode(previewOtpHint)}
+                            className="px-2 py-1 bg-amber-200 hover:bg-amber-300 rounded text-[10px] font-black cursor-pointer">
+                            Auto-Fill
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">

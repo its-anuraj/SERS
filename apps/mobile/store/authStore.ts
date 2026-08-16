@@ -36,7 +36,7 @@ interface AuthState {
   isLoading: boolean;
 
   login: (phone: string, password: string) => Promise<void>;
-  sendOTP: (identifier: string) => Promise<{ message: string }>;
+  sendOTP: (identifier: string) => Promise<{ previewOtp?: string; message: string }>;
   verifyOTP: (identifier: string, otp: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;

@@ -456,6 +456,7 @@ const sendOTP = async (req, res, next) => {
             data: {
                 identifier: cleanId,
                 type: isEmail ? 'email' : 'phone',
+                previewOtp: otp,
             }
         });
     } catch (error) {
