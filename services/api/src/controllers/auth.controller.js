@@ -15,14 +15,17 @@ const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
  * Generate JWT token pair
  */
 const generateTokens = (userId, role, hospitalId = null) => {
+    const jwtSecret = process.env.JWT_SECRET || 'sers_super_secure_emergency_jwt_secret_key_2026';
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'sers_super_secure_emergency_refresh_secret_key_2026';
+
     const accessToken = jwt.sign(
         { userId, role, hospitalId },
-        process.env.JWT_SECRET,
+        jwtSecret,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     const refreshToken = jwt.sign(
         { userId, role, hospitalId, type: 'refresh' },
-        process.env.JWT_REFRESH_SECRET,
+        jwtRefreshSecret,
         { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
     );
     return { accessToken, refreshToken };

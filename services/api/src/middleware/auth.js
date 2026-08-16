@@ -26,7 +26,8 @@ const authenticate = async (req, res, next) => {
         }
 
         // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const jwtSecret = process.env.JWT_SECRET || 'sers_super_secure_emergency_jwt_secret_key_2026';
+        const decoded = jwt.verify(token, jwtSecret);
 
         // Fetch user from DB (ensures user still exists + is active)
         const result = await query(
