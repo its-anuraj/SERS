@@ -18,23 +18,25 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   // Password Login fields
-  const [phone, setPhone]       = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // OTP Login fields
   const [otpIdentifier, setOtpIdentifier] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
-  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpCode, setOtpCode]             = useState('');
+  const [otpStep, setOtpStep]             = useState<'input' | 'verify'>('input');
+  const [otpCountdown, setOtpCountdown]   = useState(0);
   const [previewOtpHint, setPreviewOtpHint] = useState<string | null>(null);
   const [showOtpPreview, setShowOtpPreview] = useState(false);
 
   // Registration Common fields
-  const [name, setName]         = useState('');
-  const [regPhone, setRegPhone] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPass, setRegPass]   = useState('');
-  const [role, setRole]         = useState<'citizen' | 'responder'>('citizen');
+  const [name, setName]                   = useState('');
+  const [regPhone, setRegPhone]           = useState('');
+  const [regEmail, setRegEmail]           = useState('');
+  const [regPass, setRegPass]             = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [role, setRole]                   = useState<'citizen' | 'responder'>('citizen');
 
   // Citizen Specific fields
   const [bloodGroup, setBloodGroup]     = useState('');
@@ -230,14 +232,22 @@ export default function AuthScreen() {
                 onChangeText={setPhone}
               />
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity style={styles.btn} onPress={handlePasswordLogin} disabled={loading}>
                 {loading
                   ? <ActivityIndicator color="#fff" />
@@ -409,14 +419,22 @@ export default function AuthScreen() {
               />
 
               <Text style={styles.label}>Account Password *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Choose a secure password"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry
-                value={regPass}
-                onChangeText={setRegPass}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Choose a secure password"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showRegPassword}
+                  value={regPass}
+                  onChangeText={setRegPass}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowRegPassword(!showRegPassword)}
+                >
+                  <Text style={styles.eyeIcon}>{showRegPassword ? '👁️' : '🙈'}</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Citizen Specific Verification */}
               {role === 'citizen' && (
@@ -587,4 +605,8 @@ const styles = StyleSheet.create({
   previewCode:    { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 14, fontWeight: '900', color: '#78350f', letterSpacing: 1 },
   autoFillBtn:    { backgroundColor: '#fde68a', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
   autoFillText:   { color: '#78350f', fontSize: 11, fontWeight: '800' },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1' },
+  passwordInput:  { flex: 1, padding: 14, color: '#0f172a', fontSize: 14, fontWeight: '600' },
+  eyeBtn:         { paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', alignItems: 'center' },
+  eyeIcon:        { fontSize: 16 },
 });
