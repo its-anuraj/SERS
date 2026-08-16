@@ -37,7 +37,7 @@ export default function AuthScreen() {
 
   // Countdown timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
     if (otpCountdown > 0) {
       timer = setTimeout(() => setOtpCountdown(prev => prev - 1), 1000);
     }

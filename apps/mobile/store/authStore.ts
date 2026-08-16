@@ -14,6 +14,14 @@ interface User {
   email?: string;
   role: 'citizen' | 'responder' | 'hospital_staff' | 'admin' | 'coordinator';
   preferredLanguage: string;
+  abhaId?: string;
+  abhaAddress?: string;
+  bloodGroup?: string;
+  hospitalId?: string;
+  hospitalName?: string;
+  staffTitle?: string;
+  department?: string;
+  specialization?: string;
 }
 
 interface AuthState {
