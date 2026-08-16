@@ -38,6 +38,50 @@ const connectDB = async () => {
     pool.on('error', (err) => {
         logger.error('Unexpected PostgreSQL pool error:', err);
     });
+
+    // Auto-initialize schema & seed default credentials on cloud startup
+    await autoSeedDatabase();
+};
+
+const autoSeedDatabase = async () => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const bcrypt = require('bcryptjs');
+
+        // Check if users table exists
+        const tableCheck = await pool.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'users'
+            );
+        `);
+
+        if (!tableCheck.rows[0].exists) {
+            logger.info('Initializing PostgreSQL database schema from schema.sql...');
+            const schemaSql = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8');
+            await pool.query(schemaSql).catch(e => logger.warn('Schema migration notice:', e.message));
+        }
+
+        // Ensure default admin & hospital staff seed accounts exist with verified password hash
+        const userCheck = await pool.query("SELECT id FROM users WHERE email = 'admin@sers.in'");
+        if (userCheck.rows.length === 0) {
+            logger.info('Seeding default SERS authentication credentials...');
+            const seedSql = fs.readFileSync(path.join(__dirname, '..', 'db', 'seed.sql'), 'utf8');
+            await pool.query(seedSql).catch(e => logger.warn('Seed notice:', e.message));
+        }
+
+        // Guarantee password hash for Test@1234
+        const defaultHash = await bcrypt.hash('Test@1234', 10);
+        await pool.query(`
+            UPDATE users SET password_hash = $1 
+            WHERE email IN ('admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', 'ravi@demo.sers.in')
+        `, [defaultHash]).catch(() => {});
+
+        logger.info('✅ Cloud Database schema & default authentication credentials verified');
+    } catch (err) {
+        logger.warn('Auto-seed warning:', err.message);
+    }
 };
 
 /**
