@@ -225,10 +225,6 @@ class OtpService {
 
         return false;
     }
-        }
-
-        return false;
-    }
 }
 
 module.exports = new OtpService();
