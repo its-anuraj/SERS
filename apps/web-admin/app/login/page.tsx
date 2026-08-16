@@ -139,7 +139,7 @@ export default function LoginPage() {
 
     const clean = otpIdentifier.trim();
     if (!clean) {
-      setError('Please enter a valid Phone number or Email address.');
+      setError('Please enter a valid registered Phone number or Email address.');
       return;
     }
 
@@ -149,7 +149,7 @@ export default function LoginPage() {
       const res = await fetch(`${API}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: clean }),
+        body: JSON.stringify({ identifier: clean, requireStaffRole: true }),
       });
 
       const json = await res.json();
@@ -159,10 +159,7 @@ export default function LoginPage() {
 
       setOtpStep('verify');
       setOtpCountdown(60);
-      setSuccess(`Verification code dispatched to ${clean}.`);
-      if (json.data?.previewOtp) {
-        setPreviewOtpHint(json.data.previewOtp);
-      }
+      setSuccess(`Verification code dispatched to ${clean}. Please check your inbox or mobile.`);
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP.');
     } finally {
@@ -176,8 +173,8 @@ export default function LoginPage() {
     setSuccess('');
 
     const cleanOtp = otpCode.trim();
-    if (cleanOtp.length < 4) {
-      setError('Please enter the complete verification code.');
+    if (cleanOtp.length < 6) {
+      setError('Please enter the full 6-digit verification code.');
       return;
     }
 
@@ -190,6 +187,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           identifier: otpIdentifier.trim(),
           otp: cleanOtp,
+          requireStaffRole: true,
         }),
       });
 
@@ -585,18 +583,6 @@ export default function LoginPage() {
                     </button>
                   </div>
 
-                  {previewOtpHint && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-bold flex items-center justify-between">
-                      <span>🔑 Verification Code: <b className="font-mono text-sm tracking-widest text-amber-950">{previewOtpHint}</b></span>
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(previewOtpHint)}
-                        className="px-2 py-1 bg-amber-200 hover:bg-amber-300 rounded text-[10px] font-black cursor-pointer">
-                        Auto-Fill
-                      </button>
-                    </div>
-                  )}
-
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
                       Enter 6-Digit Verification Code
@@ -614,14 +600,11 @@ export default function LoginPage() {
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 text-center text-lg font-black tracking-widest font-mono text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 font-semibold text-center">
-                      (Demo Master OTP: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">123456</code>)
-                    </p>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={loading || otpCode.length < 4}
+                    disabled={loading || otpCode.length < 6}
                     className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50 text-white text-xs font-black rounded-xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-101 active:scale-99">
                     {loading ? 'Verifying...' : 'Verify OTP & Sign In'}
                     <CheckCircle2 size={16} />

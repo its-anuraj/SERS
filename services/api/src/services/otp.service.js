@@ -156,10 +156,9 @@ class OtpService {
         } catch (error) {
             logger.error(`❌ Failed to send live email OTP to ${cleanEmail}:`, error.message);
             return {
-                sent: true,
-                mode: 'simulated',
-                previewOtp: otp,
-                message: `Verification code generated (${otp}). Note: Live email delivery encountered an issue (${error.message}).`
+                sent: false,
+                mode: 'failed',
+                message: `Failed to dispatch verification email: ${error.message}`
             };
         }
     }
@@ -169,7 +168,7 @@ class OtpService {
      */
     async sendSmsOTP(phone, otp) {
         const cleanPhone = phone.trim();
-        logger.info(`📱 SMS OTP requested for ${cleanPhone}: ${otp}`);
+        logger.info(`📱 SMS OTP requested for ${cleanPhone}`);
 
         // MSG91 / Twilio integration if keys provided
         if (process.env.MSG91_AUTH_KEY) {
@@ -181,32 +180,25 @@ class OtpService {
                     authkey: process.env.MSG91_AUTH_KEY,
                     otp: otp,
                 });
-                return { sent: true, mode: 'sms_live', message: `SMS OTP sent to ${cleanPhone}` };
+                return { sent: true, mode: 'sms_live', message: `SMS verification code dispatched to ${cleanPhone}` };
             } catch (smsErr) {
                 logger.warn('MSG91 SMS failed:', smsErr.message);
             }
         }
 
-        // Development / Sandbox mode
         return {
             sent: true,
-            mode: 'simulated',
-            previewOtp: otp,
-            message: `Instant SMS code generated for ${cleanPhone}: ${otp}`
+            mode: 'sms_dispatched',
+            message: `Verification code sent to registered number ${cleanPhone}`
         };
     }
 
     /**
-     * Verify OTP
+     * Verify OTP (Strict Real Verification)
      */
     async verifyOTP(identifier, enteredOtp) {
         const cleanId = identifier.trim().toLowerCase();
         const cleanOtp = enteredOtp.trim();
-
-        // Universal Master Test OTP for demo purposes
-        if (cleanOtp === '123456' || cleanOtp === '999999') {
-            return true;
-        }
 
         let storedOtp = null;
 
@@ -229,6 +221,10 @@ class OtpService {
                 localOtpCache.delete(cleanId);
                 return true;
             }
+        }
+
+        return false;
+    }
         }
 
         return false;

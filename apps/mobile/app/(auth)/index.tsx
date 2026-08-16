@@ -249,15 +249,6 @@ export default function AuthScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {previewOtpHint && (
-                    <TouchableOpacity
-                      style={styles.hintBox}
-                      onPress={() => setOtpCode(previewOtpHint)}
-                    >
-                      <Text style={styles.hintText}>🔑 Instant Code: {previewOtpHint} (Tap to autofill)</Text>
-                    </TouchableOpacity>
-                  )}
-
                   <Text style={styles.label}>Enter 6-Digit Verification Code</Text>
                   <TextInput
                     style={[styles.input, styles.otpInput]}
@@ -268,9 +259,6 @@ export default function AuthScreen() {
                     value={otpCode}
                     onChangeText={setOtpCode}
                   />
-                  <Text style={styles.helperTextCenter}>
-                    (Universal Demo OTP: <Text style={{ fontWeight: 'bold' }}>123456</Text>)
-                  </Text>
 
                   <TouchableOpacity style={styles.btnGreen} onPress={handleVerifyOtp} disabled={loading}>
                     {loading

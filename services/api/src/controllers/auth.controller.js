@@ -384,17 +384,36 @@ const otpService = require('../services/otp.service');
 
 /**
  * POST /api/auth/send-otp
- * Body: { identifier: string } // email or phone
+ * Body: { identifier: string, requireStaffRole?: boolean }
  */
 const sendOTP = async (req, res, next) => {
     try {
-        const { identifier } = req.body;
+        const { identifier, requireStaffRole = false } = req.body;
         if (!identifier || !identifier.trim()) {
             throw new ApiError(400, 'Mobile number or Email address is required');
         }
 
         const cleanId = identifier.trim();
         const isEmail = cleanId.includes('@');
+
+        // Verify that user exists in registered database
+        const userCheck = await query(
+            'SELECT id, name, phone, email, role, is_active FROM users WHERE (phone = $1 OR LOWER(email) = LOWER($1)) AND deleted_at IS NULL',
+            [cleanId]
+        );
+
+        if (userCheck.rows.length === 0) {
+            throw new ApiError(404, 'Account not registered. Please register first with your hospital or contact your system administrator.');
+        }
+
+        const user = userCheck.rows[0];
+        if (!user.is_active) {
+            throw new ApiError(403, 'Account is deactivated or pending verification. Please contact your hospital administrator.');
+        }
+
+        if (requireStaffRole && user.role === 'citizen') {
+            throw new ApiError(403, 'Access Restricted: This web portal is for authorized hospital doctors, medical staff, and emergency coordinators. Please use the SERS mobile app.');
+        }
 
         // Generate and store OTP
         const otp = await otpService.generateAndStoreOTP(cleanId);
@@ -406,14 +425,16 @@ const sendOTP = async (req, res, next) => {
             dispatchResult = await otpService.sendSmsOTP(cleanId, otp);
         }
 
+        if (!dispatchResult.sent) {
+            throw new ApiError(500, dispatchResult.message || 'Failed to dispatch verification code');
+        }
+
         res.json({
             success: true,
             message: dispatchResult.message || `Verification code sent to ${cleanId}`,
             data: {
                 identifier: cleanId,
                 type: isEmail ? 'email' : 'phone',
-                mode: dispatchResult.mode,
-                previewOtp: dispatchResult.previewOtp // visible in simulated mode for instant testing
             }
         });
     } catch (error) {
@@ -423,11 +444,11 @@ const sendOTP = async (req, res, next) => {
 
 /**
  * POST /api/auth/verify-otp
- * Body: { identifier: string, otp: string, role?: string, name?: string }
+ * Body: { identifier: string, otp: string, requireStaffRole?: boolean }
  */
 const verifyOTP = async (req, res, next) => {
     try {
-        const { identifier, otp, role = 'citizen', name = null } = req.body;
+        const { identifier, otp, requireStaffRole = false } = req.body;
         if (!identifier || !otp) {
             throw new ApiError(400, 'Identifier and OTP are required');
         }
@@ -438,9 +459,8 @@ const verifyOTP = async (req, res, next) => {
         }
 
         const cleanId = identifier.trim();
-        const isEmail = cleanId.includes('@');
 
-        // Find or auto-provision user
+        // Fetch verified user from database
         let userResult;
         try {
             userResult = await query(
@@ -462,28 +482,17 @@ const verifyOTP = async (req, res, next) => {
             );
         }
 
-        let user;
         if (userResult.rows.length === 0) {
-            // Auto-provision new user via OTP login
-            const passHash = await bcrypt.hash('Test@1234', 10);
-            const userRole = role || (cleanId.includes('admin') ? 'admin' : (cleanId.includes('dr') || cleanId.includes('meera')) ? 'hospital_staff' : 'citizen');
-            const userName = name || (cleanId.includes('admin') ? 'Admin SERS' : cleanId.includes('meera') ? 'Dr. Meera Nair' : cleanId.split('@')[0] || 'SERS Citizen');
-            const userPhone = isEmail ? `+91${Math.floor(1000000000 + Math.random() * 9000000000)}` : cleanId;
-            const userEmail = isEmail ? cleanId : `${cleanId.replace('+', '')}@users.sers.in`;
-
-            const ins = await query(
-                `INSERT INTO users (name, phone, email, password_hash, role, is_active, is_verified)
-                 VALUES ($1, $2, $3, $4, $5, TRUE, TRUE)
-                 RETURNING id, name, phone, email, role, hospital_id, staff_title, department, specialization, is_active, preferred_language`,
-                [userName, userPhone, userEmail, passHash, userRole]
-            );
-            user = ins.rows[0];
-        } else {
-            user = userResult.rows[0];
+            throw new ApiError(404, 'User account not found. Please register first.');
         }
 
+        const user = userResult.rows[0];
         if (!user.is_active) {
-            throw new ApiError(403, 'Account has been deactivated');
+            throw new ApiError(403, 'Account is deactivated. Please contact support.');
+        }
+
+        if (requireStaffRole && user.role === 'citizen') {
+            throw new ApiError(403, 'Access Restricted: Only verified hospital staff and administrative personnel can access the Hospital Command Center.');
         }
 
         const tokens = generateTokens(user.id, user.role, user.hospital_id);
