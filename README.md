@@ -21,7 +21,7 @@ Experience the live system running on production cloud infrastructure:
 
 | Component | Platform | Live URL | Description |
 | :--- | :--- | :--- | :--- |
-| **📱 Mobile Application** | **GitHub Release** | [**Download SERS.apk (v1.0.0)**](https://github.com/its-anuraj/SERS/releases/latest) | Production Standalone Android APK for Citizens and First Responders |
+| **📱 Mobile Application** | **GitHub Release** | [**Download SERS_App.apk**](https://github.com/its-anuraj/SERS/releases/latest) | Production Standalone Android APK for Citizens and First Responders |
 | **🏥 Hospital Command Portal** | **Vercel** | [**sers-web-admin.vercel.app**](https://sers-web-admin.vercel.app) | Live Hospital Emergency Desk, Bed Tracker, Doctor Attendance & Radar |
 | **⚡ REST & WebSocket API** | **Render** | [**sers-backend-api.onrender.com**](https://sers-backend-api.onrender.com) | Node.js/Express Real-time API Gateway & Socket.io Server |
 | **🧠 AI/ML Microservice** | **Render** | [**sers-09fb.onrender.com**](https://sers-09fb.onrender.com) | FastAPI Microservice for Crash Scoring, Severity & Route Optimization |
