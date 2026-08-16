@@ -15,8 +15,33 @@ interface Incident {
   address?: string;
 }
 
-interface LiveMapProps {
+interface Hospital {
+  id?: string;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  icu_beds_available?: number;
+  er_beds_available?: number;
+  phone?: string;
+}
+
+interface Ambulance {
+  id?: string;
+  registration_number?: string;
+  current_lat?: number;
+  current_lng?: number;
+  latitude?: number;
+  longitude?: number;
+  status?: string;
+}
+
+export interface LiveMapProps {
   incidents: Incident[];
+  hospitals?: Hospital[];
+  ambulances?: Ambulance[];
+  selectedIncident?: any;
   onSelectIncident?: (inc: Incident) => void;
 }
 
@@ -27,7 +52,7 @@ const severityColor = (severity: string) => {
   return map[severity] || '#64748b';
 };
 
-export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
+export default function LiveMap({ incidents, hospitals = [], ambulances = [], selectedIncident, onSelectIncident }: LiveMapProps) {
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -59,21 +84,94 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
 
-      // Add incident markers
+      // 1. Add Hospital Markers
+      hospitals.forEach(h => {
+        const lat = parseFloat(String(h.latitude ?? h.lat));
+        const lng = parseFloat(String(h.longitude ?? h.lng));
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const icon = L.divIcon({
+          html: `
+            <div style="
+              width: 32px; height: 32px; border-radius: 10px;
+              background: #059669; color: #ffffff;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 16px; box-shadow: 0 4px 10px rgba(5,150,105,0.35);
+              border: 2px solid #ffffff;
+            ">
+              🏥
+            </div>
+          `,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        const marker = L.marker([lat, lng], { icon })
+          .addTo(mapInstanceRef.current)
+          .bindPopup(`
+            <div style="font-family: inherit; min-width: 170px; padding: 4px;">
+              <strong style="color: #059669; font-size: 12px; font-weight: 800;">🏥 ${h.name || 'Hospital Node'}</strong>
+              <p style="font-size: 11px; font-weight: 700; color: #0f172a; margin: 4px 0;">ICU Beds Avail: ${h.icu_beds_available ?? '—'} | ER: ${h.er_beds_available ?? '—'}</p>
+              ${h.phone ? `<p style="font-size: 10px; color: #64748b; margin: 0;">📞 ${h.phone}</p>` : ''}
+            </div>
+          `);
+
+        markersRef.current.push(marker);
+      });
+
+      // 2. Add Ambulance Markers
+      ambulances.forEach(a => {
+        const lat = parseFloat(String(a.current_lat ?? a.latitude));
+        const lng = parseFloat(String(a.current_lng ?? a.longitude));
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const icon = L.divIcon({
+          html: `
+            <div style="
+              width: 32px; height: 32px; border-radius: 10px;
+              background: #2563eb; color: #ffffff;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 16px; box-shadow: 0 4px 10px rgba(37,99,235,0.35);
+              border: 2px solid #ffffff;
+            ">
+              🚑
+            </div>
+          `,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        const marker = L.marker([lat, lng], { icon })
+          .addTo(mapInstanceRef.current)
+          .bindPopup(`
+            <div style="font-family: inherit; min-width: 160px; padding: 4px;">
+              <strong style="color: #2563eb; font-size: 12px; font-weight: 800;">🚑 ${a.registration_number || 'Ambulance Unit'}</strong>
+              <p style="font-size: 11px; font-weight: 700; color: #0f172a; margin: 4px 0;">Status: ${(a.status || 'Active').toUpperCase()}</p>
+            </div>
+          `);
+
+        markersRef.current.push(marker);
+      });
+
+      // 3. Add Incident Markers
       incidents.forEach(incident => {
         const lat = parseFloat(String(incident.latitude ?? incident.lat));
         const lng = parseFloat(String(incident.longitude ?? incident.lng));
         if (isNaN(lat) || isNaN(lng)) return;
 
         const color = severityColor(incident.severity);
+        const isSelected = selectedIncident?.id === incident.id;
+
         const icon = L.divIcon({
           html: `
             <div style="
-              width: 34px; height: 34px; border-radius: 50%;
+              width: ${isSelected ? '38px' : '32px'}; height: ${isSelected ? '38px' : '32px'}; border-radius: 50%;
               background: #ffffff; border: 3px solid ${color};
               display: flex; align-items: center; justify-content: center;
-              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
-              cursor: pointer;
+              box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+              cursor: pointer; transition: transform 0.2s;
             ">
               <div style="width: 12px; height: 12px; border-radius: 50%; background: ${color};"></div>
             </div>
@@ -107,7 +205,7 @@ export default function LiveMap({ incidents, onSelectIncident }: LiveMapProps) {
     };
 
     initMap();
-  }, [incidents, onSelectIncident]);
+  }, [incidents, hospitals, ambulances, selectedIncident, onSelectIncident]);
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
