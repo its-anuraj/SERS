@@ -26,14 +26,14 @@ const COMMON_ALLERGIES = [
 export default function AbdmHealthProfileScreen() {
   const { user } = useAuthStore();
 
-  const [abhaId, setAbhaId] = useState('91-4589-2231-9012');
-  const [abhaAddress, setAbhaAddress] = useState('arjun.kumar@abdm');
-  const [bloodGroup, setBloodGroup] = useState('O+');
-  const [allergies, setAllergies] = useState<string[]>(['Penicillin', 'Sulfa Drugs']);
+  const [abhaId, setAbhaId] = useState(user?.abhaId || '');
+  const [abhaAddress, setAbhaAddress] = useState(user?.abhaAddress || '');
+  const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || 'O+');
+  const [allergies, setAllergies] = useState<string[]>([]);
   const [newAllergy, setNewAllergy] = useState('');
-  const [conditions, setConditions] = useState<string[]>(['Asthma', 'Appendectomy (2022)']);
+  const [conditions, setConditions] = useState<string[]>([]);
   const [newCondition, setNewCondition] = useState('');
-  const [medicalNotes, setMedicalNotes] = useState('Asthmatic patient. Please avoid beta-blockers and penicillin.');
+  const [medicalNotes, setMedicalNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Load existing medical profile on mount
@@ -45,8 +45,10 @@ export default function AbdmHealthProfileScreen() {
         if (data) {
           if (data.bloodGroup) setBloodGroup(data.bloodGroup);
           if (data.abhaId) setAbhaId(data.abhaId);
+          if (data.abhaAddress) setAbhaAddress(data.abhaAddress);
           if (data.allergies && Array.isArray(data.allergies)) setAllergies(data.allergies);
           if (data.conditions && Array.isArray(data.conditions)) setConditions(data.conditions);
+          if (data.medicalNotes) setMedicalNotes(data.medicalNotes);
         }
       } catch {}
     })();

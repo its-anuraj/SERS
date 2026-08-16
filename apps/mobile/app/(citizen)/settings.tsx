@@ -81,7 +81,7 @@ export default function CitizenSettingsScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{user?.name || 'Citizen'}</Text>
-            <Text style={styles.profilePhone}>📞 {user?.phone || '+91 98765 00001'}</Text>
+            <Text style={styles.profilePhone}>📞 {user?.phone || 'Not Available'}</Text>
             <Text style={styles.profileBadge}>🛡️ ABDM Health ID: Linked & Verified</Text>
           </View>
         </View>

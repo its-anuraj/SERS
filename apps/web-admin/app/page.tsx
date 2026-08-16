@@ -389,7 +389,7 @@ export default function DashboardPage() {
   const myHospital = hospitals.find(h => h.id === currentUser?.hospitalId || h.name === currentUser?.hospital);
   const availableIcuBeds = myHospital ? parseInt(myHospital.icu_beds_available) || 0 : hospitals.reduce((acc, h) => acc + (parseInt(h.icu_beds_available) || 0), 0);
   const activeDispatchedAmbulances = ambulances.filter(a => ['en_route', 'dispatched', 'transporting', 'on_scene'].includes(a.status)).length;
-  const avgResponse = stats?.incidents?.avg_response_mins ? `${stats.incidents.avg_response_mins} min` : '6.5 min';
+  const avgResponse = stats?.incidents?.avg_response_mins ? `${stats.incidents.avg_response_mins} min` : '—';
 
   return (
     <div className="min-h-screen bg-[#f0f7ff] text-slate-900 flex font-sans">

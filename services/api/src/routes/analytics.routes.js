@@ -177,20 +177,27 @@ Respond in 2-4 sentences. Be precise, data-driven, and helpful. If the data does
         const q = userQuery.toLowerCase();
 
         let answer = '';
+        const totalInc = parseInt(stats.total) || 0;
+        const resolvedInc = parseInt(stats.resolved) || 0;
+        const aiInc = parseInt(stats.ai_detected) || 0;
+        const avgResp = stats.avg_response_mins ? `${stats.avg_response_mins} minutes` : 'N/A';
+
         if (q.includes('response time') || q.includes('average time')) {
-            answer = `**Average Response Time (last 30 days): ${stats.avg_response_mins} minutes.** Total incidents analyzed: ${stats.total}. Peak response times occur during rush hours (8–10 AM, 5–8 PM).`;
+            answer = `**Average Response Time (last 30 days): ${avgResp}.** Total incidents analyzed: ${totalInc}.`;
         } else if (q.includes('active') || q.includes('ongoing')) {
-            answer = `**Currently active incidents: ${stats.active}.** Of these, ${stats.critical_count} are critical severity. ${amb.en_route} ambulances are currently en route.`;
+            answer = `**Currently active incidents: ${stats.active || 0}.** Of these, ${stats.critical_count || 0} are critical severity. ${amb.en_route || 0} ambulances are currently en route.`;
         } else if (q.includes('ambulance') || q.includes('fleet')) {
-            answer = `**Ambulance Fleet Status:** ${amb.available} of ${amb.total} ambulances are available. ${amb.en_route} currently en route to incidents.`;
+            answer = `**Ambulance Fleet Status:** ${amb.available || 0} of ${amb.total || 0} ambulances are available. ${amb.en_route || 0} currently en route to incidents.`;
         } else if (q.includes('hospital') || q.includes('icu') || q.includes('bed')) {
-            answer = `**Hospital Network:** ${hosp.on_network} of ${hosp.total} hospitals are on the SERS network. ${hosp.has_icu} hospitals currently have ICU beds available.`;
+            answer = `**Hospital Network:** ${hosp.on_network || 0} of ${hosp.total || 0} hospitals are on the SERS network. ${hosp.has_icu || 0} hospitals currently have ICU beds available.`;
         } else if (q.includes('ai') || q.includes('crash') || q.includes('detect')) {
-            answer = `**AI Crash Detections (last 30 days): ${stats.ai_detected} incidents** were automatically detected by the on-device crash detection engine (${((stats.ai_detected / stats.total) * 100).toFixed(1)}% of total incidents).`;
+            const aiPct = totalInc > 0 ? ((aiInc / totalInc) * 100).toFixed(1) : '0';
+            answer = `**AI Crash Detections (last 30 days): ${aiInc} incidents** were automatically detected by the on-device crash detection engine (${aiPct}% of total incidents).`;
         } else if (q.includes('week') || q.includes('7 day') || q.includes('last week')) {
-            answer = `**Last 7 days: ${stats.last_7_days} incidents** recorded. Type breakdown: ${ctx.type_breakdown.slice(0,3).map(t => `${t.type} (${t.count})`).join(', ')}.`;
+            answer = `**Last 7 days: ${stats.last_7_days || 0} incidents** recorded.${ctx.type_breakdown.length > 0 ? ` Type breakdown: ${ctx.type_breakdown.slice(0,3).map(t => `${t.type} (${t.count})`).join(', ')}.` : ''}`;
         } else {
-            answer = `**SERS Summary (last 30 days):** ${stats.total} total incidents, ${stats.resolved} resolved (${((stats.resolved/stats.total)*100).toFixed(0)}% resolution rate). Average response time: **${stats.avg_response_mins} minutes**. ${amb.available}/${amb.total} ambulances available. ${hosp.on_network} hospitals connected.\n\nFor a more specific answer, try asking about response times, active incidents, ambulance status, or hospital capacity.`;
+            const resolveRate = totalInc > 0 ? ((resolvedInc / totalInc) * 100).toFixed(0) : '0';
+            answer = `**SERS Summary (last 30 days):** ${totalInc} total incidents, ${resolvedInc} resolved (${resolveRate}% resolution rate). Average response time: **${avgResp}**. ${amb.available || 0}/${amb.total || 0} ambulances available. ${hosp.on_network || 0} hospitals connected.\n\nFor a more specific answer, try asking about response times, active incidents, ambulance status, or hospital capacity.`;
         }
 
         res.json({ success: true, data: { answer, context: ctx, note: 'Gemini API key not configured — using rule-based response.' } });
