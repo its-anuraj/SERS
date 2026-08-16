@@ -98,17 +98,28 @@ export default function AuthScreen() {
       Alert.alert('Verification Code Sent', `A 6-digit verification code has been dispatched to ${clean}. Please check your phone or inbox.`);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message;
-      if (msg?.toLowerCase().includes('not registered') || msg?.toLowerCase().includes('not found')) {
+      if (
+        msg?.toLowerCase().includes('not registered') ||
+        msg?.toLowerCase().includes('not found') ||
+        msg?.toLowerCase().includes('declined') ||
+        err?.response?.status === 404
+      ) {
         Alert.alert(
-          'Account Not Found',
-          'This mobile number or email is not registered with SERS. Please register your account first.',
+          '❌ OTP Login Declined',
+          'This mobile number or email is not registered with SERS. Only verified Citizens and Ambulance Responders can log in via OTP.\n\nPlease create your emergency account first.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Register Now', onPress: () => { setMode('register'); setRegPhone(clean); } }
+            {
+              text: 'Register Account →',
+              onPress: () => {
+                setMode('register');
+                setRegPhone(clean);
+              }
+            }
           ]
         );
       } else {
-        Alert.alert('Failed to send OTP', msg || 'Please check your internet connection.');
+        Alert.alert('OTP Request Failed', msg || 'Please check your internet connection.');
       }
     } finally {
       setLoading(false);

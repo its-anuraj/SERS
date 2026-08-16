@@ -424,12 +424,12 @@ const sendOTP = async (req, res, next) => {
         );
 
         if (userCheck.rows.length === 0) {
-            throw new ApiError(404, 'Account not registered. Please register first with your hospital or contact your system administrator.');
+            throw new ApiError(404, 'Authentication Declined: This mobile number or email is not registered with SERS. Please register as an authentic Citizen or Ambulance Responder first.');
         }
 
         const user = userCheck.rows[0];
         if (!user.is_active) {
-            throw new ApiError(403, 'Account is deactivated or pending verification. Please contact your hospital administrator.');
+            throw new ApiError(403, 'Account is deactivated or pending verification. Please contact support.');
         }
 
         if (requireStaffRole && user.role === 'citizen') {
