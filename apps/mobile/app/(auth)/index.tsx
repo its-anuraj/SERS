@@ -245,15 +245,15 @@ export default function AuthScreen() {
                 <View style={styles.demoChips}>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('+919876543210'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('+919876500001'); setPassword('Test@1234'); }}
                   >
-                    <Text style={styles.demoChipText}>👤 Citizen Demo Account</Text>
+                    <Text style={styles.demoChipText}>👤 Citizen Demo Account (+919876500001)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('+919876543211'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('+919876500003'); setPassword('Test@1234'); }}
                   >
-                    <Text style={styles.demoChipText}>🚑 Responder Demo Account</Text>
+                    <Text style={styles.demoChipText}>🚑 Responder Demo Account (+919876500003)</Text>
                   </TouchableOpacity>
                 </View>
               </View>
