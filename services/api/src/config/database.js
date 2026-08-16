@@ -8,10 +8,13 @@ const logger = require('./logger');
 let pool;
 
 const connectDB = async () => {
+    const isLocal = !process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+    const sslConfig = isLocal ? false : { rejectUnauthorized: false };
+
     const config = process.env.DATABASE_URL
         ? {
             connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false },
+            ssl: sslConfig,
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 10000,
@@ -25,7 +28,7 @@ const connectDB = async () => {
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 5000,
-            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+            ssl: process.env.NODE_ENV === 'production' && !isLocal ? { rejectUnauthorized: false } : false,
         };
 
     pool = new Pool(config);
