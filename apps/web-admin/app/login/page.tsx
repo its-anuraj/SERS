@@ -751,8 +751,18 @@ export default function LoginPage() {
                     />
                   </div>
 
+                  <div className="bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    <label className="text-[10px] font-black text-rose-700 block">Available ICU</label>
+                    <input
+                      type="number"
+                      value={icuBedsAvailable}
+                      onChange={e => setIcuBedsAvailable(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-rose-200 rounded-lg p-1.5 text-xs font-black text-rose-700 text-center"
+                    />
+                  </div>
+
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <label className="text-[10px] font-black text-slate-600 block">Total ER Beds</label>
+                    <label className="text-[10px] font-black text-slate-600 block">Total ER Bays</label>
                     <input
                       type="number"
                       value={erBedsTotal}
@@ -761,23 +771,13 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <label className="text-[10px] font-black text-slate-600 block">Oxygen Points</label>
+                  <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                    <label className="text-[10px] font-black text-emerald-700 block">Available ER</label>
                     <input
                       type="number"
-                      value={oxygenTotal}
-                      onChange={e => setOxygenTotal(Number(e.target.value))}
-                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
-                    />
-                  </div>
-
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <label className="text-[10px] font-black text-slate-600 block">Ventilators</label>
-                    <input
-                      type="number"
-                      value={ventilatorsTotal}
-                      onChange={e => setVentilatorsTotal(Number(e.target.value))}
-                      className="w-full mt-1 bg-white border border-slate-200 rounded-lg p-1.5 text-xs font-black text-slate-900 text-center"
+                      value={erBedsAvailable}
+                      onChange={e => setErBedsAvailable(Number(e.target.value))}
+                      className="w-full mt-1 bg-white border border-emerald-200 rounded-lg p-1.5 text-xs font-black text-emerald-700 text-center"
                     />
                   </div>
                 </div>
