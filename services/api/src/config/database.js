@@ -126,12 +126,26 @@ const autoSeedDatabase = async () => {
             await pool.query(seedSql).catch(e => logger.warn('Seed notice:', e.message));
         }
 
-        // Guarantee password hash for Test@1234 across all demo emails and phone numbers
+        // Guarantee default test users exist
         const defaultHash = await bcrypt.hash('Test@1234', 10);
+        
+        await pool.query(`
+            INSERT INTO users (name, phone, email, password_hash, role, is_active, is_verified)
+            VALUES 
+              ('Arjun Citizen', '+919876543210', 'arjun@demo.sers.in', $1, 'citizen', TRUE, TRUE),
+              ('Ravi Paramedic', '+919876543211', 'ravi@demo.sers.in', $1, 'responder', TRUE, TRUE),
+              ('Arjun Kumar', '+919876500001', 'arjun.kumar@demo.sers.in', $1, 'citizen', TRUE, TRUE),
+              ('Ravi Driver', '+919876500003', 'ravi.paramedic@demo.sers.in', $1, 'responder', TRUE, TRUE),
+              ('Dr. Meera Nair', '+919876500005', 'drmeera@demo.sers.in', $1, 'hospital_staff', TRUE, TRUE),
+              ('Admin SERS', '+919876500007', 'admin@sers.in', $1, 'admin', TRUE, TRUE)
+            ON CONFLICT (phone) DO UPDATE 
+            SET password_hash = $1, is_active = TRUE, is_verified = TRUE;
+        `, [defaultHash]).catch(e => logger.warn('Seed upsert notice:', e.message));
+
         await pool.query(`
             UPDATE users SET password_hash = $1 
             WHERE LOWER(email) IN ('admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', 'ravi@demo.sers.in', 'priya@demo.sers.in', 'suresh@demo.sers.in', 'coord@sers.in')
-               OR phone IN ('+919876500001', '+919876500002', '+919876500003', '+919876500004', '+919876500005', '+919876500006', '+919876500007')
+               OR phone IN ('+919876543210', '+919876543211', '+919876500001', '+919876500002', '+919876500003', '+919876500004', '+919876500005', '+919876500006', '+919876500007')
         `, [defaultHash]).catch(() => {});
 
         logger.info('✅ Cloud Database schema & default authentication credentials verified');
