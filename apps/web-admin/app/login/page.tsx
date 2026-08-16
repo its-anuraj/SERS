@@ -452,7 +452,7 @@ export default function LoginPage() {
                     required
                     value={identifier}
                     onChange={e => setIdentifier(e.target.value)}
-                    placeholder="e.g. drmeera@demo.sers.in or +919876500005"
+                    placeholder="Enter your registered email or mobile number"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                 </div>
@@ -491,7 +491,7 @@ export default function LoginPage() {
               <div className="pt-4 border-t border-slate-100 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                    🔑 Test Logins (Password: Test@1234)
+                    🔑 Quick Demo Portals
                   </span>
                 </div>
 
@@ -548,7 +548,7 @@ export default function LoginPage() {
                         required
                         value={otpIdentifier}
                         onChange={e => setOtpIdentifier(e.target.value)}
-                        placeholder="e.g. yourname@gmail.com or +919876543210"
+                        placeholder="Enter mobile (+91) or email address"
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600 shadow-xs"
                       />
                     </div>

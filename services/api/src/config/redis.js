@@ -6,104 +6,173 @@
 const Redis = require('ioredis');
 const logger = require('./logger');
 
-let redis;
+let redis = null;
+const memoryCache = new Map();
+const memorySets = new Map();
 
 const connectRedis = async () => {
-    if (process.env.REDIS_URL) {
-        redis = new Redis(process.env.REDIS_URL, {
-            retryStrategy: (times) => {
-                if (times > 10) {
-                    logger.error('Redis connection failed after 10 retries');
-                    return null;
-                }
-                return Math.min(times * 100, 3000);
-            },
-            enableReadyCheck: true,
-            maxRetriesPerRequest: 3,
-        });
-    } else {
-        redis = new Redis({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT) || 6379,
-            password: process.env.REDIS_PASSWORD || undefined,
-            retryStrategy: (times) => {
-                if (times > 10) {
-                    logger.error('Redis connection failed after 10 retries');
-                    return null;
-                }
-                return Math.min(times * 100, 3000);
-            },
-            enableReadyCheck: true,
-            maxRetriesPerRequest: 3,
-        });
+    try {
+        if (process.env.REDIS_URL) {
+            redis = new Redis(process.env.REDIS_URL, {
+                retryStrategy: (times) => {
+                    if (times > 3) return null;
+                    return Math.min(times * 100, 1000);
+                },
+                enableReadyCheck: true,
+                maxRetriesPerRequest: 1,
+                connectTimeout: 4000,
+            });
+        } else {
+            redis = new Redis({
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT) || 6379,
+                password: process.env.REDIS_PASSWORD || undefined,
+                retryStrategy: (times) => {
+                    if (times > 3) return null;
+                    return Math.min(times * 100, 1000);
+                },
+                enableReadyCheck: true,
+                maxRetriesPerRequest: 1,
+                connectTimeout: 4000,
+            });
+        }
+
+        redis.on('error', (err) => logger.warn('Redis notice:', err.message));
+
+        await Promise.race([
+            redis.ping(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 3000))
+        ]);
+
+        logger.info('✅ Redis connected');
+        return redis;
+    } catch (err) {
+        logger.warn(`⚠️ Redis offline (${err.message}). Using high-performance in-memory cache fallback.`);
+        redis = null;
+        return null;
     }
-
-    await redis.ping();
-
-    redis.on('error', (err) => logger.error('Redis error:', err.message));
-    redis.on('reconnecting', () => logger.warn('Redis reconnecting...'));
-
-    return redis;
 };
 
 const getRedis = () => {
-    if (!redis) throw new Error('Redis not initialized. Call connectRedis() first.');
     return redis;
 };
 
-// ---- Convenience helpers ----
+const getRedisClient = () => {
+    return redis;
+};
+
+// ---- Convenience helpers with automatic fallback ----
 
 /**
  * Cache ambulance position (expires in 30 seconds)
  */
 const setAmbulancePosition = async (ambulanceId, lat, lng, heading, speed) => {
-    const key = `ambulance:pos:${ambulanceId}`;
-    await redis.setex(key, 30, JSON.stringify({ lat, lng, heading, speed, updatedAt: Date.now() }));
+    const val = JSON.stringify({ lat, lng, heading, speed, updatedAt: Date.now() });
+    if (redis && redis.status === 'ready') {
+        try {
+            await redis.setex(`ambulance:pos:${ambulanceId}`, 30, val);
+            return;
+        } catch {}
+    }
+    memoryCache.set(`ambulance:pos:${ambulanceId}`, { val, expiresAt: Date.now() + 30000 });
 };
 
 const getAmbulancePosition = async (ambulanceId) => {
-    const data = await redis.get(`ambulance:pos:${ambulanceId}`);
-    return data ? JSON.parse(data) : null;
+    if (redis && redis.status === 'ready') {
+        try {
+            const data = await redis.get(`ambulance:pos:${ambulanceId}`);
+            return data ? JSON.parse(data) : null;
+        } catch {}
+    }
+    const item = memoryCache.get(`ambulance:pos:${ambulanceId}`);
+    if (item && item.expiresAt > Date.now()) {
+        return JSON.parse(item.val);
+    }
+    return null;
 };
 
 /**
  * Cache hospital capacity (expires in 60 seconds)
  */
 const setHospitalCapacity = async (hospitalId, capacity) => {
-    await redis.setex(`hospital:capacity:${hospitalId}`, 60, JSON.stringify(capacity));
+    const val = JSON.stringify(capacity);
+    if (redis && redis.status === 'ready') {
+        try {
+            await redis.setex(`hospital:capacity:${hospitalId}`, 60, val);
+            return;
+        } catch {}
+    }
+    memoryCache.set(`hospital:capacity:${hospitalId}`, { val, expiresAt: Date.now() + 60000 });
 };
 
 const getHospitalCapacity = async (hospitalId) => {
-    const data = await redis.get(`hospital:capacity:${hospitalId}`);
-    return data ? JSON.parse(data) : null;
+    if (redis && redis.status === 'ready') {
+        try {
+            const data = await redis.get(`hospital:capacity:${hospitalId}`);
+            return data ? JSON.parse(data) : null;
+        } catch {}
+    }
+    const item = memoryCache.get(`hospital:capacity:${hospitalId}`);
+    if (item && item.expiresAt > Date.now()) {
+        return JSON.parse(item.val);
+    }
+    return null;
 };
 
 /**
  * Store active incident rooms (for Socket.io room management)
  */
 const addToIncidentRoom = async (incidentId, socketId) => {
-    await redis.sadd(`incident:room:${incidentId}`, socketId);
-    await redis.expire(`incident:room:${incidentId}`, 86400); // 24h
+    if (redis && redis.status === 'ready') {
+        try {
+            await redis.sadd(`incident:room:${incidentId}`, socketId);
+            await redis.expire(`incident:room:${incidentId}`, 86400);
+            return;
+        } catch {}
+    }
+    if (!memorySets.has(incidentId)) memorySets.set(incidentId, new Set());
+    memorySets.get(incidentId).add(socketId);
 };
 
 const removeFromIncidentRoom = async (incidentId, socketId) => {
-    await redis.srem(`incident:room:${incidentId}`, socketId);
+    if (redis && redis.status === 'ready') {
+        try {
+            await redis.srem(`incident:room:${incidentId}`, socketId);
+            return;
+        } catch {}
+    }
+    if (memorySets.has(incidentId)) {
+        memorySets.get(incidentId).delete(socketId);
+    }
 };
 
 /**
  * Blacklist JWT tokens on logout
  */
 const blacklistToken = async (token, expiresIn) => {
-    await redis.setex(`blacklist:${token}`, expiresIn, '1');
+    if (redis && redis.status === 'ready') {
+        try {
+            await redis.setex(`blacklist:${token}`, expiresIn, '1');
+            return;
+        } catch {}
+    }
+    memoryCache.set(`blacklist:${token}`, { val: '1', expiresAt: Date.now() + (expiresIn * 1000) });
 };
 
 const isTokenBlacklisted = async (token) => {
-    return !!(await redis.exists(`blacklist:${token}`));
+    if (redis && redis.status === 'ready') {
+        try {
+            return !!(await redis.exists(`blacklist:${token}`));
+        } catch {}
+    }
+    const item = memoryCache.get(`blacklist:${token}`);
+    return !!(item && item.expiresAt > Date.now());
 };
 
 module.exports = {
     connectRedis,
     getRedis,
+    getRedisClient,
     setAmbulancePosition,
     getAmbulancePosition,
     setHospitalCapacity,

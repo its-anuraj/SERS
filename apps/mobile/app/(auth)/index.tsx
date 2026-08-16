@@ -173,7 +173,7 @@ export default function AuthScreen() {
               <Text style={styles.label}>Phone Number or Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="+919876500001 or email@domain.com"
+                placeholder="Enter registered mobile or email"
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
                 value={phone}
@@ -182,7 +182,7 @@ export default function AuthScreen() {
               <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter password (e.g. Test@1234)"
+                placeholder="••••••••"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
                 value={password}
@@ -201,15 +201,15 @@ export default function AuthScreen() {
                 <View style={styles.demoChips}>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('+919876500001'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('arjun@demo.sers.in'); setPassword('Test@1234'); }}
                   >
-                    <Text style={styles.demoChipText}>👤 Citizen (+919876500001)</Text>
+                    <Text style={styles.demoChipText}>👤 Citizen Demo Account</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('+919876500003'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('ravi@demo.sers.in'); setPassword('Test@1234'); }}
                   >
-                    <Text style={styles.demoChipText}>🚑 Responder (+919876500003)</Text>
+                    <Text style={styles.demoChipText}>🚑 Responder Demo Account</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -223,7 +223,7 @@ export default function AuthScreen() {
                   <Text style={styles.label}>Enter Mobile Number (+91) or Gmail</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="e.g. yourname@gmail.com or +919876500001"
+                    placeholder="Enter mobile (+91) or email address"
                     placeholderTextColor="#94a3b8"
                     autoCapitalize="none"
                     value={otpIdentifier}
@@ -298,7 +298,7 @@ export default function AuthScreen() {
               <Text style={styles.label}>Full Name</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Dr. Arjun Kumar"
+                placeholder="Enter full legal name"
                 placeholderTextColor="#94a3b8"
                 value={name}
                 onChangeText={setName}
@@ -306,7 +306,7 @@ export default function AuthScreen() {
               <Text style={styles.label}>Phone Number</Text>
               <TextInput
                 style={styles.input}
-                placeholder="+919876543210"
+                placeholder="+91 Mobile number"
                 placeholderTextColor="#94a3b8"
                 keyboardType="phone-pad"
                 value={regPhone}
@@ -315,7 +315,7 @@ export default function AuthScreen() {
               <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Create a password"
+                placeholder="Choose a secure password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
                 value={regPass}

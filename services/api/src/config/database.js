@@ -9,35 +9,50 @@ let pool;
 
 const connectDB = async () => {
     const isLocal = !process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
-    const sslConfig = isLocal ? false : { rejectUnauthorized: false };
 
-    const config = process.env.DATABASE_URL
-        ? {
-            connectionString: process.env.DATABASE_URL,
-            ssl: sslConfig,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
+    const tryConnect = async (useSsl) => {
+        const config = process.env.DATABASE_URL
+            ? {
+                connectionString: process.env.DATABASE_URL,
+                ssl: useSsl ? { rejectUnauthorized: false } : false,
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 10000,
+            }
+            : {
+                host: process.env.DB_HOST || 'localhost',
+                port: parseInt(process.env.DB_PORT) || 5432,
+                database: process.env.DB_NAME || 'sers_db',
+                user: process.env.DB_USER || 'sers_user',
+                password: process.env.DB_PASSWORD || 'sers_secret_password',
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 5000,
+                ssl: useSsl ? { rejectUnauthorized: false } : false,
+            };
+
+        const testPool = new Pool(config);
+        const client = await testPool.connect();
+        await client.query('SELECT 1');
+        client.release();
+        return testPool;
+    };
+
+    try {
+        // Try with determined SSL setting
+        pool = await tryConnect(!isLocal);
+    } catch (err) {
+        if (err.message && err.message.includes('does not support SSL')) {
+            logger.warn('Retrying DB connection without SSL...');
+            pool = await tryConnect(false);
+        } else if (err.message && (err.message.includes('SSL') || err.message.includes('no pg_hba.conf entry'))) {
+            logger.warn('Retrying DB connection with SSL...');
+            pool = await tryConnect(true);
+        } else {
+            throw err;
         }
-        : {
-            host: process.env.DB_HOST || 'localhost',
-            port: parseInt(process.env.DB_PORT) || 5432,
-            database: process.env.DB_NAME || 'sers_db',
-            user: process.env.DB_USER || 'sers_user',
-            password: process.env.DB_PASSWORD || 'sers_secret_password',
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 5000,
-            ssl: process.env.NODE_ENV === 'production' && !isLocal ? { rejectUnauthorized: false } : false,
-        };
+    }
 
-    pool = new Pool(config);
-
-    // Test the connection
-    const client = await pool.connect();
-    await client.query('SELECT PostGIS_Version()');
-    client.release();
-    
     pool.on('error', (err) => {
         logger.error('Unexpected PostgreSQL pool error:', err);
     });

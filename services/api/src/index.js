@@ -16,19 +16,30 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
     try {
         // Connect to PostgreSQL
-        await connectDB();
-        logger.info('✅ PostgreSQL connected');
+        try {
+            await connectDB();
+            logger.info('✅ PostgreSQL connected');
+        } catch (dbErr) {
+            logger.error('❌ PostgreSQL connection error:', dbErr.message);
+        }
 
-        // Connect to Redis
-        await connectRedis();
-        logger.info('✅ Redis connected');
+        // Connect to Redis (optional fallback)
+        try {
+            await connectRedis();
+        } catch (redisErr) {
+            logger.warn('⚠️ Redis startup notice:', redisErr.message);
+        }
 
         // Create HTTP server
         const server = http.createServer(app);
 
         // Initialize Socket.io
-        initSocketIO(server);
-        logger.info('✅ Socket.io initialized');
+        try {
+            initSocketIO(server);
+            logger.info('✅ Socket.io initialized');
+        } catch (wsErr) {
+            logger.warn('⚠️ Socket.io notice:', wsErr.message);
+        }
 
         // Start listening
         server.listen(PORT, () => {
