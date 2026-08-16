@@ -89,6 +89,14 @@ const autoSeedDatabase = async () => {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS specialization TEXT;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token TEXT;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(10) DEFAULT 'en';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS govt_id_type VARCHAR(50);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS govt_id_number VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(50);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_id VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_reg_number VARCHAR(50);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS driving_license VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS abha_id VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS abha_address VARCHAR(150);
 
             CREATE TABLE IF NOT EXISTS staff_attendance (
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

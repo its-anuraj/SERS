@@ -369,7 +369,7 @@ export default function LoginPage() {
                   ? 'bg-white text-rose-700 shadow-sm border border-rose-200'
                   : 'text-slate-500 hover:text-slate-800'
               }`}>
-              ⚡ 1-Click OTP Login
+              ⚡ Secure OTP Login
             </button>
             <button
               type="button"

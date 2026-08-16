@@ -17,6 +17,12 @@ interface User {
   abhaId?: string;
   abhaAddress?: string;
   bloodGroup?: string;
+  govtIdType?: string;
+  govtIdNumber?: string;
+  vehicleNumber?: string;
+  badgeId?: string;
+  vehicleRegNumber?: string;
+  drivingLicense?: string;
   hospitalId?: string;
   hospitalName?: string;
   staffTitle?: string;
@@ -30,7 +36,7 @@ interface AuthState {
   isLoading: boolean;
 
   login: (phone: string, password: string) => Promise<void>;
-  sendOTP: (identifier: string) => Promise<{ previewOtp?: string; message: string }>;
+  sendOTP: (identifier: string) => Promise<{ message: string }>;
   verifyOTP: (identifier: string, otp: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -44,6 +50,14 @@ interface RegisterData {
   role?: string;
   email?: string;
   bloodGroup?: string;
+  govtIdType?: string;
+  govtIdNumber?: string;
+  vehicleNumber?: string;
+  badgeId?: string;
+  vehicleRegNumber?: string;
+  drivingLicense?: string;
+  abhaId?: string;
+  abhaAddress?: string;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

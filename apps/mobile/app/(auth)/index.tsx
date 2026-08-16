@@ -1,5 +1,5 @@
 /**
- * SERS Mobile — Auth Screen (Password Login, 1-Click OTP, and Registration)
+ * SERS Mobile — Auth Screen (Password Login, Secure OTP, and Verified Citizen/Responder Registration)
  */
 
 import { useState, useEffect } from 'react';
@@ -26,16 +26,27 @@ export default function AuthScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [previewOtpHint, setPreviewOtpHint] = useState<string | null>(null);
 
-  // Register fields
+  // Registration Common fields
   const [name, setName]         = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass]   = useState('');
   const [role, setRole]         = useState<'citizen' | 'responder'>('citizen');
-  const [bloodGroup, setBloodGroup] = useState('');
 
-  // Countdown timer
+  // Citizen Specific fields
+  const [bloodGroup, setBloodGroup]     = useState('');
+  const [govtIdType, setGovtIdType]     = useState<'Aadhaar' | 'PAN Card' | 'Driving License' | 'Voter ID'>('Aadhaar');
+  const [govtIdNumber, setGovtIdNumber] = useState('');
+  const [abhaId, setAbhaId]             = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+
+  // Responder Specific fields
+  const [badgeId, setBadgeId]                   = useState('');
+  const [vehicleRegNumber, setVehicleRegNumber] = useState('');
+  const [drivingLicense, setDrivingLicense]     = useState('');
+
+  // Countdown timer for OTP resend
   useEffect(() => {
     let timer: any;
     if (otpCountdown > 0) {
@@ -46,7 +57,7 @@ export default function AuthScreen() {
 
   const handlePasswordLogin = async () => {
     if (!phone.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter phone/email and password.');
+      Alert.alert('Error', 'Please enter your registered phone/email and password.');
       return;
     }
     setLoading(true);
@@ -68,21 +79,29 @@ export default function AuthScreen() {
   const handleSendOtp = async () => {
     const clean = otpIdentifier.trim();
     if (!clean) {
-      Alert.alert('Error', 'Please enter your Mobile number or Gmail address.');
+      Alert.alert('Error', 'Please enter your registered Mobile number or Gmail address.');
       return;
     }
     setLoading(true);
-    setPreviewOtpHint(null);
     try {
-      const res = await sendOTP(clean);
+      await sendOTP(clean);
       setOtpStep('verify');
       setOtpCountdown(60);
-      if (res.previewOtp) {
-        setPreviewOtpHint(res.previewOtp);
-      }
-      Alert.alert('OTP Dispatched', `Verification code sent to ${clean}`);
+      Alert.alert('Verification Code Sent', `A 6-digit verification code has been dispatched to ${clean}. Please check your phone or inbox.`);
     } catch (err: any) {
-      Alert.alert('Failed to send OTP', err?.response?.data?.message || err?.message || 'Please check your connection.');
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message;
+      if (msg?.toLowerCase().includes('not registered') || msg?.toLowerCase().includes('not found')) {
+        Alert.alert(
+          'Account Not Found',
+          'This mobile number or email is not registered with SERS. Please register your account first.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Register Now', onPress: () => { setMode('register'); setRegPhone(clean); } }
+          ]
+        );
+      } else {
+        Alert.alert('Failed to send OTP', msg || 'Please check your internet connection.');
+      }
     } finally {
       setLoading(false);
     }
@@ -90,7 +109,7 @@ export default function AuthScreen() {
 
   const handleVerifyOtp = async () => {
     const cleanOtp = otpCode.trim();
-    if (cleanOtp.length < 4) {
+    if (cleanOtp.length < 6) {
       Alert.alert('Error', 'Please enter the complete 6-digit verification code.');
       return;
     }
@@ -104,7 +123,7 @@ export default function AuthScreen() {
         router.replace('/(citizen)');
       }
     } catch (err: any) {
-      Alert.alert('Verification Failed', err?.response?.data?.message || err?.message || 'Invalid or expired OTP.');
+      Alert.alert('Verification Failed', err?.response?.data?.message || err?.message || 'Invalid or expired verification code.');
     } finally {
       setLoading(false);
     }
@@ -112,12 +131,37 @@ export default function AuthScreen() {
 
   const handleRegister = async () => {
     if (!name.trim() || !regPhone.trim() || !regPass.trim()) {
-      Alert.alert('Error', 'All fields are required.');
+      Alert.alert('Error', 'Full name, phone number, and password are required.');
       return;
     }
+
+    if (role === 'responder') {
+      if (!badgeId.trim() || !vehicleRegNumber.trim() || !drivingLicense.trim()) {
+        Alert.alert('Responder Verification Required', 'Please provide Badge ID, Ambulance Registration Number, and Emergency License.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      await register({ name: name.trim(), phone: regPhone.trim(), password: regPass, role, bloodGroup: role === 'citizen' ? bloodGroup : undefined });
+      await register({
+        name: name.trim(),
+        phone: regPhone.trim(),
+        email: regEmail.trim() || undefined,
+        password: regPass,
+        role,
+        bloodGroup: role === 'citizen' ? bloodGroup || undefined : undefined,
+        govtIdType: role === 'citizen' ? govtIdType : undefined,
+        govtIdNumber: role === 'citizen' ? govtIdNumber.trim() || undefined : undefined,
+        abhaId: role === 'citizen' ? abhaId.trim() || undefined : undefined,
+        vehicleNumber: role === 'citizen' ? vehicleNumber.trim() || undefined : undefined,
+        badgeId: role === 'responder' ? badgeId.trim() : undefined,
+        vehicleRegNumber: role === 'responder' ? vehicleRegNumber.trim() : undefined,
+        drivingLicense: role === 'responder' ? drivingLicense.trim() : undefined,
+      });
+
+      Alert.alert('Registration Successful', `Welcome to SERS! Your verified ${role === 'responder' ? 'Paramedic / Driver' : 'Citizen'} account is active.`);
+
       const currentUser = useAuthStore.getState().user;
       if (currentUser?.role === 'responder') {
         router.replace('/(responder)');
@@ -125,7 +169,7 @@ export default function AuthScreen() {
         router.replace('/(citizen)');
       }
     } catch (err: any) {
-      Alert.alert('Registration Failed', err?.response?.data?.message || 'Something went wrong.');
+      Alert.alert('Registration Failed', err?.response?.data?.message || err?.response?.data?.error || 'Something went wrong during registration.');
     } finally {
       setLoading(false);
     }
@@ -156,7 +200,7 @@ export default function AuthScreen() {
             style={[styles.tab, mode === 'otp' && styles.activeTab]}
             onPress={() => { setMode('otp'); setOtpStep('input'); }}
           >
-            <Text style={[styles.tabText, mode === 'otp' && styles.activeTabText]}>⚡ Free OTP</Text>
+            <Text style={[styles.tabText, mode === 'otp' && styles.activeTabText]}>🔐 Secure OTP</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, mode === 'register' && styles.activeTab]}
@@ -170,7 +214,7 @@ export default function AuthScreen() {
         <View style={styles.card}>
           {mode === 'login' && (
             <>
-              <Text style={styles.label}>Phone Number or Email</Text>
+              <Text style={styles.label}>Registered Phone Number or Email</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter registered mobile or email"
@@ -201,13 +245,13 @@ export default function AuthScreen() {
                 <View style={styles.demoChips}>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('arjun@demo.sers.in'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('+919876543210'); setPassword('Test@1234'); }}
                   >
                     <Text style={styles.demoChipText}>👤 Citizen Demo Account</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.demoChip}
-                    onPress={() => { setPhone('ravi@demo.sers.in'); setPassword('Test@1234'); }}
+                    onPress={() => { setPhone('+919876543211'); setPassword('Test@1234'); }}
                   >
                     <Text style={styles.demoChipText}>🚑 Responder Demo Account</Text>
                   </TouchableOpacity>
@@ -220,23 +264,23 @@ export default function AuthScreen() {
             <>
               {otpStep === 'input' ? (
                 <>
-                  <Text style={styles.label}>Enter Mobile Number (+91) or Gmail</Text>
+                  <Text style={styles.label}>Enter Registered Mobile (+91) or Gmail</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter mobile (+91) or email address"
+                    placeholder="Enter registered mobile or email"
                     placeholderTextColor="#94a3b8"
                     autoCapitalize="none"
                     value={otpIdentifier}
                     onChangeText={setOtpIdentifier}
                   />
                   <Text style={styles.helperText}>
-                    💡 A 6-digit verification code will be sent to your Phone or Gmail.
+                    🔒 A secure 6-digit verification code will be sent to your registered number or email inbox.
                   </Text>
 
                   <TouchableOpacity style={styles.btn} onPress={handleSendOtp} disabled={loading}>
                     {loading
                       ? <ActivityIndicator color="#fff" />
-                      : <Text style={styles.btnText}>Send 6-Digit OTP Code →</Text>
+                      : <Text style={styles.btnText}>Send Verification Code →</Text>
                     }
                   </TouchableOpacity>
                 </>
@@ -260,10 +304,10 @@ export default function AuthScreen() {
                     onChangeText={setOtpCode}
                   />
 
-                  <TouchableOpacity style={styles.btnGreen} onPress={handleVerifyOtp} disabled={loading}>
+                  <TouchableOpacity style={styles.btnGreen} onPress={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
                     {loading
                       ? <ActivityIndicator color="#fff" />
-                      : <Text style={styles.btnText}>Verify & Sign In ✓</Text>
+                      : <Text style={styles.btnText}>Verify Code & Sign In ✓</Text>
                     }
                   </TouchableOpacity>
 
@@ -272,7 +316,7 @@ export default function AuthScreen() {
                       <Text style={styles.countdownText}>Resend code in {otpCountdown}s</Text>
                     ) : (
                       <TouchableOpacity onPress={handleSendOtp}>
-                        <Text style={styles.resendLink}>🔄 Resend OTP Code</Text>
+                        <Text style={styles.resendLink}>🔄 Resend Verification Code</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -283,7 +327,27 @@ export default function AuthScreen() {
 
           {mode === 'register' && (
             <>
-              <Text style={styles.label}>Full Name</Text>
+              {/* Role Selection */}
+              <Text style={styles.label}>Account Classification</Text>
+              <View style={styles.rolePicker}>
+                <TouchableOpacity
+                  style={[styles.roleBtn, role === 'citizen' && styles.activeRole]}
+                  onPress={() => setRole('citizen')}
+                >
+                  <Text style={styles.roleIcon}>👤</Text>
+                  <Text style={[styles.roleText, role === 'citizen' && styles.activeRoleText]}>Citizen / Patient</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.roleBtn, role === 'responder' && styles.activeRole]}
+                  onPress={() => setRole('responder')}
+                >
+                  <Text style={styles.roleIcon}>🚑</Text>
+                  <Text style={[styles.roleText, role === 'responder' && styles.activeRoleText]}>Ambulance / EMS</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Common Fields */}
+              <Text style={styles.label}>Full Legal Name *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter full legal name"
@@ -291,7 +355,8 @@ export default function AuthScreen() {
                 value={name}
                 onChangeText={setName}
               />
-              <Text style={styles.label}>Phone Number</Text>
+
+              <Text style={styles.label}>Primary Contact Number (+91) *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="+91 Mobile number"
@@ -300,7 +365,19 @@ export default function AuthScreen() {
                 value={regPhone}
                 onChangeText={setRegPhone}
               />
-              <Text style={styles.label}>Password</Text>
+
+              <Text style={styles.label}>Email Address (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="email@domain.com"
+                placeholderTextColor="#94a3b8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={regEmail}
+                onChangeText={setRegEmail}
+              />
+
+              <Text style={styles.label}>Account Password *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Choose a secure password"
@@ -310,9 +387,10 @@ export default function AuthScreen() {
                 onChangeText={setRegPass}
               />
 
+              {/* Citizen Specific Verification */}
               {role === 'citizen' && (
                 <>
-                  <Text style={styles.label}>Blood Group (Optional)</Text>
+                  <Text style={styles.label}>Blood Group (Emergency Profiling)</Text>
                   <View style={styles.bloodGroupContainer}>
                     {['A+', 'B+', 'O+', 'AB+', 'A-', 'B-', 'O-', 'AB-'].map(bg => (
                       <TouchableOpacity
@@ -324,31 +402,91 @@ export default function AuthScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
+
+                  <Text style={styles.label}>Government ID Document Type</Text>
+                  <View style={styles.idTypeContainer}>
+                    {(['Aadhaar', 'PAN Card', 'Driving License', 'Voter ID'] as const).map(idType => (
+                      <TouchableOpacity
+                        key={idType}
+                        style={[styles.idChip, govtIdType === idType && styles.idChipActive]}
+                        onPress={() => setGovtIdType(idType)}
+                      >
+                        <Text style={[styles.idChipText, govtIdType === idType && styles.idChipTextActive]}>{idType}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>{govtIdType} Number (Identity Verification)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={`Enter valid ${govtIdType} number`}
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={govtIdNumber}
+                    onChangeText={setGovtIdNumber}
+                  />
+
+                  <Text style={styles.label}>ABDM ABHA Health ID / Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. 91-1234-5678-9012 or citizen@abdm"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="none"
+                    value={abhaId}
+                    onChangeText={setAbhaId}
+                  />
+
+                  <Text style={styles.label}>Personal Vehicle Number (Emergency Clearance)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. KA-01-AB-1234 (Optional)"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={vehicleNumber}
+                    onChangeText={setVehicleNumber}
+                  />
                 </>
               )}
 
-              <Text style={styles.label}>I am a...</Text>
-              <View style={styles.rolePicker}>
-                <TouchableOpacity
-                  style={[styles.roleBtn, role === 'citizen' && styles.activeRole]}
-                  onPress={() => setRole('citizen')}
-                >
-                  <Text style={styles.roleIcon}>👤</Text>
-                  <Text style={[styles.roleText, role === 'citizen' && styles.activeRoleText]}>Citizen</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.roleBtn, role === 'responder' && styles.activeRole]}
-                  onPress={() => setRole('responder')}
-                >
-                  <Text style={styles.roleIcon}>🚑</Text>
-                  <Text style={[styles.roleText, role === 'responder' && styles.activeRoleText]}>Responder</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Responder Specific Verification */}
+              {role === 'responder' && (
+                <>
+                  <Text style={styles.label}>Unique Responder Badge ID / EMS Operator Code *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. AMB-BLR-104 or EMS-892"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={badgeId}
+                    onChangeText={setBadgeId}
+                  />
+
+                  <Text style={styles.label}>Ambulance Vehicle Registration Number *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. KA-01-EA-1088 / DL-01-AX-9999"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={vehicleRegNumber}
+                    onChangeText={setVehicleRegNumber}
+                  />
+
+                  <Text style={styles.label}>Emergency Medical / Heavy Driving License No. *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. DL-1420110012345"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={drivingLicense}
+                    onChangeText={setDrivingLicense}
+                  />
+                </>
+              )}
 
               <TouchableOpacity style={styles.btn} onPress={handleRegister} disabled={loading}>
                 {loading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Create Account →</Text>
+                  : <Text style={styles.btnText}>Register Verified {role === 'responder' ? 'Responder' : 'Citizen'} Node →</Text>
                 }
               </TouchableOpacity>
             </>
@@ -380,12 +518,9 @@ const styles = StyleSheet.create({
   input:          { backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, color: '#0f172a', fontSize: 14, borderWidth: 1, borderColor: '#cbd5e1', fontWeight: '600' },
   otpInput:       { textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: '900', color: '#e11d48' },
   helperText:     { color: '#64748b', fontSize: 11, marginTop: 6, fontWeight: '500' },
-  helperTextCenter: { color: '#64748b', fontSize: 11, marginTop: 6, fontWeight: '600', textAlign: 'center' },
   otpHeaderBox:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff1f2', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#fecdd3', marginTop: 4 },
   otpTargetText:  { color: '#9f1239', fontWeight: '800', fontSize: 12 },
   changeText:     { color: '#e11d48', fontWeight: '800', fontSize: 12, textDecorationLine: 'underline' },
-  hintBox:        { backgroundColor: '#fef3c7', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#fde68a', marginTop: 10, alignItems: 'center' },
-  hintText:       { color: '#92400e', fontWeight: '800', fontSize: 12 },
   resendRow:      { alignItems: 'center', marginTop: 16 },
   countdownText:  { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
   resendLink:     { color: '#e11d48', fontSize: 13, fontWeight: '800' },
@@ -404,6 +539,11 @@ const styles = StyleSheet.create({
   bgChipActive:   { backgroundColor: '#fff1f2', borderColor: '#e11d48' },
   bgText:         { color: '#475569', fontWeight: '700', fontSize: 13 },
   bgTextActive:   { color: '#e11d48' },
+  idTypeContainer:{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  idChip:         { backgroundColor: '#f1f5f9', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  idChipActive:   { backgroundColor: '#fff1f2', borderColor: '#e11d48' },
+  idChipText:     { color: '#475569', fontWeight: '700', fontSize: 11 },
+  idChipTextActive:{ color: '#e11d48', fontWeight: '800' },
   demoHelper:     { marginTop: 24, alignItems: 'center' },
   demoHelperText: { color: '#94a3b8', fontSize: 11, marginBottom: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   demoChips:      { flexDirection: 'column', gap: 6, width: '100%' },

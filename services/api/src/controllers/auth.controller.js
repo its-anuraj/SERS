@@ -52,7 +52,15 @@ const register = async (req, res, next) => {
             department = null,
             specialization = null,
             preferredLanguage = 'en',
-            bloodGroup
+            bloodGroup,
+            govtIdType = null,
+            govtIdNumber = null,
+            vehicleNumber = null,
+            badgeId = null,
+            vehicleRegNumber = null,
+            drivingLicense = null,
+            abhaId = null,
+            abhaAddress = null,
         } = req.body;
 
         // Check if phone already exists
@@ -61,7 +69,7 @@ const register = async (req, res, next) => {
             [phone]
         );
         if (existingUser.rows.length > 0) {
-            throw new ApiError(409, 'Phone number already registered');
+            throw new ApiError(409, 'Phone number already registered. Please sign in with your password or OTP.');
         }
 
         // Hash password
@@ -108,30 +116,43 @@ const register = async (req, res, next) => {
                 }
             }
 
-            // Insert user
+            // Insert user with government verification and vehicle fields
             const userResult = await client.query(
                 `INSERT INTO users (
                     name, phone, email, password_hash, role, hospital_id,
                     staff_title, department, specialization,
-                    preferred_language, is_active, is_verified
-                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, TRUE)
-                 RETURNING id, name, phone, email, role, hospital_id, staff_title, department, specialization, preferred_language, created_at`,
+                    preferred_language, govt_id_type, govt_id_number,
+                    vehicle_number, badge_id, vehicle_reg_number, driving_license,
+                    abha_id, abha_address,
+                    is_active, is_verified
+                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, TRUE, TRUE)
+                 RETURNING id, name, phone, email, role, hospital_id, staff_title, department, specialization,
+                           govt_id_type, govt_id_number, vehicle_number, badge_id, vehicle_reg_number, driving_license,
+                           abha_id, abha_address, preferred_language, created_at`,
                 [
                     name.trim(), phone.trim(), email ? email.trim() : null, passwordHash,
                     role, effectiveHospitalId,
                     staffTitle ? staffTitle.trim() : null,
                     department ? department.trim() : null,
                     specialization ? specialization.trim() : null,
-                    preferredLanguage
+                    preferredLanguage,
+                    govtIdType ? govtIdType.trim() : null,
+                    govtIdNumber ? govtIdNumber.trim() : null,
+                    vehicleNumber ? vehicleNumber.trim() : null,
+                    badgeId ? badgeId.trim() : null,
+                    vehicleRegNumber ? vehicleRegNumber.trim() : null,
+                    drivingLicense ? drivingLicense.trim() : null,
+                    abhaId ? abhaId.trim() : null,
+                    abhaAddress ? abhaAddress.trim() : null,
                 ]
             );
             const newUser = userResult.rows[0];
 
             // Create medical profile
             await client.query(
-                `INSERT INTO medical_profiles (user_id, blood_group) VALUES ($1, $2)`,
-                [newUser.id, bloodGroup || null]
-            );
+                `INSERT INTO medical_profiles (user_id, blood_group, abha_id, abha_address) VALUES ($1, $2, $3, $4)`,
+                [newUser.id, bloodGroup || null, abhaId || null, abhaAddress || null]
+            ).catch(() => {});
 
             // If doctor or hospital nurse, automatically record their initial duty shift check-in
             if (role === 'hospital_staff' && department) {
