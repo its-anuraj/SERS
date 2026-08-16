@@ -12,7 +12,7 @@
 
 DO $$
 DECLARE
-    citizen_hash TEXT := '$2b$12$2YmMgcPQ7fGcP9CZrlgb3esLesOBbyHZeXDnePjIHpXu3393BD0Uy';
+    citizen_hash TEXT := '$2b$10$xYgWcfCYzeQRhhJmz/Tt6e3sefeA1iHvsEeQxh0zD2t.Ep3rMpEx.';
 BEGIN
 
 INSERT INTO users (id, name, phone, email, password_hash, role, is_active, is_verified, phone_verified_at, preferred_language)

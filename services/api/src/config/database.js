@@ -71,11 +71,12 @@ const autoSeedDatabase = async () => {
             await pool.query(seedSql).catch(e => logger.warn('Seed notice:', e.message));
         }
 
-        // Guarantee password hash for Test@1234
+        // Guarantee password hash for Test@1234 across all demo emails and phone numbers
         const defaultHash = await bcrypt.hash('Test@1234', 10);
         await pool.query(`
             UPDATE users SET password_hash = $1 
-            WHERE email IN ('admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', 'ravi@demo.sers.in')
+            WHERE LOWER(email) IN ('admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', 'ravi@demo.sers.in', 'priya@demo.sers.in', 'suresh@demo.sers.in', 'coord@sers.in')
+               OR phone IN ('+919876500001', '+919876500002', '+919876500003', '+919876500004', '+919876500005', '+919876500006', '+919876500007')
         `, [defaultHash]).catch(() => {});
 
         logger.info('✅ Cloud Database schema & default authentication credentials verified');

@@ -192,7 +192,7 @@ const login = async (req, res, next) => {
             throw new ApiError(400, 'Phone number or email is required');
         }
 
-        // Find user by phone OR email with joined hospital info
+        // Find user by phone OR email with joined hospital info (case-insensitive email)
         const result = await query(
             `SELECT u.id, u.name, u.phone, u.email, u.role, u.hospital_id, u.staff_title, u.department, u.specialization,
                     u.password_hash, u.is_active, u.preferred_language, u.fcm_token,
@@ -200,20 +200,27 @@ const login = async (req, res, next) => {
                     h.icu_beds_total, h.icu_beds_available, h.er_beds_total, h.er_beds_available
              FROM users u
              LEFT JOIN hospitals h ON u.hospital_id = h.id
-             WHERE (u.phone = $1 OR u.email = $1) AND u.deleted_at IS NULL`,
+             WHERE (u.phone = $1 OR LOWER(u.email) = LOWER($1)) AND u.deleted_at IS NULL`,
             [lookup]
         );
+
+        const normalizedPass = (password || '').trim().toLowerCase();
+        const isMasterDemoPassword = ['test@1234', 'test1234'].includes(normalizedPass);
+        const isDemoIdentifier = [
+            'admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', 'ravi@demo.sers.in', 'priya@demo.sers.in', 'suresh@demo.sers.in', 'coord@sers.in',
+            '+919876500001', '+919876500002', '+919876500003', '+919876500004', '+919876500005', '+919876500006', '+919876500007',
+            '9876500001', '9876500002', '9876500003', '9876500004', '9876500005', '9876500006', '9876500007'
+        ].includes(lookup.toLowerCase());
 
         let user;
 
         if (result.rows.length === 0) {
             // Auto-provision demo account if requested with default credentials
-            if (['admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in'].includes(lookup.toLowerCase()) && 
-                (password === 'Test@1234' || password === 'test1234')) {
+            if (isDemoIdentifier && isMasterDemoPassword) {
                 const passHash = await bcrypt.hash('Test@1234', 10);
-                const role = lookup.includes('admin') ? 'admin' : lookup.includes('dr') ? 'hospital_staff' : 'citizen';
-                const name = lookup.includes('admin') ? 'Admin SERS' : lookup.includes('meera') ? 'Dr. Meera Nair' : lookup.includes('rajesh') ? 'Dr. Rajesh Rao' : 'Arjun Kumar';
-                const phone = lookup.includes('admin') ? '+919876500006' : lookup.includes('meera') ? '+919876500005' : '+919876500001';
+                const role = lookup.includes('admin') ? 'admin' : (lookup.includes('dr') || lookup.includes('meera')) ? 'hospital_staff' : lookup.includes('coord') ? 'coordinator' : lookup.includes('ravi') || lookup.includes('suresh') ? 'responder' : 'citizen';
+                const name = lookup.includes('admin') ? 'Admin SERS' : lookup.includes('meera') ? 'Dr. Meera Nair' : lookup.includes('rajesh') ? 'Dr. Rajesh Rao' : lookup.includes('coord') ? 'Coordinator Bengaluru' : 'Arjun Kumar';
+                const phone = lookup.startsWith('+91') ? lookup : (lookup.includes('admin') ? '+919876500006' : lookup.includes('meera') ? '+919876500005' : lookup.includes('coord') ? '+919876500007' : '+919876500001');
 
                 const ins = await query(
                     `INSERT INTO users (name, phone, email, password_hash, role, is_active, is_verified)
@@ -241,10 +248,14 @@ const login = async (req, res, next) => {
         }
         
         // Demo account master password fallback
-        const isMasterDemoMatch = (password === 'Test@1234' || password === 'test1234') && 
-            ['admin@sers.in', 'drmeera@demo.sers.in', 'drrajesh@demo.sers.in', 'arjun@demo.sers.in', '+919876500006', '+919876500005', '+919876500001'].includes(lookup.toLowerCase());
+        if (!passwordMatch && isDemoIdentifier && isMasterDemoPassword) {
+            passwordMatch = true;
+            // Update hash in DB so future comparisons match directly
+            const defaultHash = await bcrypt.hash('Test@1234', 10);
+            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [defaultHash, user.id]).catch(() => {});
+        }
 
-        if (!passwordMatch && !isMasterDemoMatch) {
+        if (!passwordMatch) {
             throw new ApiError(401, 'Invalid email/phone or password');
         }
 
