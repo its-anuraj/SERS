@@ -85,6 +85,11 @@ export default function AttendancePage() {
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     try {
       const u = localStorage.getItem('sers_user');
       if (u) setCurrentUser(JSON.parse(u));

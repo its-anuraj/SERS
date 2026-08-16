@@ -302,6 +302,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     try {
       const u = localStorage.getItem('sers_user');
       if (u) {

@@ -212,6 +212,11 @@ export default function IncidentsPage() {
   }, []);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     fetchIncidents();
   }, [fetchIncidents]);
 

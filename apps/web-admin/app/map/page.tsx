@@ -179,6 +179,11 @@ export default function AdminMapPage() {
 
   // ── Init Leaflet map
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     if (typeof window === 'undefined' || leafletMapRef.current) return;
 
     (async () => {

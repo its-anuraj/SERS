@@ -77,7 +77,14 @@ export default function FleetPage() {
     }
   }, []);
 
-  useEffect(() => { fetchFleet(); }, [fetchFleet]);
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+    fetchFleet();
+  }, [fetchFleet]);
 
   const openAdd = () => { setEditing(EMPTY); setModalOpen(true); };
   const openEdit = (a: Ambulance) => { setEditing(a); setModalOpen(true); };

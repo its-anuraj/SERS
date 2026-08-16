@@ -217,7 +217,14 @@ export default function AnalyticsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sers_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+    load();
+  }, [load]);
 
   const statCards = [
     { label: 'Total Incidents (30d)', value: summary?.incidents ? (summary.incidents.total_incidents ?? 0) : '—', sub: `${summary?.incidents?.resolved ?? 0} resolved`, color: '#dc2626', icon: AlertTriangle },
