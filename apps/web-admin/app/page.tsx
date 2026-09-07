@@ -111,9 +111,19 @@ function StatCard({ label, value, sub, icon: Icon, color, bgGradient, pulse, loa
   );
 }
 
-function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void }) {
+function IncidentRow({
+  incident,
+  onClick,
+  onResolve,
+}: {
+  incident: any;
+  onClick: () => void;
+  onResolve?: (e: React.MouseEvent, id: string) => void;
+}) {
   const borderColor = incident.severity === 'critical' ? '#e11d48'
     : incident.severity === 'moderate' ? '#ea580c' : '#059669';
+
+  const isActive = !['resolved', 'cancelled', 'false_alarm'].includes(incident.status);
 
   return (
     <div
@@ -121,11 +131,11 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
       className="glass-card glass-card-hover p-4 cursor-pointer group transition-all bg-white border border-slate-200/80 relative overflow-hidden"
       style={{ borderLeft: `4px solid ${borderColor}` }}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xl shrink-0">
-            {incidentTypeIcon(incident.type)}
+            {incident.description?.toLowerCase().includes('truck') ? '🚚' : incidentTypeIcon(incident.type)}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-xs font-mono text-slate-900 font-extrabold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                 {incident.incident_number || incident.id?.slice(0, 12)}
@@ -133,6 +143,11 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
               <span className={severityBadge(incident.severity)}>
                 {incident.severity?.toUpperCase()}
               </span>
+              {incident.description?.toLowerCase().includes('cabin_voice') && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                  🎙️ 3x VOICE TRIGGER
+                </span>
+              )}
             </div>
 
             <p className="text-sm font-extrabold text-slate-900 truncate group-hover:text-rose-600 transition-colors">
@@ -158,7 +173,20 @@ function IncidentRow({ incident, onClick }: { incident: any; onClick: () => void
             </div>
           </div>
         </div>
-        <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors shrink-0 mt-3" />
+
+        {/* 1-Tap Quick Resolve / Dismiss Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isActive && onResolve && (
+            <button
+              onClick={(e) => onResolve(e, incident.id)}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-black text-xs flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+              title="Manually resolve and dismiss this emergency alert">
+              <CheckCircle2 size={13} />
+              <span>Resolve</span>
+            </button>
+          )}
+          <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors mt-1" />
+        </div>
       </div>
     </div>
   );
@@ -432,6 +460,22 @@ export default function DashboardPage() {
     return () => { socket.disconnect(); };
   }, []);
 
+  const handleUpdateIncidentStatus = async (id: string, newStatus: string) => {
+    try {
+      await apiFetch(`/api/incidents/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus, notes: `Status manually set to ${newStatus} from Command Center` }),
+      });
+      setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: newStatus } : i));
+      if (selectedIncident?.id === id) {
+        setSelectedIncident((prev: any) => prev ? { ...prev, status: newStatus } : null);
+      }
+      await fetchAll();
+    } catch (err: any) {
+      alert('Failed to update incident: ' + err.message);
+    }
+  };
+
   const handleToggleDoctorDuty = async (newStatus: string) => {
     setDutyUpdating(true);
     try {
@@ -473,6 +517,7 @@ export default function DashboardPage() {
   };
 
   const activeIncidents = incidents.filter(i => !['resolved', 'cancelled', 'false_alarm'].includes(i.status));
+  const latestCriticalIncident = activeIncidents.find(i => i.severity === 'critical') || activeIncidents[0];
   const activeDoctorsOnDuty = onDutyDoctors.filter(d => d.status === 'on_duty' || d.status === 'in_ot');
   const myHospitalProfile = stats?.hospitalProfile || hospitals.find(h => h.id === currentUser?.hospitalId);
   const availableIcuBeds = myHospitalProfile?.icu_beds_available ?? (currentUser?.icuBedsAvailable ?? 8);
@@ -532,6 +577,51 @@ export default function DashboardPage() {
 
         {/* Main Content Area */}
         <div className="p-6 space-y-6 flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
+
+          {/* 🚨 ACTIVE IN-CABIN VEHICLE EMERGENCY BANNER (If Active Alert Exists) */}
+          {latestCriticalIncident && (
+            <div className="glass-card p-4 bg-gradient-to-r from-rose-600 via-rose-700 to-red-800 text-white rounded-2xl shadow-lg shadow-rose-600/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-rose-500 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl shrink-0">
+                  🚨
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black tracking-wider uppercase bg-white text-rose-800 px-2 py-0.5 rounded">
+                      ACTIVE EMERGENCY · {latestCriticalIncident.incident_number || latestCriticalIncident.id?.slice(0, 10)}
+                    </span>
+                    <span className="text-xs bg-rose-900/60 text-white font-bold px-2 py-0.5 rounded border border-rose-400/40">
+                      🚗 / 🚚 IN-CABIN VEHICLE TRIGGER
+                    </span>
+                  </div>
+                  <p className="text-sm font-extrabold text-white mt-1">
+                    {latestCriticalIncident.address || latestCriticalIncident.landmark || `Coordinates: ${latestCriticalIncident.latitude?.toFixed(4)}, ${latestCriticalIncident.longitude?.toFixed(4)}`}
+                  </p>
+                  <p className="text-xs text-rose-100 font-semibold line-clamp-1">
+                    {latestCriticalIncident.description || 'In-Cabin 3x Emergency voice distress alert received.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 1-Tap Resolve & False Alarm Actions */}
+              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateIncidentStatus(latestCriticalIncident.id, 'resolved')}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-900/30 cursor-pointer transition-all">
+                  <CheckCircle2 size={16} />
+                  <span>✅ Resolve & Remove Alert</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateIncidentStatus(latestCriticalIncident.id, 'false_alarm')}
+                  className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all">
+                  <X size={14} />
+                  <span>Mark False Alarm</span>
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Doctor / Medical Personnel Shift Status Quick Bar */}
           {isDoctorRole && (
@@ -669,7 +759,7 @@ export default function DashboardPage() {
                   <div className="glass-card p-10 text-center text-slate-500 font-bold bg-white border border-slate-200 rounded-2xl space-y-2">
                     <p className="text-sm font-black text-slate-800">No active alerts routed to this hospital</p>
                     <p className="text-xs text-slate-400 font-semibold">
-                      When a citizen SOS, road crash, or cardiac distress alert is dispatched to {currentUser?.hospitalName || 'your hospital'}, it will appear here in real-time.
+                      When a driver SOS, road crash, or 3x voice distress alert is triggered, it will appear here in real-time.
                     </p>
                   </div>
                 ) : (
@@ -678,6 +768,10 @@ export default function DashboardPage() {
                       key={inc.id}
                       incident={inc}
                       onClick={() => setSelectedIncident(inc)}
+                      onResolve={(e, id) => {
+                        e.stopPropagation();
+                        handleUpdateIncidentStatus(id, 'resolved');
+                      }}
                     />
                   ))
                 )}
@@ -834,6 +928,97 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-2">
                 <Save size={14} />
                 {savingBeds ? 'Saving...' : 'Update Live Capacity'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incident Detail & Resolution Modal */}
+      {selectedIncident && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedIncident(null)}>
+          <div className="glass-card bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+                  {selectedIncident.description?.toLowerCase().includes('truck') ? '🚚' : incidentTypeIcon(selectedIncident.type)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-black text-slate-900">{selectedIncident.incident_number || selectedIncident.id?.slice(0, 10)}</h4>
+                    {statusTag(selectedIncident.status)}
+                  </div>
+                  <p className="text-xs text-slate-500 font-bold">
+                    {selectedIncident.description?.toLowerCase().includes('truck') ? 'Heavy Cargo Truck Driver Emergency' : 'Vehicle Cabin Emergency Response'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedIncident(null)} className="p-2 rounded-xl bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Location */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+                <p className="text-[11px] font-black uppercase text-slate-500 flex items-center gap-1">
+                  <MapPin size={13} className="text-rose-600" /> Incident Location
+                </p>
+                <p className="text-xs font-bold text-slate-900">
+                  {selectedIncident.address || selectedIncident.landmark || 'Live GPS Coordinates'}
+                </p>
+                <p className="text-[11px] font-mono text-blue-600 font-bold">
+                  📍 {selectedIncident.latitude?.toFixed(5)}, {selectedIncident.longitude?.toFixed(5)}
+                </p>
+              </div>
+
+              {/* Description */}
+              {selectedIncident.description && (
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+                  <p className="text-[11px] font-black uppercase text-slate-500">Telemetry & Notes</p>
+                  <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                    {selectedIncident.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Patient / Driver details if present */}
+              {selectedIncident.patient && (
+                <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-200 space-y-1.5">
+                  <p className="text-[11px] font-black uppercase text-indigo-900">Driver / Patient Health Profile</p>
+                  <p className="text-xs font-bold text-slate-900">
+                    {selectedIncident.patient.name} ({selectedIncident.patient.phone || 'Emergency Contact'})
+                  </p>
+                  <div className="flex gap-2 flex-wrap text-[11px]">
+                    <span className="bg-white px-2 py-0.5 rounded border border-indigo-200 font-bold text-rose-600">
+                      Blood: {selectedIncident.patient.bloodGroup || 'O+'}
+                    </span>
+                    {selectedIncident.patient.allergies?.length > 0 && (
+                      <span className="bg-white px-2 py-0.5 rounded border border-indigo-200 font-medium text-slate-700">
+                        Allergies: {selectedIncident.patient.allergies.join(', ')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Resolution Actions */}
+            <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleUpdateIncidentStatus(selectedIncident.id, 'resolved')}
+                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5">
+                <CheckCircle2 size={16} />
+                <span>✅ Mark as Resolved (Clear Alert)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleUpdateIncidentStatus(selectedIncident.id, 'false_alarm')}
+                className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs cursor-pointer flex items-center justify-center gap-1">
+                <X size={14} />
+                <span>False Alarm</span>
               </button>
             </div>
           </div>

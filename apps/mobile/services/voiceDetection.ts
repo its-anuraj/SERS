@@ -59,7 +59,8 @@ const notifyState = (audioLevel: number = 0) => {
 
 /**
  * Process spoken transcript from microphone in real-time
- * Checks if transcript contains emergency keywords within 8 seconds window.
+ * Checks if transcript contains emergency keywords within a 15 seconds distress window.
+ * Counts all occurrences (e.g. "emergency emergency emergency" counts as 3 matches immediately).
  */
 export const processVoiceTranscript = (transcript: string): boolean => {
   if (!isListening || !transcript) return false;
@@ -68,27 +69,48 @@ export const processVoiceTranscript = (transcript: string): boolean => {
   lastSpokenTranscript = transcript;
   const now = Date.now();
 
-  // Prune matches older than 8 seconds (rapid distress window)
-  keywordMatches = keywordMatches.filter((m) => now - m.timestamp < 8000);
+  // Prune matches older than 15 seconds (cabin distress window)
+  keywordMatches = keywordMatches.filter((m) => now - m.timestamp < 15000);
 
-  // Check if any keyword matches
+  let newMatchesFound = 0;
+
+  // Search each keyword and count all occurrences in the transcript
   for (const keyword of EMERGENCY_KEYWORDS) {
-    if (normalized.includes(keyword)) {
-      keywordMatches.push({ word: keyword, timestamp: now });
-      console.log(`[VoiceDetection] 🗣️ Heard distress keyword: "${keyword}" (${keywordMatches.length}/3 matches)`);
-
-      notifyState();
-
-      if (keywordMatches.length >= 3) {
-        console.log(`[VoiceDetection] 🚨 3X DISTRESS KEYWORDS DETECTED IN 5 SECONDS! TRIGGERING SOS.`);
-        const lastKeyword = keyword;
-        keywordMatches = []; // Reset after trigger
-        notifyState();
-        triggerCallback?.({ keyword: lastKeyword, count: 3 });
-        return true;
+    // Regex with word boundary or substring match
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    const matches = normalized.match(regex);
+    if (matches && matches.length > 0) {
+      for (let i = 0; i < matches.length; i++) {
+        keywordMatches.push({ word: keyword, timestamp: now });
+        newMatchesFound++;
       }
+    }
+  }
+
+  // Fallback substring check if no whole-word boundary matched
+  if (newMatchesFound === 0) {
+    for (const keyword of EMERGENCY_KEYWORDS) {
+      if (normalized.includes(keyword)) {
+        keywordMatches.push({ word: keyword, timestamp: now });
+        newMatchesFound++;
+        break;
+      }
+    }
+  }
+
+  if (newMatchesFound > 0) {
+    console.log(`[VoiceDetection] 🗣️ Heard distress keyword(s). Current Count: (${keywordMatches.length}/3)`);
+    notifyState();
+
+    if (keywordMatches.length >= 3) {
+      console.log(`[VoiceDetection] 🚨 3X DISTRESS KEYWORDS DETECTED! ACTIVATING 10-SECOND PRE-ALERT SIREN.`);
+      const lastKeyword = keywordMatches[keywordMatches.length - 1]?.word || 'emergency';
+      keywordMatches = []; // Reset after trigger
+      notifyState();
+      triggerCallback?.({ keyword: lastKeyword, count: 3 });
       return true;
     }
+    return true;
   }
 
   notifyState();

@@ -545,7 +545,7 @@ const updateStatus = async (req, res, next) => {
 
         const validTransitions = {
             responder: ['en_route', 'arrived', 'transporting', 'resolved'],
-            hospital_staff: ['resolved'],
+            hospital_staff: ['assigned', 'en_route', 'arrived', 'transporting', 'resolved', 'cancelled', 'false_alarm'],
             admin: ['assigned', 'en_route', 'arrived', 'transporting', 'resolved', 'cancelled', 'false_alarm'],
             coordinator: ['assigned', 'en_route', 'arrived', 'transporting', 'resolved', 'cancelled', 'false_alarm'],
         };
@@ -581,7 +581,7 @@ const updateStatus = async (req, res, next) => {
             );
 
             // If resolved, free up ambulance
-            if (status === 'resolved' || status === 'false_alarm') {
+            if (status === 'resolved' || status === 'false_alarm' || status === 'cancelled') {
                 await client.query(
                     `UPDATE ambulances SET status = 'available', updated_at = NOW()
                      WHERE id = (SELECT assigned_ambulance_id FROM incidents WHERE id = $1)`,
@@ -590,10 +590,11 @@ const updateStatus = async (req, res, next) => {
             }
         });
 
-        // Broadcast status change via Socket.io
+        // Broadcast status change via Socket.io globally and per-incident room
         const io = getSocketIO();
         if (io) {
             io.to(`incident:${id}`).emit('incident:status', { incidentId: id, status, updatedBy: req.user?.id || 'system' });
+            io.emit('incident:status', { incidentId: id, status, updatedBy: req.user?.id || 'system' });
         }
 
         res.json({ success: true, message: `Incident status updated to ${status}` });

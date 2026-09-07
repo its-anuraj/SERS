@@ -1,8 +1,14 @@
 /**
- * Citizen Home Screen — Giant SOS Button + Live GPS Location + Voice SOS Recognition + Active Emergency Tracking
+ * Citizen / Driver Home Screen — Closed Vehicle & Driver Safety System (Car / Truck / Fleet)
+ * Features:
+ * - 3x "Emergency" / Distress Keyword Acoustic Cabin Voice Trigger
+ * - 10-Second Loud Emergency Siren & Vibration Pre-Alert Countdown
+ * - 1-Tap False Alarm Cancellation (Stops Siren & Prevents False Dispatch)
+ * - Live High-Precision GPS Telemetry & Reverse Geocoding
+ * - Realtime Web Admin Command Center Integration
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Dimensions, Animated, Vibration, Alert, Modal
@@ -18,6 +24,7 @@ import {
   startVoiceDetection, stopVoiceDetection, recordVoiceKeyword,
   onVoiceStateChange
 } from '../../services/voiceDetection';
+import { startEmergencySiren, stopEmergencySiren } from '../../services/sirenAlarm';
 import { dispatchOfflineSmsSOS } from '../../services/offlineSmsDispatch';
 
 const { width } = Dimensions.get('window');
@@ -25,6 +32,8 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
   const { emergencyContacts, appEnabled, toggleAppEnabled } = useSettingsStore();
+
+  // Active Emergency & Location States
   const [sosActive, setSosActive] = useState(false);
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -33,11 +42,93 @@ export default function HomeScreen() {
   const [coordinatesText, setCoordinatesText] = useState<string>('');
   const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
 
+  // Closed Vehicle Selection (Car, Truck, Fleet)
+  const [selectedVehicle, setSelectedVehicle] = useState<'car' | 'truck' | 'cab'>('car');
+
   // Voice SOS state
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceMatchCount, setVoiceMatchCount] = useState(0);
   const [recentVoiceKeywords, setRecentVoiceKeywords] = useState<string[]>([]);
   const [liveTranscript, setLiveTranscript] = useState<string>('');
+
+  // 10-Second Pre-Alert Siren Countdown State
+  const [isPreAlertOpen, setIsPreAlertOpen] = useState(false);
+  const [preAlertCountdown, setPreAlertCountdown] = useState(10);
+  const preAlertTimerRef = useRef<any>(null);
+  const pendingKeywordRef = useRef<string>('emergency');
+
+  // Persistent refs to avoid re-render effect cascades
+  const locationRef = useRef<Location.LocationObject | null>(null);
+  const emergencyContactsRef = useRef(emergencyContacts);
+  const activeIncidentIdRef = useRef<string | null>(null);
+  const lastGeocodeTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  useEffect(() => {
+    emergencyContactsRef.current = emergencyContacts;
+  }, [emergencyContacts]);
+
+  useEffect(() => {
+    activeIncidentIdRef.current = activeIncidentId;
+  }, [activeIncidentId]);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const gpsPulseAnim = useRef(new Animated.Value(1)).current;
+  const voicePulseAnim = useRef(new Animated.Value(1)).current;
+  const sirenFlashAnim = useRef(new Animated.Value(1)).current;
+
+  // SOS button pulse animation
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.08, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
+
+  // GPS indicator pulse
+  useEffect(() => {
+    const gpsPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(gpsPulseAnim, { toValue: 1.25, duration: 1000, useNativeDriver: true }),
+        Animated.timing(gpsPulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    gpsPulse.start();
+    return () => gpsPulse.stop();
+  }, [gpsPulseAnim]);
+
+  // Voice wave animation
+  useEffect(() => {
+    const voiceWave = Animated.loop(
+      Animated.sequence([
+        Animated.timing(voicePulseAnim, { toValue: 1.2, duration: 700, useNativeDriver: true }),
+        Animated.timing(voicePulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    voiceWave.start();
+    return () => voiceWave.stop();
+  }, [voicePulseAnim]);
+
+  // Siren Flashing animation for Pre-Alert Modal
+  useEffect(() => {
+    if (isPreAlertOpen) {
+      const flash = Animated.loop(
+        Animated.sequence([
+          Animated.timing(sirenFlashAnim, { toValue: 1.15, duration: 400, useNativeDriver: true }),
+          Animated.timing(sirenFlashAnim, { toValue: 0.95, duration: 400, useNativeDriver: true }),
+        ])
+      );
+      flash.start();
+      return () => flash.stop();
+    }
+  }, [isPreAlertOpen, sirenFlashAnim]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -56,64 +147,6 @@ export default function HomeScreen() {
       ]
     );
   };
-
-  // Persistent refs to avoid re-render effect cascades
-  const locationRef = useRef<Location.LocationObject | null>(null);
-  const emergencyContactsRef = useRef(emergencyContacts);
-  const activeIncidentIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    locationRef.current = location;
-  }, [location]);
-
-  useEffect(() => {
-    emergencyContactsRef.current = emergencyContacts;
-  }, [emergencyContacts]);
-
-  useEffect(() => {
-    activeIncidentIdRef.current = activeIncidentId;
-  }, [activeIncidentId]);
-
-  const pulseAnim = useState(new Animated.Value(1))[0];
-  const gpsPulseAnim = useRef(new Animated.Value(1)).current;
-  const voicePulseAnim = useRef(new Animated.Value(1)).current;
-  const lastGeocodeTimeRef = useRef<number>(0);
-
-  // SOS button pulse animation
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.08, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, []);
-
-  // GPS indicator pulse
-  useEffect(() => {
-    const gpsPulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(gpsPulseAnim, { toValue: 1.25, duration: 1000, useNativeDriver: true }),
-        Animated.timing(gpsPulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    gpsPulse.start();
-    return () => gpsPulse.stop();
-  }, []);
-
-  // Voice wave animation
-  useEffect(() => {
-    const voiceWave = Animated.loop(
-      Animated.sequence([
-        Animated.timing(voicePulseAnim, { toValue: 1.2, duration: 700, useNativeDriver: true }),
-        Animated.timing(voicePulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
-    );
-    voiceWave.start();
-    return () => voiceWave.stop();
-  }, []);
 
   // Update location and reverse geocode readable address
   const handleLocationUpdate = useCallback(async (loc: Location.LocationObject) => {
@@ -171,7 +204,6 @@ export default function HomeScreen() {
           return;
         }
 
-        // Try getting last known or current position safely
         let initialLoc = await Location.getLastKnownPositionAsync().catch(() => null);
         if (!initialLoc) {
           initialLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
@@ -207,22 +239,22 @@ export default function HomeScreen() {
     };
   }, [handleLocationUpdate]);
 
-  // Stable Voice SOS trigger handler
-  const triggerVoiceSOS = useCallback(async (keyword: string) => {
-    setVoiceModalOpen(false);
+  // Execute Final Emergency Dispatch to Backend & Sockets
+  const executeDispatchSOS = useCallback(async (keyword: string) => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    Vibration.vibrate([0, 300, 150, 300]);
+    Vibration.vibrate([0, 500, 200, 500]);
 
     const userLoc = locationRef.current;
     const contacts = emergencyContactsRef.current || [];
+    const vehicleLabel = selectedVehicle === 'truck' ? 'Heavy Cargo Truck' : selectedVehicle === 'cab' ? 'Commercial Fleet Cab' : 'Passenger Car';
 
     try {
       const res = await api.post('/incidents/auto-dispatch', {
         latitude: userLoc?.coords?.latitude || 28.4595,
         longitude: userLoc?.coords?.longitude || 77.0266,
-        type: 'medical',
-        source: 'voice',
-        description: `Voice Emergency SOS: 3x keywords matched ("${keyword}"). Automatic medical profile & bed reservation.`,
+        type: 'accident',
+        source: 'cabin_voice',
+        description: `🚨 IN-CABIN DRIVER EMERGENCY: Driver spoke "${keyword}" 3 times inside ${vehicleLabel} cabin. 10-second false alarm countdown expired without cancellation. Immediate hospital triage dispatched.`,
         notifyContacts: contacts.map(c => c.phone),
       });
 
@@ -235,12 +267,73 @@ export default function HomeScreen() {
         router.push('/sos-active' as any);
       }
     } catch (err) {
-      console.error('Voice SOS auto-dispatch error', err);
+      console.error('[SOS] Backend call failed, triggering SMS fallback...', err);
+      await dispatchOfflineSmsSOS({
+        latitude: userLoc?.coords?.latitude || 28.4595,
+        longitude: userLoc?.coords?.longitude || 77.0266,
+        type: 'accident',
+        source: 'cabin_voice',
+      });
       router.push('/sos-active' as any);
     }
-  }, []);
+  }, [selectedVehicle]);
 
-  // Subscribe to Voice Detection state once on mount
+  // 10-Second Pre-Alert Siren Countdown Launch
+  const startPreAlertCountdown = useCallback((keyword: string) => {
+    pendingKeywordRef.current = keyword;
+    setVoiceModalOpen(false);
+    setIsPreAlertOpen(true);
+    setPreAlertCountdown(10);
+
+    // Start loud siren audio & repeating vibration
+    startEmergencySiren();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+    if (preAlertTimerRef.current) clearInterval(preAlertTimerRef.current);
+
+    let count = 10;
+    preAlertTimerRef.current = setInterval(async () => {
+      count -= 1;
+      setPreAlertCountdown(count);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+      if (count <= 0) {
+        clearInterval(preAlertTimerRef.current);
+        preAlertTimerRef.current = null;
+        setIsPreAlertOpen(false);
+        await stopEmergencySiren();
+        await executeDispatchSOS(pendingKeywordRef.current);
+      }
+    }, 1000);
+  }, [executeDispatchSOS]);
+
+  // False Alarm Cancel Handler
+  const handleCancelPreAlert = async () => {
+    if (preAlertTimerRef.current) {
+      clearInterval(preAlertTimerRef.current);
+      preAlertTimerRef.current = null;
+    }
+    setIsPreAlertOpen(false);
+    await stopEmergencySiren();
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      '🟢 False Alarm Cancelled',
+      'In-cabin emergency pre-alert cancelled and siren stopped. No emergency responders were dispatched.'
+    );
+  };
+
+  // Immediate Dispatch (Skip Countdown)
+  const handleDispatchPreAlertNow = async () => {
+    if (preAlertTimerRef.current) {
+      clearInterval(preAlertTimerRef.current);
+      preAlertTimerRef.current = null;
+    }
+    setIsPreAlertOpen(false);
+    await stopEmergencySiren();
+    await executeDispatchSOS(pendingKeywordRef.current);
+  };
+
+  // Subscribe to Voice Detection state
   useEffect(() => {
     const unsub = onVoiceStateChange((state) => {
       setVoiceMatchCount(state.matchCount);
@@ -249,14 +342,19 @@ export default function HomeScreen() {
     });
 
     startVoiceDetection((data) => {
-      triggerVoiceSOS(data.keyword);
+      startPreAlertCountdown(data.keyword);
     });
 
     return () => {
       unsub();
       stopVoiceDetection();
+      if (preAlertTimerRef.current) {
+        clearInterval(preAlertTimerRef.current);
+        preAlertTimerRef.current = null;
+      }
+      stopEmergencySiren();
     };
-  }, [triggerVoiceSOS]);
+  }, [startPreAlertCountdown]);
 
   // Check for any ongoing active incident when screen comes into focus
   useFocusEffect(
@@ -288,7 +386,7 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const handleSOS = async () => {
+  const handleManualSOS = async () => {
     if (activeIncidentId) {
       router.push({ pathname: '/sos-active', params: { incidentId: activeIncidentId } });
       return;
@@ -300,12 +398,14 @@ export default function HomeScreen() {
 
     const userLoc = locationRef.current;
     const contacts = emergencyContactsRef.current || [];
+    const vehicleLabel = selectedVehicle === 'truck' ? 'Heavy Cargo Truck' : selectedVehicle === 'cab' ? 'Commercial Fleet Cab' : 'Passenger Car';
 
     try {
       const res = await api.post('/incidents/sos', {
         latitude: userLoc?.coords?.latitude || 28.4595,
         longitude: userLoc?.coords?.longitude || 77.0266,
-        type: 'medical',
+        type: 'accident',
+        description: `Manual Emergency Triggered by ${vehicleLabel} Driver`,
         notifyContacts: contacts.map(c => c.phone),
       });
 
@@ -318,11 +418,11 @@ export default function HomeScreen() {
         router.push('/sos-active' as any);
       }
     } catch (err) {
-      console.warn('[SOS] Internet failed or offline. Triggering Cellular GSM SMS fallback...');
+      console.warn('[SOS] Internet failed. Triggering Cellular SMS fallback...');
       await dispatchOfflineSmsSOS({
         latitude: userLoc?.coords?.latitude || 28.4595,
         longitude: userLoc?.coords?.longitude || 77.0266,
-        type: 'medical',
+        type: 'accident',
         source: 'manual_sos',
       });
       router.push('/sos-active' as any);
@@ -340,12 +440,12 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Arjun'} 👋</Text>
-          <Text style={styles.subtitle}>Stay safe. Help is always nearby.</Text>
+          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Driver'} 👋</Text>
+          <Text style={styles.subtitle}>🚗 SERS Closed-Vehicle & Cabin Safety Active</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => router.push('/(citizen)/contacts' as any)} style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'A'}</Text>
+            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'D'}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutHeaderBtn}>
             <Text style={styles.logoutHeaderBtnText}>🚪 Logout</Text>
@@ -354,6 +454,51 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Closed Vehicle Type Selector */}
+        <View style={styles.vehicleSelectorCard}>
+          <Text style={styles.vehicleSelectorLabel}>SELECT VEHICLE CABIN TYPE:</Text>
+          <View style={styles.vehicleToggleRow}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedVehicle('car');
+              }}
+              style={[styles.vehicleToggleBtn, selectedVehicle === 'car' && styles.vehicleToggleBtnActive]}
+            >
+              <Text style={{ fontSize: 16 }}>🚗</Text>
+              <Text style={[styles.vehicleToggleText, selectedVehicle === 'car' && styles.vehicleToggleTextActive]}>
+                Private Car
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedVehicle('truck');
+              }}
+              style={[styles.vehicleToggleBtn, selectedVehicle === 'truck' && styles.vehicleToggleBtnActive]}
+            >
+              <Text style={{ fontSize: 16 }}>🚚</Text>
+              <Text style={[styles.vehicleToggleText, selectedVehicle === 'truck' && styles.vehicleToggleTextActive]}>
+                Heavy Truck
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedVehicle('cab');
+              }}
+              style={[styles.vehicleToggleBtn, selectedVehicle === 'cab' && styles.vehicleToggleBtnActive]}
+            >
+              <Text style={{ fontSize: 16 }}>🚖</Text>
+              <Text style={[styles.vehicleToggleText, selectedVehicle === 'cab' && styles.vehicleToggleTextActive]}>
+                Fleet Cab
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Live GPS Location card with readable area + coordinates */}
         <View style={styles.locationBar}>
           <Animated.View style={[styles.locationPulseDot, { transform: [{ scale: gpsPulseAnim }] }]}>
@@ -383,12 +528,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Ongoing Active Incident Banner (shows if user backed out of active SOS) */}
+        {/* Ongoing Active Incident Banner */}
         {activeIncidentId && (
           <View style={styles.activeSosBanner}>
             <View style={{ flex: 1 }}>
               <Text style={styles.activeSosBannerTitle}>🚨 Emergency SOS in Progress</Text>
-              <Text style={styles.activeSosBannerSub}>Ambulance response is actively tracking you.</Text>
+              <Text style={styles.activeSosBannerSub}>Hospital & ambulance response is actively tracking your vehicle.</Text>
             </View>
             <TouchableOpacity
               style={styles.activeSosBannerBtn}
@@ -403,11 +548,11 @@ export default function HomeScreen() {
         <View style={styles.protectionCard}>
           <View style={styles.protectionInfo}>
             <Text style={styles.protectionTitle}>
-              {appEnabled ? '🛡️ SERS Active Protection: ON' : '⚪ SERS Protection: PAUSED'}
+              {appEnabled ? '🛡️ In-Cabin Crash & Voice Guard: ACTIVE' : '⚪ Vehicle Guard: PAUSED'}
             </Text>
             <Text style={styles.protectionSub}>
               {appEnabled
-                ? 'Crash sensors, Voice SOS & Smartwatch guard are active'
+                ? 'Monitors 3x "Emergency" distress voice, OBD-II airbag spikes & vehicular impact'
                 : 'Emergency sensors are temporarily paused'}
             </Text>
           </View>
@@ -423,11 +568,11 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* SOS Button — the hero element */}
+        {/* SOS Button */}
         <View style={styles.sosContainer}>
-          <Text style={styles.sosLabel}>EMERGENCY SOS</Text>
+          <Text style={styles.sosLabel}>VEHICLE DRIVER SOS</Text>
           <Text style={styles.sosSub}>
-            {activeIncidentId ? 'Tap to view live response or cancel SOS' : 'Hold for 1 second to trigger'}
+            {activeIncidentId ? 'Tap to view live response or cancel SOS' : 'Hold 1s or speak "Emergency" 3 times inside cabin'}
           </Text>
 
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -439,7 +584,7 @@ export default function HomeScreen() {
                 activeIncidentId && styles.sosButtonAlertActive
               ]}
               onPress={activeIncidentId ? () => router.push({ pathname: '/sos-active', params: { incidentId: activeIncidentId } }) : undefined}
-              onLongPress={handleSOS}
+              onLongPress={handleManualSOS}
               delayLongPress={800}
               activeOpacity={0.85}>
               {activeIncidentId ? (
@@ -454,7 +599,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Voice SOS Trigger Card */}
+          {/* 3x Voice SOS Trigger Card */}
           <TouchableOpacity
             style={styles.voiceSosCard}
             onPress={() => setVoiceModalOpen(true)}
@@ -464,9 +609,9 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 18 }}>🎙️</Text>
             </Animated.View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.voiceSosTitle}>Voice SOS Active (3x Keywords)</Text>
+              <Text style={styles.voiceSosTitle}>In-Cabin Voice SOS (3x 'Emergency')</Text>
               <Text style={styles.voiceSosSub}>
-                Say <Text style={styles.voiceKeyword}>"Help"</Text>, <Text style={styles.voiceKeyword}>"Bachao"</Text>, or <Text style={styles.voiceKeyword}>"Emergency"</Text> 3 times
+                Say <Text style={styles.voiceKeyword}>"Emergency"</Text> 3 times in cabin · 10s False Alarm Siren Active
               </Text>
             </View>
             <View style={styles.voiceCounterBadge}>
@@ -479,11 +624,11 @@ export default function HomeScreen() {
         <View style={styles.quickActions}>
           {[
             { icon: '🚗', label: 'Vehicle & OBD-II', route: '/(citizen)/vehicle', color: '#38bdf8' },
-            { icon: '⌚', label: 'Smartwatch Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
+            { icon: '⌚', label: 'Driver Vitals', route: '/(citizen)/vitals', color: '#ec4899' },
             { icon: '👨‍👩‍👧', label: 'Emergency Contacts', route: '/(citizen)/contacts', color: '#f59e0b' },
-            { icon: '🩺', label: 'ABDM Profile', route: '/(citizen)/abdm', color: '#a855f7' },
-            { icon: '🏥', label: 'Hospitals (Soon)', route: '/(citizen)/hospitals', color: '#3b82f6' },
-            { icon: '🚑', label: 'Track Ambulance', route: '/(citizen)/map', color: '#22c55e' },
+            { icon: '🩺', label: 'ABDM Health ID', route: '/(citizen)/abdm', color: '#a855f7' },
+            { icon: '🏥', label: 'Hospital Beds', route: '/(citizen)/hospitals', color: '#3b82f6' },
+            { icon: '🚑', label: 'Track Dispatch', route: '/(citizen)/map', color: '#22c55e' },
           ].map((action) => (
             <TouchableOpacity
               key={action.label}
@@ -499,11 +644,11 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Safety tip */}
+        {/* Driver Safety Protocol Tip */}
         <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 Safety Tip</Text>
+          <Text style={styles.tipTitle}>💡 In-Cabin Driver Safety Protocol</Text>
           <Text style={styles.tipText}>
-            Voice SOS listens continuously for emergency distress words. Saying emergency keywords 3 times will instantly alert nearest hospitals and dispatch ambulances with your medical history.
+            When driving a car or truck, if you get into distress or accident, simply speak <Text style={{ fontWeight: '800', color: '#dc2626' }}>"Emergency! Emergency! Emergency!"</Text>. A loud 10-second siren will sound to allow false-alarm cancellation before sending your exact GPS coordinates and vehicle details directly to the hospital command dashboard.
           </Text>
         </View>
 
@@ -515,19 +660,66 @@ export default function HomeScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* 🚨 10-SECOND PRE-ALERT SIREN COUNTDOWN MODAL (False Alarm Prevention) */}
+      <Modal visible={isPreAlertOpen} animationType="fade" transparent>
+        <View style={styles.countdownBackdrop}>
+          <View style={styles.countdownCard}>
+            <Animated.View style={{ transform: [{ scale: sirenFlashAnim }] }}>
+              <Text style={{ fontSize: 58, textAlign: 'center', marginBottom: 6 }}>🚨</Text>
+            </Animated.View>
+
+            <Text style={styles.countdownTitle}>IN-CABIN EMERGENCY DETECTED</Text>
+            <Text style={styles.countdownSub}>
+              Heard 3x Emergency voice distress inside {selectedVehicle === 'truck' ? 'Heavy Truck' : selectedVehicle === 'cab' ? 'Commercial Cab' : 'Car'} cabin.
+            </Text>
+
+            <View style={styles.sirenActivePill}>
+              <Text style={styles.sirenActiveText}>🔊 LOUD SIREN & VIBRATION ACTIVE</Text>
+            </View>
+
+            <Text style={styles.countdownNumber}>{preAlertCountdown}</Text>
+            <Text style={styles.countdownSecondsLabel}>SECONDS REMAINING</Text>
+
+            <Text style={styles.countdownWarningText}>
+              Automatic trauma bed reservation and ambulance dispatch in {preAlertCountdown}s. If this is a false alarm, tap CANCEL below.
+            </Text>
+
+            <View style={{ width: '100%', gap: 12, marginTop: 16 }}>
+              {/* Green Cancel Button */}
+              <TouchableOpacity
+                style={styles.cancelPreAlertBtn}
+                onPress={handleCancelPreAlert}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cancelPreAlertBtnText}>🟢 I'M OK — CANCEL FALSE ALARM (STOP SIREN)</Text>
+              </TouchableOpacity>
+
+              {/* Red Dispatch Immediately Button */}
+              <TouchableOpacity
+                style={styles.dispatchPreAlertNowBtn}
+                onPress={handleDispatchPreAlertNow}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.dispatchPreAlertNowBtnText}>🚨 DISPATCH EMERGENCY NOW (SKIP TIMER)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Voice SOS Interactive Panel Modal */}
       <Modal visible={voiceModalOpen} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
           <View style={styles.voiceModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.voiceModalTitle}>🎙️ Voice SOS Emergency Engine</Text>
+              <Text style={styles.voiceModalTitle}>🎙️ In-Cabin Voice Distress Engine</Text>
               <TouchableOpacity onPress={() => setVoiceModalOpen(false)} style={styles.closeBtn}>
                 <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <Text style={styles.voiceModalDesc}>
-              Say any emergency keyword <Text style={{ color: '#ef4444', fontWeight: '800' }}>3 times</Text> (e.g. "Help Help Help", "Bachao Bachao Bachao", or "Emergency, Madad Karo, Help") to trigger instant automatic hospital dispatch with your medical record & allergies.
+              Say any emergency keyword <Text style={{ color: '#ef4444', fontWeight: '800' }}>3 times</Text> (e.g. "Emergency Emergency Emergency" or "Bachao Bachao Bachao") to trigger the 10-second siren countdown and automatic hospital alert.
             </Text>
 
             {/* Keyword Progress Circles */}
@@ -548,10 +740,10 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.progressLabel}>
               {voiceMatchCount === 0
-                ? 'Listening for emergency keywords...'
+                ? 'Listening for distress words inside vehicle cabin...'
                 : voiceMatchCount < 3
-                ? `${voiceMatchCount}/3 keywords detected! Say ${3 - voiceMatchCount} more to dispatch!`
-                : '🚨 3/3 MATCHED! DISPATCHING EMERGENCY SOS!'}
+                ? `${voiceMatchCount}/3 keywords detected! Say ${3 - voiceMatchCount} more to trigger siren!`
+                : '🚨 3/3 MATCHED! ACTIVATING 10-SECOND SIREN ALARM!'}
             </Text>
 
             {/* Live Microphone Visualizer */}
@@ -560,7 +752,7 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 36 }}>🎙️</Text>
               </Animated.View>
               <Text style={styles.liveMicStatus}>
-                Phone Microphone is <Text style={{ color: '#22c55e', fontWeight: '900' }}>LISTENING LIVE</Text>
+                Microphone is <Text style={{ color: '#22c55e', fontWeight: '900' }}>LISTENING LIVE IN CABIN</Text>
               </Text>
             </View>
 
@@ -568,18 +760,32 @@ export default function HomeScreen() {
             <View style={styles.transcriptBox}>
               <Text style={styles.transcriptLabel}>Live Speech Transcript (Real Input):</Text>
               <Text style={styles.transcriptText}>
-                {liveTranscript ? `🗣️ "${liveTranscript}"` : 'Listening... Speak distress words into your phone microphone.'}
+                {liveTranscript ? `🗣️ "${liveTranscript}"` : 'Listening... Speak "Emergency! Emergency! Emergency!" into phone.'}
               </Text>
             </View>
+
+            {/* One-Tap 3x Emergency Test Trigger (For Demos & Interviews) */}
+            <TouchableOpacity
+              style={styles.testVoiceTriggerBtn}
+              onPress={() => startPreAlertCountdown('emergency')}
+            >
+              <Text style={styles.testVoiceTriggerText}>
+                ⚡ SIMULATE 3x "EMERGENCY" VOICE TRIGGER (TEST 10s SIREN)
+              </Text>
+            </TouchableOpacity>
 
             {/* Recognized Keywords Reference Grid */}
             <View style={styles.keywordsGridSection}>
               <Text style={styles.keywordsSectionLabel}>Recognized Distress Keywords:</Text>
               <View style={styles.keywordsGrid}>
-                {['"Help"', '"Bachao"', '"Emergency"', '"Madad Karo"', '"Ambulance"', '"Save Me"'].map((kw) => (
-                  <View key={kw} style={styles.kwBadge}>
-                    <Text style={styles.kwBadgeText}>{kw}</Text>
-                  </View>
+                {['"Emergency"', '"Help"', '"Bachao"', '"Madad Karo"', '"Ambulance"', '"Save Me"'].map((kw) => (
+                  <TouchableOpacity
+                    key={kw}
+                    style={styles.kwBadge}
+                    onPress={() => handleVoiceTestKeyword(kw.replace(/"/g, ''))}
+                  >
+                    <Text style={styles.kwBadgeText}>{kw} 🗣️</Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -597,7 +803,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
   },
   greeting: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  subtitle: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  subtitle: { fontSize: 13, color: '#0284c7', marginTop: 2, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
@@ -629,6 +835,26 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   logoutBottomText: { color: '#dc2626', fontWeight: '800', fontSize: 14 },
+
+  vehicleSelectorCard: {
+    marginHorizontal: 20, marginBottom: 14, padding: 12,
+    backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+  },
+  vehicleSelectorLabel: {
+    fontSize: 10, fontWeight: '900', color: '#64748b', letterSpacing: 0.5, marginBottom: 8,
+  },
+  vehicleToggleRow: { flexDirection: 'row', gap: 8 },
+  vehicleToggleBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 8, borderRadius: 10, backgroundColor: '#f1f5f9',
+    borderWidth: 1, borderColor: '#cbd5e1',
+  },
+  vehicleToggleBtnActive: {
+    backgroundColor: '#0284c7', borderColor: '#0369a1',
+  },
+  vehicleToggleText: { fontSize: 12, fontWeight: '700', color: '#475569' },
+  vehicleToggleTextActive: { color: '#ffffff', fontWeight: '900' },
 
   locationBar: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
@@ -686,7 +912,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
   protectionInfo: { flex: 1, marginRight: 12 },
-  protectionTitle: { color: '#0f172a', fontWeight: '800', fontSize: 14, marginBottom: 2 },
+  protectionTitle: { color: '#0f172a', fontWeight: '800', fontSize: 13, marginBottom: 2 },
   protectionSub: { color: '#64748b', fontSize: 11, lineHeight: 15 },
   switchTrack: {
     width: 52, height: 30, borderRadius: 15, padding: 3, justifyContent: 'center',
@@ -701,7 +927,7 @@ const styles = StyleSheet.create({
   switchThumbOff: { alignSelf: 'flex-start' },
 
   sosContainer: { alignItems: 'center', marginBottom: 28, paddingHorizontal: 20 },
-  sosLabel: { fontSize: 13, fontWeight: '700', color: '#64748b', letterSpacing: 2, marginBottom: 4 },
+  sosLabel: { fontSize: 13, fontWeight: '800', color: '#64748b', letterSpacing: 2, marginBottom: 4 },
   sosSub: { fontSize: 12, color: '#94a3b8', marginBottom: 20, textAlign: 'center' },
   sosButton: {
     width: width * 0.55, height: width * 0.55, borderRadius: width * 0.275,
@@ -727,12 +953,12 @@ const styles = StyleSheet.create({
   },
   voiceSosTitle: { color: '#0f172a', fontWeight: '800', fontSize: 13, marginBottom: 2 },
   voiceSosSub: { color: '#64748b', fontSize: 11 },
-  voiceKeyword: { color: '#2563eb', fontWeight: '700' },
+  voiceKeyword: { color: '#dc2626', fontWeight: '800' },
   voiceCounterBadge: {
-    backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0',
+    backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1, borderColor: '#fca5a5',
   },
-  voiceCounterText: { color: '#ef4444', fontWeight: '900', fontSize: 12 },
+  voiceCounterText: { color: '#dc2626', fontWeight: '900', fontSize: 12 },
 
   quickActions: {
     flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12, marginBottom: 20,
@@ -756,6 +982,52 @@ const styles = StyleSheet.create({
   },
   tipTitle: { fontSize: 13, fontWeight: '800', color: '#1d4ed8', marginBottom: 6 },
   tipText: { fontSize: 12, color: '#334155', lineHeight: 18 },
+
+  // Pre-Alert Siren Countdown Modal Styles
+  countdownBackdrop: {
+    flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.88)', justifyContent: 'center', alignItems: 'center', padding: 20,
+  },
+  countdownCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ef4444',
+    width: '100%',
+    shadowColor: '#ef4444',
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  countdownTitle: { color: '#dc2626', fontWeight: '900', fontSize: 18, marginBottom: 4, textAlign: 'center', letterSpacing: 0.5 },
+  countdownSub: { color: '#475569', fontSize: 12, textAlign: 'center', lineHeight: 17, marginBottom: 10, fontWeight: '600' },
+  sirenActivePill: {
+    backgroundColor: '#fee2e2', paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: '#fca5a5', marginBottom: 12,
+  },
+  sirenActiveText: { color: '#dc2626', fontSize: 11, fontWeight: '900' },
+  countdownNumber: { color: '#dc2626', fontSize: 80, fontWeight: '900', lineHeight: 85 },
+  countdownSecondsLabel: { color: '#64748b', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, marginBottom: 12 },
+  countdownWarningText: { color: '#64748b', fontSize: 11, textAlign: 'center', lineHeight: 16, paddingHorizontal: 10 },
+  cancelPreAlertBtn: {
+    backgroundColor: '#16a34a',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#16a34a',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cancelPreAlertBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 13, textAlign: 'center' },
+  dispatchPreAlertNowBtn: {
+    backgroundColor: '#dc2626',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  dispatchPreAlertNowBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
 
   modalBackdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
@@ -803,12 +1075,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 14,
     padding: 14,
-    marginVertical: 12,
+    marginVertical: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   transcriptLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-  transcriptText: { color: '#0f172a', fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+  transcriptText: { color: '#0f172a', fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
+
+  testVoiceTriggerBtn: {
+    backgroundColor: '#dc2626',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginVertical: 10,
+    shadowColor: '#dc2626',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  testVoiceTriggerText: { color: '#ffffff', fontWeight: '900', fontSize: 12, textAlign: 'center' },
 
   keywordsGridSection: { marginTop: 4 },
   keywordsSectionLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 8 },
@@ -816,8 +1101,8 @@ const styles = StyleSheet.create({
   kwBadge: {
     backgroundColor: '#f1f5f9',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
