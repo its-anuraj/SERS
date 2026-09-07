@@ -72,3 +72,23 @@ docker-compose.override.yml
 firebase-service-account.json
 google-services.json
 GoogleService-Info.plist
+
+# ---- TypeScript Build Info ----
+*.tsbuildinfo
+
+# ---- Internal Docs, Audits, Synopsis, Red-Team & Planning ----
+synopsis/
+*.tex
+scratch/
+*audit*
+*rejection*
+*edge_case*
+*edgecase*
+*project_audit*
+*.draft.*
+*.draft.md
+*.notes.md
+*.plan.md
+services/api/src/db/audit_test.js
+services/api/src/db/cleanup_test.js
+
